@@ -33,6 +33,9 @@ interface IncidentStore {
   resolveIncident: (id: string, notes: string, photosAfter: string[], officerName?: string) => void;
   rateIncident: (id: string, stars: number, criteria: string[], comment?: string) => void;
   upvoteIncident: (id: string) => void;
+  addIncidentPhotos: (id: string, newPhotos: string[]) => void;
+  updateIncidentDescription: (id: string, description: string, title?: string) => void;
+  deleteIncident: (id: string) => void;
   resetToDefaultData: () => void;
 }
 
@@ -253,6 +256,48 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         : item
     );
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    set({ incidents: updated });
+  },
+
+  addIncidentPhotos: (id, newPhotos) => {
+    if (!newPhotos.length) return;
+    const updated = get().incidents.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            photosBefore: [...item.photosBefore, ...newPhotos],
+            updatedAt: new Date().toISOString(),
+          }
+        : item
+    );
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    set({ incidents: updated });
+  },
+
+  updateIncidentDescription: (id, description, title) => {
+    const updated = get().incidents.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            ...(title ? { title } : {}),
+            description,
+            updatedAt: new Date().toISOString(),
+          }
+        : item
+    );
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    set({ incidents: updated });
+  },
+
+  deleteIncident: (id) => {
+    const updated = get().incidents.filter((item) => item.id !== id);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
     set({ incidents: updated });
   },
 

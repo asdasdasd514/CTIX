@@ -19,7 +19,14 @@ import {
   Clock,
   ShieldCheck,
   PhoneCall,
+  Plus,
+  X,
 } from 'lucide-react';
+
+interface UploadedPhoto {
+  url: string;
+  name: string;
+}
 
 const CATEGORIES: {
   id: IncidentCategory;
@@ -30,43 +37,43 @@ const CATEGORIES: {
   bg: string;
   activeBorder: string;
 }[] = [
-    {
-      id: 'street_light',
-      name: 'Đèn đường chiếu sáng',
-      desc: 'Mất điện, bóng cháy, chập chờn ban đêm',
-      icon: Lightbulb,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-      activeBorder: 'border-amber-500 ring-1 ring-amber-500 bg-amber-50/70',
-    },
-    {
-      id: 'flooding',
-      name: 'Ngập nước sau mưa',
-      desc: 'Đọng nước sâu, cống nghẹt rác',
-      icon: Waves,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      activeBorder: 'border-blue-600 ring-1 ring-blue-500 bg-blue-50/70',
-    },
-    {
-      id: 'waste',
-      name: 'Rác thải tự phát',
-      desc: 'Bãi rác trái phép, phế thải bốc mùi',
-      icon: Trash2,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
-      activeBorder: 'border-emerald-600 ring-1 ring-emerald-500 bg-emerald-50/70',
-    },
-    {
-      id: 'road_damage',
-      name: 'Mặt đường & Ổ gà',
-      desc: 'Mặt đường sụt lún, hố sâu nguy hiểm',
-      icon: Construction,
-      color: 'text-rose-600',
-      bg: 'bg-rose-50',
-      activeBorder: 'border-rose-600 ring-1 ring-rose-500 bg-rose-50/70',
-    },
-  ];
+  {
+    id: 'street_light',
+    name: 'Đèn đường chiếu sáng',
+    desc: 'Mất điện, bóng cháy, chập chờn ban đêm',
+    icon: Lightbulb,
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
+    activeBorder: 'border-amber-500 ring-1 ring-amber-500 bg-amber-50/70',
+  },
+  {
+    id: 'flooding',
+    name: 'Ngập nước sau mưa',
+    desc: 'Đọng nước sâu, cống nghẹt rác',
+    icon: Waves,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    activeBorder: 'border-blue-600 ring-1 ring-blue-500 bg-blue-50/70',
+  },
+  {
+    id: 'waste',
+    name: 'Rác thải tự phát',
+    desc: 'Bãi rác trái phép, phế thải bốc mùi',
+    icon: Trash2,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    activeBorder: 'border-emerald-600 ring-1 ring-emerald-500 bg-emerald-50/70',
+  },
+  {
+    id: 'road_damage',
+    name: 'Mặt đường & Ổ gà',
+    desc: 'Mặt đường sụt lún, hố sâu nguy hiểm',
+    icon: Construction,
+    color: 'text-rose-600',
+    bg: 'bg-rose-50',
+    activeBorder: 'border-rose-600 ring-1 ring-rose-500 bg-rose-50/70',
+  },
+];
 
 export const SubmitIncidentWizard: React.FC = () => {
   const navigate = useNavigate();
@@ -75,10 +82,15 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const [step, setStep] = useState<1 | 2>(1);
 
-  const [photoUrl, setPhotoUrl] = useState<string>(
-    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80'
-  );
-  const [photoName, setPhotoName] = useState<string>('anh-hien-truong-1.jpg');
+  // Hỗ trợ tải lên NHIỀU ẢNH hiện trường
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([
+    {
+      url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80',
+      name: 'anh-hien-truong-1.jpg',
+    },
+  ]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
+
   const [selectedCategory, setSelectedCategory] = useState<IncidentCategory>('street_light');
   const [description, setDescription] = useState<string>(
     'Bóng đèn cao áp tại ngõ 2 bị chập chờn và tắt hẳn 3 ngày nay, ban đêm rất tối và nguy hiểm.'
@@ -101,39 +113,84 @@ export const SubmitIncidentWizard: React.FC = () => {
     code: string;
   } | null>(null);
 
+  const activePhoto = photos[activePhotoIndex] || photos[0];
+
+  // Xử lý chọn NHIỀU ảnh thật từ máy tính/điện thoại
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoName(file.name);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setPhotoUrl(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    const readers = fileList.map(
+      (file) =>
+        new Promise<UploadedPhoto>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            resolve({
+              url: (event.target?.result as string) || '',
+              name: file.name,
+            });
+          };
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(readers).then((loadedPhotos) => {
+      const valid = loadedPhotos.filter((p) => p.url);
+      if (valid.length > 0) {
+        setPhotos((prev) => {
+          const next = [...prev, ...valid];
+          setActivePhotoIndex(next.length - 1);
+          return next;
+        });
+      }
+      e.target.value = '';
+    });
+  };
+
+  // Xóa một ảnh khỏi danh sách
+  const handleRemovePhoto = (idx: number) => {
+    setPhotos((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((_, i) => i !== idx);
+      setActivePhotoIndex((curr) => (curr >= next.length ? next.length - 1 : curr));
+      return next;
+    });
   };
 
   const handleSelectSample = (category: IncidentCategory) => {
     setSelectedCategory(category);
+    let sample: UploadedPhoto;
     if (category === 'street_light') {
-      setPhotoUrl('https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80');
+      sample = {
+        url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80',
+        name: 'anh-mau-den-duong.jpg',
+      };
       setDescription('Đèn chiếu sáng công cộng tại ngõ 2 tắt hoàn toàn ban đêm.');
-      setPhotoName('anh-mau-den-duong.jpg');
     } else if (category === 'flooding') {
-      setPhotoUrl('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&auto=format&fit=crop&q=80');
+      sample = {
+        url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&auto=format&fit=crop&q=80',
+        name: 'anh-mau-ngap-nuoc.jpg',
+      };
       setDescription('Nước ngập nửa bánh xe máy sau cơn mưa lớn, cống thoát nước bị nghẹt.');
-      setPhotoName('anh-mau-ngap-nuoc.jpg');
     } else if (category === 'waste') {
-      setPhotoUrl('https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?w=600&auto=format&fit=crop&q=80');
+      sample = {
+        url: 'https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?w=600&auto=format&fit=crop&q=80',
+        name: 'anh-mau-rac-thai.jpg',
+      };
       setDescription('Bãi rác tự phát lớn tràn ra lòng đường, bốc mùi hôi thối.');
-      setPhotoName('anh-mau-rac-thai.jpg');
     } else {
-      setPhotoUrl('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=600&auto=format&fit=crop&q=80');
+      sample = {
+        url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=600&auto=format&fit=crop&q=80',
+        name: 'anh-mau-o-ga.jpg',
+      };
       setDescription('Hố sụt lún ổ gà sâu giữa đường xe chạy, nguy cơ té ngã cho người tham gia giao thông.');
-      setPhotoName('anh-mau-o-ga.jpg');
     }
+    setPhotos((prev) => {
+      const next = [sample, ...prev.filter((p) => p.url !== sample.url)];
+      return next;
+    });
+    setActivePhotoIndex(0);
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
@@ -200,7 +257,7 @@ export const SubmitIncidentWizard: React.FC = () => {
       description,
       category: selectedCategory,
       location,
-      photosBefore: [photoUrl],
+      photosBefore: photos.map((p) => p.url),
       senderPhone: phone,
       senderName: senderName || 'Công dân ẩn danh',
     });
@@ -214,7 +271,7 @@ export const SubmitIncidentWizard: React.FC = () => {
     } else {
       setNotification({
         type: 'success',
-        message: `Gửi phản ánh thành công! Mã hồ sơ của bạn là ${result.incident.code}. UBND Phường Trấn Biên tiếp nhận xử lý trong thời gian cam kết.`,
+        message: `Gửi phản ánh thành công kèm ${photos.length} ảnh hiện trường! Mã hồ sơ của bạn là ${result.incident.code}. UBND Phường Trấn Biên tiếp nhận xử lý trong thời gian cam kết.`,
         code: result.incident.code,
       });
     }
@@ -224,22 +281,22 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC (GỌN GÀNG, CHỐNG TRÀN MOBILE) */}
-      <div className="bg-blue-900 text-white rounded-none p-4 sm:p-6 shadow-sm border border-blue-950">
+      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC */}
+      <div className="bg-blue-900 text-white rounded-[5px] p-4 sm:p-6 shadow-sm border border-blue-950">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="space-y-1 min-w-0">
-            <span className="inline-block bg-white/15 text-white text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-white/20">
+            <span className="inline-block bg-white/15 text-white text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-white/20">
               Dịch Vụ Dân Sinh • Phường Trấn Biên
             </span>
             <h1 className="text-lg sm:text-2xl font-black tracking-tight">
               Gửi Phản Ánh Hiện Trường Mới
             </h1>
             <p className="text-xs text-blue-100 font-medium">
-              2 bước nhanh chóng: Điền thông tin & tải ảnh, sau đó chọn vị trí trên bản đồ
+              2 bước nhanh chóng: Điền thông tin & tải nhiều ảnh, sau đó chọn vị trí trên bản đồ
             </p>
           </div>
 
-          <div className="hidden lg:flex items-center gap-3 bg-white/10 p-3 rounded-none border border-white/20 text-xs shrink-0">
+          <div className="hidden lg:flex items-center gap-3 bg-white/10 p-3 rounded-[5px] border border-white/20 text-xs shrink-0">
             <ShieldCheck className="w-7 h-7 text-cyan-300 shrink-0" />
             <div>
               <div className="font-extrabold text-white">Cam kết tiếp nhận & xử lý</div>
@@ -248,17 +305,17 @@ export const SubmitIncidentWizard: React.FC = () => {
           </div>
         </div>
 
-        {/* Thanh 2 Bước (Xếp dọc trên mobile nhỏ, 2 cột ngang từ sm trở lên) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/20">
           <button
             type="button"
             onClick={() => setStep(1)}
-            className={`p-2.5 sm:p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${step === 1
-              ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
-              : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
-              }`}
+            className={`p-2.5 sm:p-3 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
+              step === 1
+                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+            }`}
           >
-            <span className="w-5 h-5 rounded-none bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
+            <span className="w-5 h-5 rounded-[5px] bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
               1
             </span>
             <span>Bước 1: Thông tin & Ảnh hiện trường</span>
@@ -267,12 +324,13 @@ export const SubmitIncidentWizard: React.FC = () => {
           <button
             type="button"
             onClick={() => setStep(2)}
-            className={`p-2.5 sm:p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${step === 2
-              ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
-              : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
-              }`}
+            className={`p-2.5 sm:p-3 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
+              step === 2
+                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+            }`}
           >
-            <span className="w-5 h-5 rounded-none bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
+            <span className="w-5 h-5 rounded-[5px] bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
               2
             </span>
             <span>Bước 2: Chọn vị trí trên bản đồ</span>
@@ -283,15 +341,17 @@ export const SubmitIncidentWizard: React.FC = () => {
       {/* THÔNG BÁO KẾT QUẢ SAU KHI GỬI */}
       {notification && (
         <div
-          className={`p-4 sm:p-6 rounded-none border shadow-sm ${notification.type === 'duplicate'
-            ? 'bg-amber-50 border-amber-300 text-amber-900'
-            : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-            }`}
+          className={`p-4 sm:p-6 rounded-[5px] border shadow-sm ${
+            notification.type === 'duplicate'
+              ? 'bg-amber-50 border-amber-300 text-amber-900'
+              : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+          }`}
         >
           <div className="flex items-start gap-3 sm:gap-4">
             <CheckCircle2
-              className={`w-7 h-7 sm:w-8 sm:h-8 shrink-0 ${notification.type === 'duplicate' ? 'text-amber-600' : 'text-emerald-600'
-                }`}
+              className={`w-7 h-7 sm:w-8 sm:h-8 shrink-0 ${
+                notification.type === 'duplicate' ? 'text-amber-600' : 'text-emerald-600'
+              }`}
             />
             <div className="space-y-2 min-w-0 flex-1">
               <h3 className="font-extrabold text-base sm:text-lg">
@@ -303,7 +363,7 @@ export const SubmitIncidentWizard: React.FC = () => {
               <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                 <button
                   onClick={() => navigate('/citizen/reports')}
-                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition"
+                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition"
                 >
                   <span>Xem hồ sơ trong danh sách Phản ánh</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
@@ -313,7 +373,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                     setNotification(null);
                     setStep(1);
                   }}
-                  className="px-4 py-2.5 bg-white border border-slate-300 rounded-none text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="px-4 py-2.5 bg-white border border-slate-300 rounded-[5px] text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
                 >
                   Gửi thêm phản ánh khác
                 </button>
@@ -323,11 +383,11 @@ export const SubmitIncidentWizard: React.FC = () => {
         </div>
       )}
 
-      {/* 2. BỐ CỤC CHÍNH 2 CỘT (PC: 8/4 | MOBILE: 1 CỘT) */}
+      {/* 2. BỐ CỤC CHÍNH 2 CỘT */}
       {!notification && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* CỘT TRÁI (8 / 12 CỘT): FORM 2 BƯỚC */}
-          <div className="lg:col-span-8 bg-white rounded-none border border-slate-200 shadow-sm p-4 sm:p-6 min-w-0">
+          {/* CỘT TRÁI (8/12): FORM 2 BƯỚC */}
+          <div className="lg:col-span-8 bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 min-w-0">
             {step === 1 && (
               <div className="space-y-5">
                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
@@ -336,60 +396,116 @@ export const SubmitIncidentWizard: React.FC = () => {
                       Bước 1: Điền thông tin & Tải ảnh hiện trường
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Chụp ảnh hoặc tải ảnh thực tế từ điện thoại / máy tính
+                      Bạn có thể chọn nhiều ảnh cùng lúc để minh họa rõ hơn cho sự cố
                     </p>
                   </div>
-                  <span className="text-[11px] text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded-none border border-rose-200 shrink-0">
+                  <span className="text-[11px] text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded-[5px] border border-rose-200 shrink-0">
                     * Bắt buộc
                   </span>
                 </div>
 
-                {/* KHUNG TẢI ẢNH */}
+                {/* KHUNG TẢI NHIỀU ẢNH */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Ảnh chụp hiện trường sự cố:
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      Ảnh chụp hiện trường sự cố ({photos.length} ảnh):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Thêm ảnh
+                    </button>
+                  </div>
 
+                  {/* Input multiple cho phép chọn nhiều ảnh */}
                   <input
                     type="file"
                     ref={fileInputRef}
                     accept="image/*"
+                    multiple
                     onChange={handleFileChange}
                     className="hidden"
                   />
 
-                  <div className="relative aspect-[16/9] w-full rounded-none overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center group">
-                    <img
-                      src={photoUrl}
-                      alt="Hiện trường"
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
+                  {/* Ảnh xem trước chính */}
+                  {activePhoto && (
+                    <div className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center group">
+                      <img
+                        src={activePhoto.url}
+                        alt="Hiện trường"
+                        className="w-full h-full object-cover"
+                      />
 
-                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-3">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs font-bold shadow-lg transition flex items-center gap-2"
+                      <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-3">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold shadow-lg transition flex items-center gap-2"
+                        >
+                          <Upload className="w-4 h-4 shrink-0" />
+                          <span>Thêm ảnh khác từ máy</span>
+                        </button>
+                      </div>
+
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto max-w-[90%] bg-slate-900/85 text-white text-xs px-2.5 py-1.5 rounded-[5px] flex items-center gap-2">
+                        <Camera className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span className="font-mono text-[11px] truncate">
+                          [{activePhotoIndex + 1}/{photos.length}] {activePhoto.name}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dải thumbnail tất cả ảnh đã tải lên + nút + Thêm ảnh */}
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {photos.map((p, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setActivePhotoIndex(idx)}
+                        className={`relative aspect-square rounded-[5px] overflow-hidden border-2 cursor-pointer transition ${
+                          idx === activePhotoIndex
+                            ? 'border-blue-700 ring-2 ring-blue-500/30'
+                            : 'border-slate-200 hover:border-slate-400'
+                        }`}
                       >
-                        <Upload className="w-4 h-4 shrink-0" />
-                        <span>Tải ảnh khác từ máy</span>
-                      </button>
-                    </div>
+                        <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
+                        {photos.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              handleRemovePhoto(idx);
+                            }}
+                            aria-label="Xóa ảnh"
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white flex items-center justify-center transition"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
 
-                    <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto max-w-[90%] bg-slate-900/85 text-white text-xs px-2.5 py-1.5 rounded-none flex items-center gap-2">
-                      <Camera className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      <span className="font-mono text-[11px] truncate">{photoName}</span>
-                    </div>
+                    {/* Ô bấm thêm ảnh mới */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-square rounded-[5px] border-2 border-dashed border-blue-300 bg-blue-50/60 hover:bg-blue-100/80 text-blue-700 flex flex-col items-center justify-center gap-1 transition"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span className="text-[10px] font-bold">Thêm ảnh</span>
+                    </button>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-none text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5"
                     >
                       <Upload className="w-4 h-4 shrink-0" />
-                      <span>Chọn ảnh từ máy tính / điện thoại</span>
+                      <span>Chọn nhiều ảnh từ máy tính / điện thoại</span>
                     </button>
 
                     <span className="text-[11px] text-slate-400">hoặc chọn nhanh ảnh mẫu:</span>
@@ -400,40 +516,44 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectSample('street_light')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${selectedCategory === 'street_light'
-                        ? 'border-amber-500 bg-amber-50 text-amber-900'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                        }`}
+                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
+                        selectedCategory === 'street_light'
+                          ? 'border-amber-500 bg-amber-50 text-amber-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
                     >
                       💡 Đèn đường
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectSample('flooding')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${selectedCategory === 'flooding'
-                        ? 'border-blue-500 bg-blue-50 text-blue-900'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                        }`}
+                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
+                        selectedCategory === 'flooding'
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
                     >
                       🌊 Ngập úng
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectSample('waste')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${selectedCategory === 'waste'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                        }`}
+                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
+                        selectedCategory === 'waste'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
                     >
                       🗑️ Rác thải
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectSample('road_damage')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${selectedCategory === 'road_damage'
-                        ? 'border-rose-500 bg-rose-50 text-rose-900'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                        }`}
+                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
+                        selectedCategory === 'road_damage'
+                          ? 'border-rose-500 bg-rose-50 text-rose-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
                     >
                       🚧 Ổ gà đường
                     </button>
@@ -454,12 +574,14 @@ export const SubmitIncidentWizard: React.FC = () => {
                           key={cat.id}
                           type="button"
                           onClick={() => setSelectedCategory(cat.id)}
-                          className={`p-3 sm:p-3.5 rounded-none border text-left transition flex items-start gap-3 min-w-0 ${isSelected ? cat.activeBorder : 'border-slate-200 hover:border-slate-400 bg-white'
-                            }`}
+                          className={`p-3 sm:p-3.5 rounded-[5px] border text-left transition flex items-start gap-3 min-w-0 ${
+                            isSelected ? cat.activeBorder : 'border-slate-200 hover:border-slate-400 bg-white'
+                          }`}
                         >
                           <div
-                            className={`w-9 h-9 rounded-none flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-700 text-white' : `${cat.bg} ${cat.color}`
-                              }`}
+                            className={`w-9 h-9 rounded-[5px] flex items-center justify-center shrink-0 ${
+                              isSelected ? 'bg-blue-700 text-white' : `${cat.bg} ${cat.color}`
+                            }`}
                           >
                             <Icon className="w-5 h-5" />
                           </div>
@@ -488,13 +610,13 @@ export const SubmitIncidentWizard: React.FC = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Mô tả cụ thể vị trí cột điện số mấy, kích thước hố sụt hoặc thời điểm ngập nước..."
-                    className="w-full p-3 border border-slate-300 rounded-none text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
+                    className="w-full p-3 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     required
                   />
                 </div>
 
                 {/* THÔNG TIN NGƯỜI GỬI */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-none border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-[5px] border border-slate-200">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Số điện thoại nhận thông báo: <span className="text-rose-500">*</span>
@@ -504,7 +626,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="09xx xxx xxx"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-none text-xs sm:text-sm font-bold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-bold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                       required
                     />
                   </div>
@@ -517,7 +639,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                       value={senderName}
                       onChange={(e) => setSenderName(e.target.value)}
                       placeholder="Ví dụ: Bác Hai Trấn Biên"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-none text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     />
                   </div>
                 </div>
@@ -527,8 +649,9 @@ export const SubmitIncidentWizard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-bold transition shadow-sm active:scale-[0.99] border border-blue-900 ${elderlyMode ? 'text-base' : 'text-xs sm:text-sm'
-                      }`}
+                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] font-bold transition shadow-sm active:scale-[0.99] border border-blue-900 ${
+                      elderlyMode ? 'text-base' : 'text-xs sm:text-sm'
+                    }`}
                   >
                     <span>Tiếp tục: Chọn vị trí trên bản đồ</span>
                     <ArrowRight className="w-4 h-4 shrink-0" />
@@ -553,17 +676,18 @@ export const SubmitIncidentWizard: React.FC = () => {
                     type="button"
                     onClick={handleGetCurrentLocation}
                     disabled={isLocating}
-                    className="w-full sm:w-auto px-3.5 py-2 rounded-none bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center justify-center gap-1.5 transition shrink-0"
+                    className="w-full sm:w-auto px-3.5 py-2 rounded-[5px] bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center justify-center gap-1.5 transition shrink-0"
                   >
                     <Locate className={`w-4 h-4 shrink-0 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
                     <span>{isLocating ? 'Đang định vị...' : 'Lấy vị trí hiện tại'}</span>
                   </button>
                 </div>
 
-                {/* KHUNG BẢN ĐỒ */}
-                <div className="rounded-none overflow-hidden border border-slate-300 shadow-sm relative">
+                <div className="rounded-[5px] overflow-hidden border border-slate-300 shadow-sm relative h-[360px]">
                   <OpenStreetMap
-                    height="360px"
+                    height="100%"
+                    className="h-full"
+                    mode="citizen"
                     center={[location.lat, location.lng]}
                     zoom={16}
                     singlePin={{
@@ -572,12 +696,10 @@ export const SubmitIncidentWizard: React.FC = () => {
                       label: location.address,
                     }}
                     onMapClick={handleMapClick}
-                    incidents={[]}
                   />
                 </div>
 
-                {/* Ô ĐỊA CHỈ */}
-                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-none border border-slate-200 space-y-2">
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-[5px] border border-slate-200 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
                       Địa chỉ sự cố (tự nhận diện theo điểm ghim):
@@ -593,7 +715,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                     type="text"
                     value={location.address}
                     onChange={(e) => setLocation({ ...location, address: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-none text-xs sm:text-sm font-semibold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-semibold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     placeholder="Số nhà, ngõ/hẻm, tên đường..."
                     required
                   />
@@ -603,12 +725,11 @@ export const SubmitIncidentWizard: React.FC = () => {
                   </p>
                 </div>
 
-                {/* NÚT QUAY LẠI & XÁC NHẬN (XẾP DỌC TRÊN MOBILE, NGANG TRÊN PC) */}
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="flex items-center justify-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-none text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
+                    className="flex items-center justify-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-[5px] text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
                   >
                     <ArrowLeft className="w-4 h-4 shrink-0" />
                     <span>Quay lại bước 1</span>
@@ -616,20 +737,21 @@ export const SubmitIncidentWizard: React.FC = () => {
 
                   <button
                     type="submit"
-                    className={`px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-black shadow-sm transition flex items-center justify-center gap-2 active:scale-[0.99] border border-blue-900 ${elderlyMode ? 'text-base py-3.5' : 'text-xs sm:text-sm'
-                      }`}
+                    className={`px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] font-black shadow-sm transition flex items-center justify-center gap-2 active:scale-[0.99] border border-blue-900 ${
+                      elderlyMode ? 'text-base py-3.5' : 'text-xs sm:text-sm'
+                    }`}
                   >
                     <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
-                    <span>XÁC NHẬN GỬI PHẢN ÁNH</span>
+                    <span>XÁC NHẬN GỬI PHẢN ÁNH ({photos.length} ẢNH)</span>
                   </button>
                 </div>
               </form>
             )}
           </div>
 
-          {/* CỘT PHẢI (4 / 12 CỘT): XEM TRƯỚC HỒ SƠ */}
+          {/* CỘT PHẢI (4/12): XEM TRƯỚC HỒ SƠ */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4 min-w-0">
-            <div className="bg-white rounded-none border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-5 space-y-4">
+            <div className="bg-white rounded-[5px] border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
                   <Info className="w-4 h-4 text-blue-600 shrink-0" />
@@ -637,17 +759,22 @@ export const SubmitIncidentWizard: React.FC = () => {
                     Xem trước hồ sơ
                   </h3>
                 </div>
-                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-none border border-blue-200">
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
                   Bước {step}/2
                 </span>
               </div>
 
-              <div className="aspect-video w-full rounded-none overflow-hidden bg-slate-100 border border-slate-200 relative">
-                <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute bottom-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded-none font-mono">
-                  {currentCategoryObj.name}
+              {activePhoto && (
+                <div className="aspect-video w-full rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative">
+                  <img src={activePhoto.url} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] font-mono">
+                    {currentCategoryObj.name}
+                  </div>
+                  <div className="absolute top-2 right-2 bg-blue-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px]">
+                    {photos.length} ảnh
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-start gap-2">
@@ -664,34 +791,34 @@ export const SubmitIncidentWizard: React.FC = () => {
               </div>
 
               {description && (
-                <div className="p-3 bg-slate-50 rounded-none border border-slate-200 text-xs text-slate-700">
+                <div className="p-3 bg-slate-50 rounded-[5px] border border-slate-200 text-xs text-slate-700">
                   <span className="font-bold block text-slate-900 mb-0.5">Nội dung ghi chú:</span>
                   <p className="line-clamp-3 italic break-words">"{description}"</p>
                 </div>
               )}
             </div>
 
-            <div className="bg-blue-50/70 rounded-none border border-blue-200 p-4 sm:p-5 space-y-2.5">
+            <div className="bg-blue-50/70 rounded-[5px] border border-blue-200 p-4 sm:p-5 space-y-2.5">
               <div className="flex items-center gap-2 text-blue-900 font-extrabold text-xs uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>Cam kết phục vụ UBND Phường</span>
               </div>
 
               <div className="space-y-2 text-xs text-slate-700 font-medium">
-                <div className="flex items-center justify-between p-2 rounded-none bg-white border border-blue-100 gap-2">
+                <div className="flex items-center justify-between p-2 rounded-[5px] bg-white border border-blue-100 gap-2">
                   <span>Tiếp nhận & phân loại:</span>
                   <strong className="text-blue-700 whitespace-nowrap">Trong 2 giờ</strong>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-none bg-white border border-blue-100 gap-2">
+                <div className="flex items-center justify-between p-2 rounded-[5px] bg-white border border-blue-100 gap-2">
                   <span>Khắc phục hoàn thành:</span>
                   <strong className="text-emerald-700 whitespace-nowrap">24h - 48h</strong>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-none border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-2 text-xs">
+            <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-none bg-rose-50 text-rose-700 flex items-center justify-center font-bold border border-rose-200 shrink-0">
+                <div className="w-9 h-9 rounded-[5px] bg-rose-50 text-rose-700 flex items-center justify-center font-bold border border-rose-200 shrink-0">
                   <PhoneCall className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -701,7 +828,7 @@ export const SubmitIncidentWizard: React.FC = () => {
               </div>
               <a
                 href="tel:1022"
-                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-none border border-rose-200 text-xs transition whitespace-nowrap shrink-0"
+                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-[5px] border border-rose-200 text-xs transition whitespace-nowrap shrink-0"
               >
                 Gọi 1022
               </a>
