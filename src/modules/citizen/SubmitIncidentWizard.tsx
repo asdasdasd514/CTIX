@@ -261,60 +261,70 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC */}
-      <div className="bg-blue-900 text-white rounded-[5px] p-4 sm:p-6 shadow-sm border border-blue-950">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <span className="inline-block bg-white/15 text-white text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-white/20">
-              Dịch Vụ Dân Sinh • Phường Trấn Biên
-            </span>
-            <h1 className="text-lg sm:text-2xl font-black tracking-tight">
-              Gửi Phản Ánh Hiện Trường Mới
-            </h1>
-            <p className="text-xs text-blue-100 font-medium">
-              2 bước nhanh chóng: Điền thông tin & tải nhiều ảnh, sau đó chọn vị trí trên bản đồ
-            </p>
-          </div>
+      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC (CÓ ẢNH NỀN VĂN MIẾU TRẤN BIÊN) */}
+      <div className="relative bg-blue-950 text-white rounded-[5px] p-4 sm:p-6 shadow-sm border border-blue-950 overflow-hidden">
+        {/* Ảnh nền Văn Miếu Trấn Biên */}
+        <img
+          src="/images/tran-bien-banner.jpg"
+          alt="Văn Miếu Trấn Biên"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-55"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/92 via-blue-900/80 to-blue-950/60" />
 
-          <div className="hidden lg:flex items-center gap-3 bg-white/10 p-3 rounded-[5px] border border-white/20 text-xs shrink-0">
-            <ShieldCheck className="w-7 h-7 text-cyan-300 shrink-0" />
-            <div>
-              <div className="font-extrabold text-white">Cam kết tiếp nhận & xử lý</div>
-              <div className="text-blue-100 text-[11px]">Tiếp nhận trong 2h • Hoàn thành 24h-48h</div>
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <span className="inline-block bg-white/15 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-white/25">
+                Dịch Vụ Dân Sinh • Phường Trấn Biên
+              </span>
+              <h1 className="text-lg sm:text-2xl font-black tracking-tight drop-shadow-sm">
+                Gửi Phản Ánh Hiện Trường Mới
+              </h1>
+              <p className="text-xs text-blue-50 font-medium drop-shadow-sm">
+                2 bước nhanh chóng: Điền thông tin & tải nhiều ảnh, sau đó chọn vị trí trên bản đồ
+              </p>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-3 bg-white/15 backdrop-blur-sm p-3 rounded-[5px] border border-white/25 text-xs shrink-0">
+              <ShieldCheck className="w-7 h-7 text-cyan-300 shrink-0" />
+              <div>
+                <div className="font-extrabold text-white">Cam kết tiếp nhận & xử lý</div>
+                <div className="text-blue-100 text-[11px]">Tiếp nhận trong 2h • Hoàn thành 24h-48h</div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/20">
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            className={`p-2.5 sm:p-3 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
-              step === 1
-                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
-            }`}
-          >
-            <span className="w-5 h-5 rounded-[5px] bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
-              1
-            </span>
-            <span>Bước 1: Thông tin & Ảnh hiện trường</span>
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/25">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className={`p-2.5 sm:p-3 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
+                step === 1
+                  ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-md font-black'
+                  : 'bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white border-white/25'
+              }`}
+            >
+              <span className="w-5 h-5 rounded-[5px] bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
+                1
+              </span>
+              <span>Bước 1: Thông tin & Ảnh hiện trường</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setStep(2)}
-            className={`p-2.5 sm:p-3 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
-              step === 2
-                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
-            }`}
-          >
-            <span className="w-5 h-5 rounded-[5px] bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
-              2
-            </span>
-            <span>Bước 2: Chọn vị trí trên bản đồ</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className={`p-2.5 sm:p-3 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
+                step === 2
+                  ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-md font-black'
+                  : 'bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white border-white/25'
+              }`}
+            >
+              <span className="w-5 h-5 rounded-[5px] bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
+                2
+              </span>
+              <span>Bước 2: Chọn vị trí trên bản đồ</span>
+            </button>
+          </div>
         </div>
       </div>
 

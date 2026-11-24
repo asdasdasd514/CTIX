@@ -35,6 +35,10 @@ interface IncidentStore {
   upvoteIncident: (id: string) => void;
   addIncidentPhotos: (id: string, newPhotos: string[]) => void;
   updateIncidentDescription: (id: string, description: string, title?: string) => void;
+  updateIncident: (
+    id: string,
+    patch: Partial<Pick<Incident, 'title' | 'description' | 'category' | 'location' | 'photosBefore'>>
+  ) => void;
   deleteIncident: (id: string) => void;
   resetToDefaultData: () => void;
 }
@@ -283,6 +287,22 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
             ...item,
             ...(title ? { title } : {}),
             description,
+            updatedAt: new Date().toISOString(),
+          }
+        : item
+    );
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    set({ incidents: updated });
+  },
+
+  updateIncident: (id, patch) => {
+    const updated = get().incidents.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            ...patch,
             updatedAt: new Date().toISOString(),
           }
         : item

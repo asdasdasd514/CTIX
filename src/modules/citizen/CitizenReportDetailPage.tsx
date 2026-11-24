@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
-import { Incident } from '../../types/incident';
+import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   ArrowLeft,
@@ -14,12 +14,13 @@ import {
   Calendar,
   Building2,
   AlertCircle,
-  ImagePlus,
   FileEdit,
   XCircle,
   Save,
   X,
   Send,
+  Plus,
+  Locate,
 } from 'lucide-react';
 
 const RATING_CRITERIA = [
@@ -29,25 +30,43 @@ const RATING_CRITERIA = [
   'Tiến độ rõ ràng, minh bạch',
 ];
 
+const CATEGORY_CHOICES: { id: IncidentCategory; label: string }[] = [
+  { id: 'street_light', label: 'Đèn đường chiếu sáng' },
+  { id: 'flooding', label: 'Ngập nước sau mưa' },
+  { id: 'waste', label: 'Rác thải tự phát' },
+  { id: 'road_damage', label: 'Mặt đường & Ổ gà' },
+  { id: 'other', label: 'Sự cố khác' },
+];
+
 export const CitizenReportDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const {
     incidents,
     upvoteIncident,
-    addIncidentPhotos,
-    updateIncidentDescription,
+    updateIncident,
     deleteIncident,
     rateIncident,
   } = useIncidentStore();
 
   const incident = incidents.find((item) => item.id === id);
 
+  // Chế độ chỉnh sửa toàn bộ hồ sơ (Thông tin + Loại sự cố + Nhiều ảnh + Vị trí bản đồ)
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState<IncidentCategory>('street_light');
+  const [editPhotos, setEditPhotos] = useState<string[]>([]);
+  const [editLocation, setEditLocation] = useState<IncidentLocation>({
+    lat: 10.9572,
+    lng: 106.8184,
+    address: '',
+  });
+  const [isLocating, setIsLocating] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const addPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const editPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   // State đánh giá sao tương tác trực tiếp
   const [ratingStars, setRatingStars] = useState<number>(incident?.rating?.stars || 5);
@@ -64,6 +83,7 @@ export const CitizenReportDetailPage: React.FC = () => {
       setSelectedCriteria(incident.rating?.criteria || ['Xử lý nhanh chóng, đúng hạn']);
       setRatingComment(incident.rating?.comment || '');
       setIsEditingRating(!incident.rating);
+      setIsEditing(false);
     }
   }, [incident?.id]);
 
@@ -97,13 +117,23 @@ export const CitizenReportDetailPage: React.FC = () => {
     window.setTimeout(() => setActionMessage(null), 3500);
   };
 
-  // 1. Chụp / tải thêm nhiều ảnh bổ sung hiện trường
-  const handleAddExtraPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Mở chế độ Chỉnh sửa hồ sơ (nạp toàn bộ dữ liệu hiện tại)
+  const handleStartEdit = () => {
+    setEditTitle(incident.title);
+    setEditDescription(incident.description);
+    setEditCategory(incident.category);
+    setEditPhotos([...incident.photosBefore]);
+    setEditLocation({ ...incident.location });
+    setIsEditing(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Thêm nhiều ảnh khi đang chỉnh sửa hồ sơ
+  const handleEditAddPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const fileArray = Array.from(files);
-    const readers = fileArray.map(
+    const readers = Array.from(files).map(
       (file) =>
         new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -113,31 +143,91 @@ export const CitizenReportDetailPage: React.FC = () => {
     );
 
     Promise.all(readers).then((urls) => {
-      const validUrls = urls.filter(Boolean);
-      if (validUrls.length > 0) {
-        addIncidentPhotos(incident.id, validUrls);
-        showToast(`Đã bổ sung thành công ${validUrls.length} ảnh hiện trường mới!`);
+      const valid = urls.filter(Boolean);
+      if (valid.length > 0) {
+        setEditPhotos((prev) => [...prev, ...valid]);
       }
       e.target.value = '';
     });
   };
 
-  // 2. Mở form chỉnh sửa mô tả sự cố
-  const handleStartEdit = () => {
-    setEditTitle(incident.title);
-    setEditDescription(incident.description);
-    setIsEditing(true);
+  const handleEditRemovePhoto = (idx: number) => {
+    setEditPhotos((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
   };
 
+  // Chọn lại vị trí trên bản đồ khi đang chỉnh sửa hồ sơ
+  const handleEditMapClick = async (lat: number, lng: number) => {
+    setEditLocation((prev) => ({
+      ...prev,
+      lat,
+      lng,
+      address: `Tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}) • Đang tìm địa chỉ...`,
+    }));
+    setIsGeocoding(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.display_name) {
+          const shortAddr = data.display_name.split(',').slice(0, 3).join(', ');
+          setEditLocation({
+            lat,
+            lng,
+            address: `${shortAddr}, Phường Trấn Biên`,
+            ward: 'Phường Trấn Biên',
+          });
+        }
+      }
+    } catch {
+      setEditLocation({
+        lat,
+        lng,
+        address: `Khu vực tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}), Phường Trấn Biên`,
+        ward: 'Phường Trấn Biên',
+      });
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const handleEditGetGPS = () => {
+    setIsLocating(true);
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setIsLocating(false);
+          handleEditMapClick(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          setIsLocating(false);
+          handleEditMapClick(10.9572, 106.8184);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      setIsLocating(false);
+      handleEditMapClick(10.9572, 106.8184);
+    }
+  };
+
+  // Lưu toàn bộ thay đổi hồ sơ
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editDescription.trim()) return;
-    updateIncidentDescription(incident.id, editDescription.trim(), editTitle.trim() || incident.title);
+    if (!editTitle.trim() || !editDescription.trim()) return;
+    updateIncident(incident.id, {
+      title: editTitle.trim(),
+      description: editDescription.trim(),
+      category: editCategory,
+      photosBefore: editPhotos.length > 0 ? editPhotos : incident.photosBefore,
+      location: editLocation,
+    });
     setIsEditing(false);
-    showToast('Đã cập nhật mô tả sự cố thành công!');
+    showToast('Đã cập nhật toàn bộ hồ sơ phản ánh thành công!');
   };
 
-  // 3. Hủy yêu cầu phản ánh này
+  // Hủy yêu cầu phản ánh này
   const handleCancelReport = () => {
     const confirmed = window.confirm(
       'Bạn có chắc chắn muốn hủy yêu cầu phản ánh này không? Thao tác này không thể hoàn tác.'
@@ -148,7 +238,7 @@ export const CitizenReportDetailPage: React.FC = () => {
     }
   };
 
-  // 4. Lưu đánh giá sao trực tiếp
+  // Lưu đánh giá sao trực tiếp
   const toggleCriteria = (item: string) => {
     setSelectedCriteria((prev) =>
       prev.includes(item) ? prev.filter((c) => c !== item) : [...prev, item]
@@ -248,27 +338,62 @@ export const CitizenReportDetailPage: React.FC = () => {
 
       {/* 2. BỐ CỤC CHI TIẾT 2 CỘT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* CỘT TRÁI (7/12): THÔNG TIN SỰ CỐ, GALLERY ẢNH & BẢN ĐỒ */}
+        {/* CỘT TRÁI (7/12): CHẾ ĐỘ XEM HOẶC CHẾ ĐỘ CHỈNH SỬA TOÀN BỘ HỒ SƠ */}
         <div className="lg:col-span-7 space-y-5 min-w-0">
-          {/* Thông tin chính */}
-          <div className="bg-white rounded-[5px] border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2.5 py-1 rounded-[5px] border border-blue-200">
-                  {getCategoryLabel(incident.category)}
-                </span>
-                {getStatusBadge(incident.status)}
-              </div>
-              <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-                <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>{new Date(incident.createdAt).toLocaleString('vi-VN')}</span>
-              </span>
-            </div>
-
-            {isEditing ? (
-              <form onSubmit={handleSaveEdit} className="space-y-3 bg-blue-50/50 p-4 rounded-[5px] border border-blue-200">
+          {isEditing ? (
+            <form
+              onSubmit={handleSaveEdit}
+              className="bg-white rounded-[5px] border-2 border-blue-600 shadow-sm p-4 sm:p-6 space-y-5"
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tiêu đề phản ánh:</label>
+                  <h2 className="text-base sm:text-lg font-black text-blue-900 flex items-center gap-2">
+                    <FileEdit className="w-5 h-5 text-blue-700 shrink-0" />
+                    <span>Chỉnh Sửa Hồ Sơ Phản Ánh</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Cập nhật lại thông tin, loại sự cố, bổ sung/xóa ảnh hoặc chọn lại vị trí trên bản đồ
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-[5px]"
+                  aria-label="Đóng chỉnh sửa"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Loại sự cố */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase">
+                  Loại sự cố:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {CATEGORY_CHOICES.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setEditCategory(c.id)}
+                      className={`px-3 py-1.5 rounded-[5px] text-xs font-bold border transition ${
+                        editCategory === c.id
+                          ? 'bg-blue-700 text-white border-blue-800'
+                          : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tiêu đề & Mô tả */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Tiêu đề phản ánh: <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={editTitle}
@@ -277,8 +402,11 @@ export const CitizenReportDetailPage: React.FC = () => {
                     required
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Mô tả chi tiết sự cố:</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Mô tả chi tiết sự cố: <span className="text-rose-500">*</span>
+                  </label>
                   <textarea
                     rows={4}
                     value={editDescription}
@@ -287,143 +415,272 @@ export const CitizenReportDetailPage: React.FC = () => {
                     required
                   />
                 </div>
-                <div className="flex items-center justify-end gap-2">
+              </div>
+
+              {/* Chỉnh sửa / Tải thêm ảnh hiện trường */}
+              <div className="space-y-2 pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase">
+                    Ảnh hiện trường ({editPhotos.length} ảnh):
+                  </label>
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-3.5 py-2 bg-white border border-slate-300 rounded-[5px] text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1"
+                    onClick={() => editPhotoInputRef.current?.click()}
+                    className="text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
                   >
-                    <X className="w-3.5 h-3.5" /> Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold inline-flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Save className="w-3.5 h-3.5" /> Lưu thay đổi
+                    <Plus className="w-3.5 h-3.5" /> Tải thêm ảnh
                   </button>
                 </div>
-              </form>
-            ) : (
-              <div>
-                <h1 className="text-lg sm:text-2xl font-black text-slate-900 leading-snug break-words">
-                  {incident.title}
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-line">
-                  {incident.description}
-                </p>
-              </div>
-            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-[5px] border border-slate-200 text-xs">
-              <div className="flex items-start gap-2 min-w-0">
-                <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase block">Địa điểm hiện trường</span>
-                  <span className="font-semibold text-slate-800 break-words">{incident.location.address}</span>
-                </div>
-              </div>
+                <input
+                  type="file"
+                  ref={editPhotoInputRef}
+                  accept="image/*"
+                  multiple
+                  onChange={handleEditAddPhotos}
+                  className="hidden"
+                />
 
-              <div className="flex items-start gap-2 min-w-0">
-                <User className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase block">Người gửi phản ánh</span>
-                  <span className="font-semibold text-slate-800">{incident.sender?.name || 'Công dân Trấn Biên'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Hình ảnh Trước - Sau */}
-          <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
-                Hình ảnh xác minh hiện trường
-              </h2>
-              <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
-                {incident.photosBefore.length} ảnh báo cáo
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-rose-700 block">
-                ● Ảnh lúc người dân báo cáo ({incident.photosBefore.length} ảnh):
-              </span>
-              <div
-                className={`grid gap-2.5 ${
-                  incident.photosBefore.length === 1
-                    ? 'grid-cols-1'
-                    : incident.photosBefore.length === 2
-                    ? 'grid-cols-2'
-                    : 'grid-cols-2 sm:grid-cols-3'
-                }`}
-              >
-                {incident.photosBefore.map((src, idx) => (
-                  <div
-                    key={idx}
-                    className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative group"
-                  >
-                    <img
-                      src={src}
-                      alt={`Ảnh hiện trường ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute bottom-1.5 right-1.5 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px]">
-                      #{idx + 1}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <span className="text-xs font-bold text-emerald-700 block">
-                ● Ảnh nghiệm thu sau khi xử lý:
-              </span>
-              {incident.photosAfter && incident.photosAfter.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {incident.photosAfter.map((src, idx) => (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {editPhotos.map((src, idx) => (
                     <div
                       key={idx}
-                      className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200"
+                      className="relative aspect-square rounded-[5px] overflow-hidden border border-slate-300 bg-slate-100"
                     >
-                      <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={src} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
+                      {editPhotos.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleEditRemovePhoto(idx)}
+                          aria-label="Xóa ảnh"
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white flex items-center justify-center transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="p-6 rounded-[5px] bg-slate-50 border border-dashed border-slate-300 text-center text-slate-400 text-xs">
-                  <Clock className="w-5 h-5 mx-auto mb-1 text-slate-300" />
-                  <span>Đơn vị đang triển khai khắc phục — chưa có ảnh nghiệm thu</span>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Vị trí trên bản đồ */}
-          <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-3">
-            <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
-              Vị trí sự cố trên bản đồ
-            </h2>
-            <div className="rounded-[5px] overflow-hidden border border-slate-200 h-[300px]">
-              <OpenStreetMap
-                key={incident.id}
-                height="100%"
-                className="h-full"
-                mode="citizen"
-                center={[incident.location.lat, incident.location.lng]}
-                zoom={16}
-                singlePin={{
-                  lat: incident.location.lat,
-                  lng: incident.location.lng,
-                  label: incident.location.address,
-                }}
-                showLocateButton={false}
-              />
-            </div>
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => editPhotoInputRef.current?.click()}
+                    className="aspect-square rounded-[5px] border-2 border-dashed border-blue-300 bg-blue-50/70 hover:bg-blue-100 text-blue-700 flex flex-col items-center justify-center gap-1 transition"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="text-[10px] font-bold">Thêm ảnh</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Chỉnh sửa vị trí trên bản đồ */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase">
+                    Vị trí sự cố (nhấp vào bản đồ để đổi điểm ghim):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleEditGetGPS}
+                    disabled={isLocating}
+                    className="px-3 py-1.5 rounded-[5px] bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-1.5 transition"
+                  >
+                    <Locate className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                    <span>{isLocating ? 'Đang định vị...' : 'Lấy vị trí hiện tại'}</span>
+                  </button>
+                </div>
+
+                <div className="rounded-[5px] overflow-hidden border border-slate-300 h-[280px]">
+                  <OpenStreetMap
+                    height="100%"
+                    className="h-full"
+                    mode="citizen"
+                    center={[editLocation.lat, editLocation.lng]}
+                    zoom={16}
+                    singlePin={{
+                      lat: editLocation.lat,
+                      lng: editLocation.lng,
+                      label: editLocation.address,
+                    }}
+                    onMapClick={handleEditMapClick}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-bold text-slate-600">Địa chỉ cụ thể:</span>
+                    {isGeocoding && (
+                      <span className="text-[11px] font-bold text-blue-600 animate-pulse">
+                        Đang nhận diện địa chỉ...
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={editLocation.address}
+                    onChange={(e) => setEditLocation({ ...editLocation, address: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Nút Lưu / Hủy */}
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2.5 bg-white border border-slate-300 rounded-[5px] text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center justify-center gap-1.5"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Hủy chỉnh sửa</span>
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs sm:text-sm font-black inline-flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Lưu cập nhật hồ sơ</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              {/* Thông tin chính */}
+              <div className="bg-white rounded-[5px] border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2.5 py-1 rounded-[5px] border border-blue-200">
+                      {getCategoryLabel(incident.category)}
+                    </span>
+                    {getStatusBadge(incident.status)}
+                  </div>
+                  <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                    <span>{new Date(incident.createdAt).toLocaleString('vi-VN')}</span>
+                  </span>
+                </div>
+
+                <div>
+                  <h1 className="text-lg sm:text-2xl font-black text-slate-900 leading-snug break-words">
+                    {incident.title}
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-line">
+                    {incident.description}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-[5px] border border-slate-200 text-xs">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase block">Địa điểm hiện trường</span>
+                      <span className="font-semibold text-slate-800 break-words">{incident.location.address}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2 min-w-0">
+                    <User className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase block">Người gửi phản ánh</span>
+                      <span className="font-semibold text-slate-800">{incident.sender?.name || 'Công dân Trấn Biên'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hình ảnh Trước - Sau */}
+              <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
+                    Hình ảnh xác minh hiện trường
+                  </h2>
+                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
+                    {incident.photosBefore.length} ảnh báo cáo
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-rose-700 block">
+                    ● Ảnh lúc người dân báo cáo ({incident.photosBefore.length} ảnh):
+                  </span>
+                  <div
+                    className={`grid gap-2.5 ${
+                      incident.photosBefore.length === 1
+                        ? 'grid-cols-1'
+                        : incident.photosBefore.length === 2
+                        ? 'grid-cols-2'
+                        : 'grid-cols-2 sm:grid-cols-3'
+                    }`}
+                  >
+                    {incident.photosBefore.map((src, idx) => (
+                      <div
+                        key={idx}
+                        className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative"
+                      >
+                        <img
+                          src={src}
+                          alt={`Ảnh hiện trường ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-1.5 right-1.5 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px]">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <span className="text-xs font-bold text-emerald-700 block">
+                    ● Ảnh nghiệm thu sau khi xử lý:
+                  </span>
+                  {incident.photosAfter && incident.photosAfter.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {incident.photosAfter.map((src, idx) => (
+                        <div
+                          key={idx}
+                          className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200"
+                        >
+                          <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-[5px] bg-slate-50 border border-dashed border-slate-300 text-center text-slate-400 text-xs">
+                      <Clock className="w-5 h-5 mx-auto mb-1 text-slate-300" />
+                      <span>Đơn vị đang triển khai khắc phục — chưa có ảnh nghiệm thu</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Vị trí trên bản đồ */}
+              <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-3">
+                <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
+                  Vị trí sự cố trên bản đồ
+                </h2>
+                <div className="rounded-[5px] overflow-hidden border border-slate-200 h-[300px]">
+                  <OpenStreetMap
+                    key={`${incident.id}-${incident.location.lat}-${incident.location.lng}`}
+                    height="100%"
+                    className="h-full"
+                    mode="citizen"
+                    center={[incident.location.lat, incident.location.lng]}
+                    zoom={16}
+                    singlePin={{
+                      lat: incident.location.lat,
+                      lng: incident.location.lng,
+                      label: incident.location.address,
+                    }}
+                    showLocateButton={false}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* CỘT PHẢI (5/12): TIẾN TRÌNH 4 BƯỚC + HÀNH ĐỘNG / ĐÁNH GIÁ SAO TƯƠNG TÁC */}
+        {/* CỘT PHẢI (5/12): TIẾN TRÌNH 4 BƯỚC + NÚT CHỈNH SỬA HỒ SƠ / ĐÁNH GIÁ SAO */}
         <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-4 min-w-0">
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
             <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight border-b border-slate-200 pb-2.5">
@@ -516,34 +773,17 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3 NÚT HÀNH ĐỘNG CHO PHẢN ÁNH CHƯA XỬ LÝ */}
+            {/* 2 NÚT HÀNH ĐỘNG CHO PHẢN ÁNH CHƯA XỬ LÝ: CHỈNH SỬA HỒ SƠ & HỦY YÊU CẦU */}
             {!isResolved && (
               <div className="pt-4 border-t border-slate-200 space-y-2.5">
-                <input
-                  type="file"
-                  ref={addPhotoInputRef}
-                  accept="image/*"
-                  multiple
-                  onChange={handleAddExtraPhotos}
-                  className="hidden"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => addPhotoInputRef.current?.click()}
-                  className="w-full py-3 px-4 bg-slate-200/80 hover:bg-slate-200 text-blue-900 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 active:scale-[0.99]"
-                >
-                  <ImagePlus className="w-4 h-4 text-blue-800 shrink-0" />
-                  <span>Chụp thêm ảnh bổ sung hiện trường</span>
-                </button>
-
                 <button
                   type="button"
                   onClick={handleStartEdit}
-                  className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-900 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 active:scale-[0.99]"
+                  disabled={isEditing}
+                  className="w-full py-3 px-4 bg-slate-200/80 hover:bg-slate-200 disabled:opacity-60 text-blue-900 rounded-[5px] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
-                  <FileEdit className="w-4 h-4 text-slate-800 shrink-0" />
-                  <span>Chỉnh sửa mô tả sự cố</span>
+                  <FileEdit className="w-4 h-4 text-blue-800 shrink-0" />
+                  <span>{isEditing ? 'Đang chỉnh sửa hồ sơ...' : 'Chỉnh sửa hồ sơ'}</span>
                 </button>
 
                 <button
@@ -566,7 +806,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                       Đánh giá của bạn về kết quả xử lý
                     </div>
 
-                    {/* Cho phép bấm trực tiếp vào sao để đổi đánh giá */}
                     <div className="flex items-center justify-center gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -626,7 +865,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                         Chạm chọn số sao đánh giá mức độ hài lòng:
                       </div>
 
-                      {/* 5 Ngôi sao tương tác trực tiếp (Hover + Click) */}
                       <div
                         className="flex items-center justify-center gap-1.5 py-1"
                         onMouseLeave={() => setHoverStars(0)}
@@ -660,7 +898,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Chọn nhanh tiêu chí */}
                     <div className="flex flex-wrap gap-1.5">
                       {RATING_CRITERIA.map((item) => {
                         const checked = selectedCriteria.includes(item);
@@ -682,7 +919,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                       })}
                     </div>
 
-                    {/* Nhận xét thêm */}
                     <textarea
                       rows={2}
                       value={ratingComment}
