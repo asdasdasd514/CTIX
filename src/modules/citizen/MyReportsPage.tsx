@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory } from '../../types/incident';
 import {
   CheckCircle2,
@@ -15,17 +16,17 @@ import {
   Trash2,
   Construction,
   AlertCircle,
+  User,
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 8;
 
-const CATEGORY_FILTERS: {
-  id: 'all' | IncidentCategory;
+const CATEGORY_OPTIONS: {
+  id: IncidentCategory;
   label: string;
-  icon?: React.ElementType;
+  icon: React.ElementType;
   activeClass: string;
 }[] = [
-  { id: 'all', label: 'Tất cả loại', activeClass: 'bg-slate-800 text-white border-slate-900' },
   { id: 'street_light', label: 'Đèn đường', icon: Lightbulb, activeClass: 'bg-amber-500 text-white border-amber-600' },
   { id: 'flooding', label: 'Ngập úng', icon: Waves, activeClass: 'bg-blue-600 text-white border-blue-700' },
   { id: 'waste', label: 'Rác thải', icon: Trash2, activeClass: 'bg-emerald-600 text-white border-emerald-700' },
@@ -76,25 +77,49 @@ function getCategoryBadge(category: IncidentCategory) {
 export const MyReportsPage: React.FC = () => {
   const navigate = useNavigate();
   const { incidents } = useIncidentStore();
+  const { currentUser } = useAuthStore();
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('all');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | IncidentCategory>('all');
+  const [onlyMyReports, setOnlyMyReports] = useState<boolean>(false);
+  // Cho phép chọn NHIỀU loại sự cố cùng lúc để lọc
+  const [selectedCategories, setSelectedCategories] = useState<IncidentCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Tự động về trang 1 khi thay đổi bộ lọc hoặc từ khóa tìm kiếm
+  const isMyIncident = (item: Incident) => {
+    const senderName = (item.sender?.name || '').toLowerCase();
+    const myCitizenName = currentUser.role === 'citizen' ? currentUser.name.toLowerCase() : 'bác hai trấn biên';
+    return (
+      senderName === myCitizenName ||
+      senderName === 'bác hai trấn biên' ||
+      senderName === 'bác ba' ||
+      senderName === 'công dân ẩn danh'
+    );
+  };
+
+  const myReportsCount = incidents.filter(isMyIncident).length;
+
+  const toggleCategory = (cat: IncidentCategory) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, categoryFilter, searchTerm]);
+  }, [statusFilter, onlyMyReports, selectedCategories, searchTerm]);
 
   const filteredList = incidents.filter((item) => {
+    if (onlyMyReports && !isMyIncident(item)) {
+      return false;
+    }
     if (statusFilter === 'pending') {
       if (item.status === 'resolved' || item.status === 'closed') return false;
     }
     if (statusFilter === 'resolved') {
       if (item.status !== 'resolved' && item.status !== 'closed') return false;
     }
-    if (categoryFilter !== 'all' && item.category !== categoryFilter) {
+    if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) {
       return false;
     }
     // Tìm kiếm theo tiêu đề, mô tả, địa chỉ (không tìm theo ID)
@@ -119,7 +144,6 @@ export const MyReportsPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Tạo danh sách số trang hiển thị gọn gàng
   const getPageNumbers = (): (number | 'ellipsis')[] => {
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -186,7 +210,7 @@ export const MyReportsPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Bấm vào từng phản ánh để mở trang xem chi tiết tiến độ xử lý và đánh giá
+            Bấm vào từng phản ánh để mở trang xem chi tiết tiến độ xử lý và đánh giá sao
           </p>
         </div>
 
@@ -199,44 +223,61 @@ export const MyReportsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 2. THANH CÔNG CỤ: LỌC TRẠNG THÁI, LỌC LOẠI SỰ CỐ & TÌM KIẾM (KHÔNG TÌM THEO ID) */}
+      {/* 2. THANH CÔNG CỤ: PHẢN ÁNH CỦA TÔI + TRẠNG THÁI + CHỌN NHIỀU LOẠI SỰ CỐ + TÌM KIẾM */}
       <div className="bg-white p-3.5 sm:p-4 rounded-[5px] border border-slate-200 shadow-sm space-y-3">
-        {/* Hàng 1: Trạng thái + Tìm kiếm */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200 w-full md:w-auto">
+        {/* Hàng 1: Trạng thái + Phản ánh của tôi + Tìm kiếm */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200 w-full sm:w-auto">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
+                  statusFilter === 'all'
+                    ? 'bg-blue-700 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Tất cả ({incidents.length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('pending')}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
+                  statusFilter === 'pending'
+                    ? 'bg-blue-700 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Đang xử lý
+              </button>
+              <button
+                onClick={() => setStatusFilter('resolved')}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
+                  statusFilter === 'resolved'
+                    ? 'bg-blue-700 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Hoàn thành
+              </button>
+            </div>
+
+            {/* Nút lọc Phản ánh của tôi */}
             <button
-              onClick={() => setStatusFilter('all')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
-                statusFilter === 'all'
-                  ? 'bg-blue-700 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+              type="button"
+              onClick={() => setOnlyMyReports((prev) => !prev)}
+              className={`w-full sm:w-auto px-3 py-2 rounded-[5px] text-xs font-bold border transition inline-flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                onlyMyReports
+                  ? 'bg-indigo-700 text-white border-indigo-800 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-300 hover:border-indigo-500 hover:text-indigo-700'
               }`}
             >
-              Tất cả ({incidents.length})
-            </button>
-            <button
-              onClick={() => setStatusFilter('pending')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
-                statusFilter === 'pending'
-                  ? 'bg-blue-700 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Đang xử lý
-            </button>
-            <button
-              onClick={() => setStatusFilter('resolved')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
-                statusFilter === 'resolved'
-                  ? 'bg-blue-700 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Hoàn thành
+              <User className="w-3.5 h-3.5 shrink-0" />
+              <span>Phản ánh của tôi ({myReportsCount})</span>
+              {onlyMyReports && <span className="text-[11px]">✓</span>}
             </button>
           </div>
 
-          <div className="relative w-full md:max-w-sm min-w-0">
+          <div className="relative w-full lg:max-w-sm min-w-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -248,32 +289,58 @@ export const MyReportsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Hàng 2: Bộ lọc theo loại sự cố (Đèn đường, Ngập úng, Rác thải, Ổ gà, Khác) */}
+        {/* Hàng 2: Bộ lọc CHỌN NHIỀU loại sự cố */}
         <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-slate-100">
-          <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">Loại sự cố:</span>
-          {CATEGORY_FILTERS.map((cat) => {
+          <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">
+            Loại sự cố <span className="normal-case font-medium text-slate-400">(chọn nhiều):</span>
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setSelectedCategories([])}
+            className={`px-2.5 py-1.5 rounded-[5px] text-[11px] sm:text-xs font-bold border transition ${
+              selectedCategories.length === 0
+                ? 'bg-slate-800 text-white border-slate-900'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-900'
+            }`}
+          >
+            Tất cả loại
+          </button>
+
+          {CATEGORY_OPTIONS.map((cat) => {
             const Icon = cat.icon;
-            const isActive = categoryFilter === cat.id;
+            const isSelected = selectedCategories.includes(cat.id);
             return (
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => setCategoryFilter(cat.id)}
+                onClick={() => toggleCategory(cat.id)}
                 className={`px-2.5 py-1.5 rounded-[5px] text-[11px] sm:text-xs font-bold border transition inline-flex items-center gap-1.5 ${
-                  isActive
+                  isSelected
                     ? cat.activeClass
                     : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-900'
                 }`}
               >
-                {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{cat.label}</span>
+                {isSelected && <span className="text-[10px] font-black">✓</span>}
               </button>
             );
           })}
+
+          {selectedCategories.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedCategories([])}
+              className="ml-auto text-[11px] font-bold text-rose-600 hover:underline px-2 py-1"
+            >
+              Bỏ chọn ({selectedCategories.length})
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 3. DANH SÁCH PHẢN ÁNH (KHÔNG HIỂN THỊ ID, PHÂN TRANG GỌN GÀNG) */}
+      {/* 3. DANH SÁCH PHẢN ÁNH */}
       {paginatedList.length === 0 ? (
         <div className="bg-white rounded-[5px] border border-slate-200 p-12 text-center text-slate-400 text-xs sm:text-sm">
           Không tìm thấy phản ánh nào phù hợp với bộ lọc
@@ -283,6 +350,7 @@ export const MyReportsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paginatedList.map((item) => {
               const isResolved = item.status === 'resolved' || item.status === 'closed';
+              const isMine = isMyIncident(item);
 
               return (
                 <div
@@ -291,11 +359,15 @@ export const MyReportsPage: React.FC = () => {
                   className="bg-white rounded-[5px] border border-slate-200 hover:border-blue-600 hover:shadow-md p-4 sm:p-5 transition cursor-pointer shadow-sm flex flex-col justify-between gap-3 group"
                 >
                   <div className="space-y-3">
-                    {/* Header thẻ: Loại sự cố + Trạng thái (không hiển thị ID) */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                         {getCategoryBadge(item.category)}
                         {getStatusBadge(item.status)}
+                        {isMine && (
+                          <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-[5px] border border-indigo-200 whitespace-nowrap">
+                            Của tôi
+                          </span>
+                        )}
                         {item.sameReportsCount > 1 && (
                           <span className="bg-rose-50 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-[5px] border border-rose-200 whitespace-nowrap">
                             🔥 {item.sameReportsCount} người báo
@@ -307,7 +379,6 @@ export const MyReportsPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Nội dung thẻ */}
                     <div className="flex items-start gap-3.5">
                       <div className="w-20 h-20 rounded-[5px] overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                         <img
@@ -332,7 +403,6 @@ export const MyReportsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Footer Thẻ */}
                   <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-1.5 text-slate-500 font-medium">
                       <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />

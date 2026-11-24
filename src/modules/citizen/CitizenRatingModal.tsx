@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Incident } from '../../types/incident';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { Star, CheckCircle2, X } from 'lucide-react';

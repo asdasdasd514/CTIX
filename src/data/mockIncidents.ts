@@ -122,7 +122,7 @@ export function generateMockIncidents(): Incident[] {
           address,
         },
         sender: {
-          name: ['Bác Ba', 'Chú Tám', 'Nguyễn Văn An', 'Trần Thị Mai', 'Cô Hoa Trấn Biên'][idCounter % 5],
+          name: ['Bác Hai Trấn Biên', 'Chú Tám', 'Nguyễn Văn An', 'Trần Thị Mai', 'Cô Hoa Trấn Biên'][idCounter % 5],
           phone: `09${(idCounter * 13789) % 90000000 + 10000000}`,
         },
         photosBefore: [beforePhoto],

@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { Incident } from '../../types/incident';
-import { CitizenRatingModal } from './CitizenRatingModal';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   ArrowLeft,
@@ -20,7 +19,15 @@ import {
   XCircle,
   Save,
   X,
+  Send,
 } from 'lucide-react';
+
+const RATING_CRITERIA = [
+  'Xử lý nhanh chóng, đúng hạn',
+  'Hiện trường sạch sẽ, triệt để',
+  'Cán bộ / thợ kỹ thuật nhiệt tình',
+  'Tiến độ rõ ràng, minh bạch',
+];
 
 export const CitizenReportDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,16 +38,34 @@ export const CitizenReportDetailPage: React.FC = () => {
     addIncidentPhotos,
     updateIncidentDescription,
     deleteIncident,
+    rateIncident,
   } = useIncidentStore();
 
-  const [showRatingModal, setShowRatingModal] = useState(false);
+  const incident = incidents.find((item) => item.id === id);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const addPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const incident = incidents.find((item) => item.id === id);
+  // State đánh giá sao tương tác trực tiếp
+  const [ratingStars, setRatingStars] = useState<number>(incident?.rating?.stars || 5);
+  const [hoverStars, setHoverStars] = useState<number>(0);
+  const [selectedCriteria, setSelectedCriteria] = useState<string[]>(
+    incident?.rating?.criteria || ['Xử lý nhanh chóng, đúng hạn']
+  );
+  const [ratingComment, setRatingComment] = useState<string>(incident?.rating?.comment || '');
+  const [isEditingRating, setIsEditingRating] = useState<boolean>(!incident?.rating);
+
+  useEffect(() => {
+    if (incident) {
+      setRatingStars(incident.rating?.stars || 5);
+      setSelectedCriteria(incident.rating?.criteria || ['Xử lý nhanh chóng, đúng hạn']);
+      setRatingComment(incident.rating?.comment || '');
+      setIsEditingRating(!incident.rating);
+    }
+  }, [incident?.id]);
 
   if (!incident) {
     return (
@@ -123,6 +148,20 @@ export const CitizenReportDetailPage: React.FC = () => {
     }
   };
 
+  // 4. Lưu đánh giá sao trực tiếp
+  const toggleCriteria = (item: string) => {
+    setSelectedCriteria((prev) =>
+      prev.includes(item) ? prev.filter((c) => c !== item) : [...prev, item]
+    );
+  };
+
+  const handleSubmitRating = (e: React.FormEvent) => {
+    e.preventDefault();
+    rateIncident(incident.id, ratingStars, selectedCriteria, ratingComment.trim());
+    setIsEditingRating(false);
+    showToast(`Cảm ơn bạn đã đánh giá ${ratingStars}/5 sao cho kết quả xử lý!`);
+  };
+
   const getCategoryLabel = (cat: Incident['category']) => {
     switch (cat) {
       case 'street_light':
@@ -176,6 +215,8 @@ export const CitizenReportDetailPage: React.FC = () => {
     }
   };
 
+  const activeStarValue = hoverStars || ratingStars;
+
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* 1. THANH QUAY LẠI & ĐỒNG PHẢN ÁNH */}
@@ -197,7 +238,7 @@ export const CitizenReportDetailPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Thông báo nhanh khi bổ sung ảnh / chỉnh sửa */}
+      {/* Thông báo nhanh */}
       {actionMessage && (
         <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-[5px] text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -205,7 +246,7 @@ export const CitizenReportDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. BỐ CỤC CHI TIẾT 2 CỘT (PC: 7/5 | MOBILE: 1 CỘT) */}
+      {/* 2. BỐ CỤC CHI TIẾT 2 CỘT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* CỘT TRÁI (7/12): THÔNG TIN SỰ CỐ, GALLERY ẢNH & BẢN ĐỒ */}
         <div className="lg:col-span-7 space-y-5 min-w-0">
@@ -292,7 +333,7 @@ export const CitizenReportDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Hình ảnh Trước - Sau (Hỗ trợ hiển thị nhiều ảnh hiện trường) */}
+          {/* Hình ảnh Trước - Sau */}
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
@@ -303,7 +344,6 @@ export const CitizenReportDetailPage: React.FC = () => {
               </span>
             </div>
 
-            {/* Danh sách tất cả ảnh người dân gửi */}
             <div className="space-y-2">
               <span className="text-xs font-bold text-rose-700 block">
                 ● Ảnh lúc người dân báo cáo ({incident.photosBefore.length} ảnh):
@@ -335,7 +375,6 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Ảnh nghiệm thu sau khi xử lý */}
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <span className="text-xs font-bold text-emerald-700 block">
                 ● Ảnh nghiệm thu sau khi xử lý:
@@ -384,9 +423,8 @@ export const CitizenReportDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI (5/12): TIẾN TRÌNH 4 BƯỚC + 3 NÚT HÀNH ĐỘNG CHO HỒ SƠ CHƯA XỬ LÝ */}
+        {/* CỘT PHẢI (5/12): TIẾN TRÌNH 4 BƯỚC + HÀNH ĐỘNG / ĐÁNH GIÁ SAO TƯƠNG TÁC */}
         <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-4 min-w-0">
-          {/* Tiến trình xử lý */}
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
             <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight border-b border-slate-200 pb-2.5">
               Tiến trình giải quyết của UBND Phường
@@ -418,9 +456,7 @@ export const CitizenReportDetailPage: React.FC = () => {
               <div className="flex items-start gap-3">
                 <div
                   className={`w-6 h-6 rounded-[5px] flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                    incident.assignedTo
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-200 text-slate-600'
+                    incident.assignedTo ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
                   }`}
                 >
                   {incident.assignedTo ? '✓' : '2'}
@@ -480,7 +516,7 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3 NÚT HÀNH ĐỘNG CHO PHẢN ÁNH CHƯA XỬ LÝ (THEO ĐÚNG MẪU) */}
+            {/* 3 NÚT HÀNH ĐỘNG CHO PHẢN ÁNH CHƯA XỬ LÝ */}
             {!isResolved && (
               <div className="pt-4 border-t border-slate-200 space-y-2.5">
                 <input
@@ -492,7 +528,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                   className="hidden"
                 />
 
-                {/* Nút 1: Chụp thêm ảnh bổ sung hiện trường */}
                 <button
                   type="button"
                   onClick={() => addPhotoInputRef.current?.click()}
@@ -502,7 +537,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                   <span>Chụp thêm ảnh bổ sung hiện trường</span>
                 </button>
 
-                {/* Nút 2: Chỉnh sửa mô tả sự cố */}
                 <button
                   type="button"
                   onClick={handleStartEdit}
@@ -512,7 +546,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                   <span>Chỉnh sửa mô tả sự cố</span>
                 </button>
 
-                {/* Nút 3: Hủy yêu cầu phản ánh này */}
                 <button
                   type="button"
                   onClick={handleCancelReport}
@@ -524,46 +557,165 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* Khu vực đánh giá 5 sao (khi đã xử lý xong) */}
+            {/* KHU VỰC ĐÁNH GIÁ SAO TƯƠNG TÁC TRỰC TIẾP (CHO PHẢN ÁNH ĐÃ XỬ LÝ) */}
             {isResolved && (
-              <div className="pt-3 border-t border-slate-200">
-                {incident.rating ? (
-                  <div className="bg-amber-50 border border-amber-300 p-4 rounded-[5px] text-center space-y-1.5">
-                    <div className="flex items-center justify-center gap-1 text-amber-500">
-                      {Array.from({ length: incident.rating.stars }).map((_, i) => (
-                        <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
+              <div className="pt-4 border-t border-slate-200">
+                {!isEditingRating && incident.rating ? (
+                  <div className="bg-amber-50/90 border border-amber-200 p-4 rounded-[5px] space-y-2.5 text-center">
+                    <div className="text-xs font-extrabold text-amber-900 uppercase tracking-wide">
+                      Đánh giá của bạn về kết quả xử lý
+                    </div>
+
+                    {/* Cho phép bấm trực tiếp vào sao để đổi đánh giá */}
+                    <div className="flex items-center justify-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => {
+                            setRatingStars(star);
+                            setIsEditingRating(true);
+                          }}
+                          title="Bấm để thay đổi số sao đánh giá"
+                          className="p-0.5 hover:scale-110 transition"
+                        >
+                          <Star
+                            className={`w-6 h-6 ${
+                              star <= incident.rating!.stars
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        </button>
                       ))}
                     </div>
+
                     <div className="font-bold text-xs sm:text-sm text-amber-900">
-                      Bạn đã đánh giá {incident.rating.stars}/5 sao
+                      {incident.rating.stars}/5 sao •{' '}
+                      {incident.rating.stars === 5
+                        ? 'Rất hài lòng'
+                        : incident.rating.stars === 4
+                        ? 'Hài lòng'
+                        : incident.rating.stars === 3
+                        ? 'Bình thường'
+                        : 'Cần cải thiện'}
                     </div>
+
                     {incident.rating.comment && (
                       <p className="text-xs text-amber-800 italic break-words">
                         "{incident.rating.comment}"
                       </p>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingRating(true)}
+                      className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-[5px] text-xs font-bold transition"
+                    >
+                      <FileEdit className="w-3.5 h-3.5" />
+                      <span>Đánh giá lại / Chỉnh sửa nhận xét</span>
+                    </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setShowRatingModal(true)}
-                    className="w-full py-3 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-[5px] font-black shadow-sm transition flex items-center justify-center gap-2 active:scale-[0.99] text-xs sm:text-sm border border-amber-600 uppercase tracking-wide"
+                  <form
+                    onSubmit={handleSubmitRating}
+                    className="bg-amber-50/70 border border-amber-200 p-4 rounded-[5px] space-y-3.5"
                   >
-                    <Star className="w-4 h-4 fill-slate-900 shrink-0" />
-                    <span>Đánh giá mức độ hài lòng (5 sao)</span>
-                  </button>
+                    <div className="text-center space-y-1.5">
+                      <div className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+                        Chạm chọn số sao đánh giá mức độ hài lòng:
+                      </div>
+
+                      {/* 5 Ngôi sao tương tác trực tiếp (Hover + Click) */}
+                      <div
+                        className="flex items-center justify-center gap-1.5 py-1"
+                        onMouseLeave={() => setHoverStars(0)}
+                      >
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onMouseEnter={() => setHoverStars(star)}
+                            onClick={() => setRatingStars(star)}
+                            className="p-1 hover:scale-115 active:scale-95 transition focus:outline-none"
+                            aria-label={`Đánh giá ${star} sao`}
+                          >
+                            <Star
+                              className={`w-8 h-8 transition-colors ${
+                                star <= activeStarValue
+                                  ? 'text-amber-400 fill-amber-400 drop-shadow-sm'
+                                  : 'text-slate-300 hover:text-amber-300'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="text-xs font-extrabold text-amber-700">
+                        {activeStarValue === 5 && '5/5 sao — Rất hài lòng'}
+                        {activeStarValue === 4 && '4/5 sao — Hài lòng'}
+                        {activeStarValue === 3 && '3/5 sao — Bình thường'}
+                        {activeStarValue === 2 && '2/5 sao — Chưa hài lòng'}
+                        {activeStarValue === 1 && '1/5 sao — Rất không hài lòng'}
+                      </div>
+                    </div>
+
+                    {/* Chọn nhanh tiêu chí */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {RATING_CRITERIA.map((item) => {
+                        const checked = selectedCriteria.includes(item);
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => toggleCriteria(item)}
+                            className={`px-2.5 py-1 rounded-[5px] text-[11px] font-bold border transition ${
+                              checked
+                                ? 'bg-blue-700 text-white border-blue-800'
+                                : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
+                            }`}
+                          >
+                            {checked ? '✓ ' : '+ '}
+                            {item}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Nhận xét thêm */}
+                    <textarea
+                      rows={2}
+                      value={ratingComment}
+                      onChange={(e) => setRatingComment(e.target.value)}
+                      placeholder="Nhập nhận xét hoặc góp ý thêm cho UBND Phường..."
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-[5px] text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    />
+
+                    <div className="flex items-center gap-2">
+                      {incident.rating && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingRating(false)}
+                          className="px-3.5 py-2.5 bg-white border border-slate-300 rounded-[5px] text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                        >
+                          Hủy
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="flex-1 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs sm:text-sm font-black shadow-sm transition flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Gửi đánh giá ({ratingStars} sao)</span>
+                      </button>
+                    </div>
+                  </form>
                 )}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {showRatingModal && (
-        <CitizenRatingModal
-          incident={incident}
-          onClose={() => setShowRatingModal(false)}
-        />
-      )}
     </div>
   );
 };
