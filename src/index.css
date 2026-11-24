@@ -4,36 +4,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Chống tràn ngang toàn cục trên PC và Điện thoại */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  background-color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Chế độ Chữ Lớn / Trợ Năng cho Người Cao Tuổi */
 body.elderly-mode {
-  font-size: 1.15rem;
-  line-height: 1.75;
+  font-size: 1.125rem;
+  line-height: 1.7;
 }
 
 body.elderly-mode button,
 body.elderly-mode input,
 body.elderly-mode select,
 body.elderly-mode textarea {
-  font-size: 1.1rem;
-  min-height: 48px;
+  font-size: 1.05rem;
+  min-height: 44px;
 }
 
 body.elderly-mode h1 {
-  font-size: 2rem !important;
+  font-size: 1.85rem !important;
 }
 
 body.elderly-mode h2 {
-  font-size: 1.65rem !important;
+  font-size: 1.5rem !important;
 }
 
 body.elderly-mode h3 {
-  font-size: 1.35rem !important;
+  font-size: 1.25rem !important;
 }
 
 body.elderly-mode .elderly-highlight {
   font-weight: 700 !important;
 }
-
 
 /* ==========================================================================
    Compass Spin Animation (Y chang hệ thống IRS)
@@ -55,19 +63,25 @@ body.elderly-mode .elderly-highlight {
   justify-content: center !important;
 }
 
-/* Leaflet Custom Marker & Popup Styles */
+/* Leaflet Custom Marker & Popup Styles (Góc vuông đồng bộ) */
 .leaflet-container {
   font-family: inherit;
+  z-index: 10;
 }
 
 .smartcity-osm-popup .leaflet-popup-content-wrapper {
   padding: 0;
-  border-radius: 0.75rem;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
 }
 
 .smartcity-osm-popup .leaflet-popup-content {
   margin: 0;
   line-height: 1.4;
+}
+
+.leaflet-control-zoom a {
+  border-radius: 0 !important;
 }

@@ -23,18 +23,16 @@ export const CitizenTopNav: React.FC = () => {
   const { currentUser, loginAs } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Đếm phản ánh của người dân đang giải quyết
   const activeReportsCount = incidents.filter(
     (i) => i.status === 'pending' || i.status === 'assigned' || i.status === 'in_progress'
   ).length;
 
-  // 4 MỤC CHUẨN THEO YÊU CẦU: Trang chủ / Phản ánh / Bản đồ / Trợ giúp
+  // 4 MỤC CHUẨN: Trang chủ / Phản ánh / Bản đồ / Trợ giúp
   const navLinks = [
     {
       to: '/citizen/home',
       label: 'Trang chủ',
       icon: Home,
-      exact: true,
     },
     {
       to: '/citizen/reports',
@@ -55,27 +53,28 @@ export const CitizenTopNav: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-300 shadow-xs select-none">
-      {/* 1. THANH THÔNG BÁO KHẨN & HOTLINE ĐÔ THỊ TRÊN CÙNG */}
-      <div className="bg-blue-900 text-white text-xs py-2 shadow-inner">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 truncate">
-            <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider shrink-0 shadow-xs">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-300 shadow-sm select-none">
+      {/* 1. THANH TIỆN ÍCH TRÊN CÙNG (GỌN GÀNG, CHỐNG TRÀN TRÊN MOBILE) */}
+      <div className="bg-blue-950 text-white text-[11px] sm:text-xs py-1.5">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider shrink-0">
               CỔNG DÂN SINH
             </span>
-            <span className="font-semibold truncate text-blue-100 hidden sm:inline">
+            <span className="font-medium truncate text-blue-100 hidden md:inline">
               UBND Phường Trấn Biên • TP. Biên Hòa, Tỉnh Đồng Nai
             </span>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 text-xs font-bold">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 font-bold">
             <a
               href="tel:1022"
-              className="flex items-center gap-1.5 text-white hover:text-amber-300 transition"
+              className="flex items-center gap-1 text-white hover:text-amber-300 transition whitespace-nowrap"
               title="Tổng đài tiếp nhận phản ánh dịch vụ công"
             >
-              <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
-              <span className="whitespace-nowrap">Hotline: 1022</span>
+              <PhoneCall className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Hotline:</span>
+              <span>1022</span>
             </a>
             <span className="text-white/30">|</span>
             <button
@@ -83,48 +82,50 @@ export const CitizenTopNav: React.FC = () => {
                 loginAs('officer');
                 navigate('/dashboard');
               }}
-              className="flex items-center gap-1.5 text-white hover:text-cyan-200 bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-none transition border border-white/20 shadow-2xs group whitespace-nowrap"
-              title="Chuyển sang Bàn làm việc Cán bộ / IOC"
+              className="flex items-center gap-1 text-white hover:text-cyan-200 bg-white/10 hover:bg-white/20 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-none transition border border-white/20 whitespace-nowrap"
+              title="Chuyển sang Bàn làm việc Cán bộ / Admin"
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-cyan-300 group-hover:scale-110 transition shrink-0" />
-              <span>Bàn Cán Bộ / Admin</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition shrink-0" />
+              <ShieldAlert className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+              <span className="hidden sm:inline">Bàn Cán Bộ /</span>
+              <span>Admin</span>
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN TOP NAVIGATION BAR (4 MỤC: TRANG CHỦ / PHẢN ÁNH / BẢN ĐỒ / TRỢ GIÚP - GÓC VUÔNG) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 gap-4">
+      {/* 2. THANH ĐIỀU HƯỚNG CHÍNH (PC: 1 HÀNG NGANG CHUẨN | MOBILE/TABLET: GỌN + MENU DROPDOWN) */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 lg:h-[72px] gap-2 sm:gap-4 min-w-0">
           {/* Logo & Tên Cổng Dịch Vụ */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => navigate('/citizen/home')}
-              className="flex items-center gap-3 text-left group"
-              title="Về trang chủ công dân"
-            >
-              <div className="w-11 h-11 rounded-none bg-blue-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition shrink-0">
-                <Shield className="w-6 h-6" />
-              </div>
-              <div className="flex flex-col whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
-                    Trấn Biên SmartCity
-                  </span>
-                  <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold px-2 py-0.5 rounded-none uppercase tracking-wider shrink-0 whitespace-nowrap">
-                    Dân Sinh
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-500 font-medium tracking-wide mt-1 whitespace-nowrap">
-                  Cổng Tiếp Nhận Phản Ánh Hiện Trường
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              navigate('/citizen/home');
+            }}
+            className="flex items-center gap-2.5 sm:gap-3 text-left group min-w-0 shrink"
+            title="Về trang chủ công dân"
+          >
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none bg-blue-700 text-white flex items-center justify-center shadow-sm shrink-0">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-sm sm:text-base lg:text-lg font-black text-slate-900 tracking-tight leading-none truncate">
+                  Trấn Biên SmartCity
+                </span>
+                <span className="hidden sm:inline-block bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold px-1.5 py-0.5 rounded-none uppercase tracking-wider shrink-0">
+                  Dân Sinh
                 </span>
               </div>
-            </button>
-          </div>
+              <span className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1 truncate">
+                Cổng Tiếp Nhận Phản Ánh Hiện Trường
+              </span>
+            </div>
+          </button>
 
-          {/* 4 Navigation Links (Trang chủ / Phản ánh / Bản đồ / TrỢ giúp - GÓC VUÔNG) */}
-          <nav className="hidden md:flex items-center gap-1.5 shrink-0">
+          {/* 4 Navigation Links trên PC (lg trở lên để không bao giờ chèn ép ở Tablet) */}
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
             {navLinks.map((item) => {
               const Icon = item.icon;
               return (
@@ -132,17 +133,17 @@ export const CitizenTopNav: React.FC = () => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-2.5 rounded-none text-xs sm:text-sm font-bold transition whitespace-nowrap shrink-0 border ${
+                    `flex items-center gap-2 px-4 py-2.5 rounded-none text-sm font-bold transition whitespace-nowrap border ${
                       isActive
-                        ? 'bg-blue-700 text-white border-blue-800 shadow-xs'
+                        ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
                         : 'border-transparent text-slate-700 hover:text-blue-700 hover:bg-slate-100 hover:border-slate-300'
                     }`
                   }
                 >
                   <Icon className="w-4 h-4 shrink-0" />
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span>{item.label}</span>
                   {item.badge && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-none text-[10px] font-black bg-rose-600 text-white shadow-xs shrink-0 whitespace-nowrap">
+                    <span className="ml-0.5 px-1.5 py-0.5 rounded-none text-[10px] font-black bg-rose-600 text-white leading-none">
                       {item.badge}
                     </span>
                   )}
@@ -151,43 +152,47 @@ export const CitizenTopNav: React.FC = () => {
             })}
           </nav>
 
-          {/* Tiện ích Phía Phải (Chữ Lớn + Profile Người Dân + Mobile Menu Toggle) */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 whitespace-nowrap">
+          {/* Tiện ích Phía Phải */}
+          <div className="flex items-center gap-2 shrink-0">
             {/* Chế độ Chữ Lớn */}
             <button
               onClick={toggleElderlyMode}
               type="button"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-bold transition border shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-none text-xs font-bold transition border whitespace-nowrap ${
                 elderlyMode
-                  ? 'bg-amber-400 text-slate-900 border-amber-500 font-black shadow-xs'
+                  ? 'bg-amber-400 text-slate-900 border-amber-500 font-black'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
               }`}
               title="Phóng to font chữ cho người cao tuổi"
             >
               <Eye className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">{elderlyMode ? '✓ Đang bật Chữ Lớn' : '👓 Chữ Lớn'}</span>
+              <span className="hidden sm:inline">
+                {elderlyMode ? 'Đang bật Chữ Lớn' : 'Chữ Lớn'}
+              </span>
+              <span className="sm:hidden">{elderlyMode ? 'A+' : 'A'}</span>
             </button>
 
-            {/* Profile Người Dân */}
-            <div className="hidden sm:flex items-center gap-2.5 pl-3 border-l border-slate-200 shrink-0">
-              <div className="w-8 h-8 rounded-none bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
+            {/* Profile Người Dân (hiển thị từ xl trở lên để desktop rộng rãi, không chật) */}
+            <div className="hidden xl:flex items-center gap-2.5 pl-3 border-l border-slate-200 shrink-0">
+              <div className="w-8 h-8 rounded-none bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
                 <User className="w-4 h-4" />
               </div>
               <div className="text-left text-xs whitespace-nowrap">
-                <div className="font-extrabold text-slate-900 leading-none whitespace-nowrap">
+                <div className="font-extrabold text-slate-900 leading-none">
                   {currentUser.role === 'citizen' ? currentUser.name : 'Bác Hai Trấn Biên'}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1 font-medium whitespace-nowrap">
+                <div className="text-[10px] text-slate-500 mt-1 font-medium">
                   Công dân KP.2
                 </div>
               </div>
             </div>
 
-            {/* Mobile Hamburger Toggle Button */}
+            {/* Mobile / Tablet Hamburger Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-none border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
-              title="Mở menu điều hướng"
+              type="button"
+              aria-label="Mở menu điều hướng"
+              className="lg:hidden p-2 rounded-none border border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -195,9 +200,9 @@ export const CitizenTopNav: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* 3. MOBILE & TABLET DRAWER MENU */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-slate-300 p-4 space-y-2 shadow-lg">
+        <div className="lg:hidden bg-white border-t border-slate-200 px-3 sm:px-6 py-3 space-y-1.5 shadow-lg">
           {navLinks.map((item) => {
             const Icon = item.icon;
             return (
@@ -209,12 +214,12 @@ export const CitizenTopNav: React.FC = () => {
                   `flex items-center justify-between px-3.5 py-2.5 rounded-none text-sm font-bold transition border ${
                     isActive
                       ? 'bg-blue-700 text-white border-blue-800'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`
                 }
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
@@ -226,17 +231,25 @@ export const CitizenTopNav: React.FC = () => {
             );
           })}
 
-          <div className="pt-3 border-t border-slate-200 flex flex-col gap-2">
+          <div className="pt-2.5 mt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-slate-600 min-w-0">
+              <div className="w-7 h-7 bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-bold text-slate-800 truncate">
+                {currentUser.role === 'citizen' ? currentUser.name : 'Bác Hai Trấn Biên'}
+              </span>
+            </div>
             <button
               onClick={() => {
                 loginAs('officer');
                 setMobileMenuOpen(false);
                 navigate('/dashboard');
               }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-none bg-slate-900 text-white text-xs font-bold shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-none bg-slate-900 text-white text-xs font-bold shrink-0"
             >
-              <ShieldAlert className="w-4 h-4 text-cyan-400" />
-              <span>Chuyển sang Bàn Cán Bộ / Admin</span>
+              <ShieldAlert className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Bàn Admin</span>
             </button>
           </div>
         </div>

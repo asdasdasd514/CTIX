@@ -35,8 +35,8 @@ const CATEGORIES: {
     name: 'Đèn đường chiếu sáng',
     desc: 'Mất điện, bóng cháy, chập chờn ban đêm',
     icon: Lightbulb,
-    color: 'text-amber-500',
-    bg: 'bg-amber-50 hover:bg-amber-100/80',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
     activeBorder: 'border-amber-500 ring-1 ring-amber-500 bg-amber-50/70',
   },
   {
@@ -45,7 +45,7 @@ const CATEGORIES: {
     desc: 'Đọng nước sâu, cống nghẹt rác',
     icon: Waves,
     color: 'text-blue-600',
-    bg: 'bg-blue-50 hover:bg-blue-100/80',
+    bg: 'bg-blue-50',
     activeBorder: 'border-blue-600 ring-1 ring-blue-500 bg-blue-50/70',
   },
   {
@@ -54,7 +54,7 @@ const CATEGORIES: {
     desc: 'Bãi rác trái phép, phế thải bốc mùi',
     icon: Trash2,
     color: 'text-emerald-600',
-    bg: 'bg-emerald-50 hover:bg-emerald-100/80',
+    bg: 'bg-emerald-50',
     activeBorder: 'border-emerald-600 ring-1 ring-emerald-500 bg-emerald-50/70',
   },
   {
@@ -63,7 +63,7 @@ const CATEGORIES: {
     desc: 'Mặt đường sụt lún, hố sâu nguy hiểm',
     icon: Construction,
     color: 'text-rose-600',
-    bg: 'bg-rose-50 hover:bg-rose-100/80',
+    bg: 'bg-rose-50',
     activeBorder: 'border-rose-600 ring-1 ring-rose-500 bg-rose-50/70',
   },
 ];
@@ -73,9 +73,6 @@ export const SubmitIncidentWizard: React.FC = () => {
   const { addIncident, elderlyMode } = useIncidentStore();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // CHUẨN 2 BƯỚC:
-  // Bước 1: Điền thông tin phản ánh & Tải ảnh lên
-  // Bước 2: Chọn vị trí sự cố trên bản đồ OpenStreetMap
   const [step, setStep] = useState<1 | 2>(1);
 
   const [photoUrl, setPhotoUrl] = useState<string>(
@@ -104,7 +101,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     code: string;
   } | null>(null);
 
-  // Xử lý tải ảnh thật từ máy tính/điện thoại
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -119,7 +115,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     }
   };
 
-  // Nạp nhanh ảnh mẫu có sẵn để trải nghiệm
   const handleSelectSample = (category: IncidentCategory) => {
     setSelectedCategory(category);
     if (category === 'street_light') {
@@ -141,7 +136,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     }
   };
 
-  // Lia bản đồ & Click chọn vị trí + Reverse Geocoding tự động
   const handleMapClick = async (lat: number, lng: number) => {
     setLocation((prev) => ({
       ...prev,
@@ -179,7 +173,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     }
   };
 
-  // Lấy vị trí GPS hiện tại
   const handleGetCurrentLocation = () => {
     setIsLocating(true);
     if ('geolocation' in navigator) {
@@ -200,7 +193,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     }
   };
 
-  // Xác nhận gửi phản ánh
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const result = addIncident({
@@ -231,23 +223,23 @@ export const SubmitIncidentWizard: React.FC = () => {
   const currentCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
 
   return (
-    <div className="space-y-5">
-      {/* 1. THANH TIÊU ĐỀ & 2 BƯỚC ĐIỀU HƯỚNG (GÓC VUÔNG) */}
-      <div className="bg-blue-800 text-white rounded-none p-5 sm:p-6 shadow-sm border border-blue-900">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1">
-            <span className="inline-block bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider">
+    <div className="space-y-4 sm:space-y-5">
+      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC (GỌN GÀNG, CHỐNG TRÀN MOBILE) */}
+      <div className="bg-blue-900 text-white rounded-none p-4 sm:p-6 shadow-sm border border-blue-950">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <span className="inline-block bg-white/15 text-white text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-white/20">
               Dịch Vụ Dân Sinh • Phường Trấn Biên
             </span>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight">
               Gửi Phản Ánh Hiện Trường Mới
             </h1>
             <p className="text-xs text-blue-100 font-medium">
-              Chỉ 2 bước: Điền thông tin & tải ảnh, sau đó ghim vị trí trên bản đồ OpenStreetMap
+              2 bước nhanh chóng: Điền thông tin & tải ảnh, sau đó chọn vị trí trên bản đồ
             </p>
           </div>
 
-          <div className="hidden lg:flex items-center gap-3 bg-white/10 p-3 rounded-none border border-white/20 text-xs">
+          <div className="hidden lg:flex items-center gap-3 bg-white/10 p-3 rounded-none border border-white/20 text-xs shrink-0">
             <ShieldCheck className="w-7 h-7 text-cyan-300 shrink-0" />
             <div>
               <div className="font-extrabold text-white">Cam kết tiếp nhận & xử lý</div>
@@ -256,33 +248,33 @@ export const SubmitIncidentWizard: React.FC = () => {
           </div>
         </div>
 
-        {/* Thanh 2 Bước Chuẩn Rõ Ràng (GÓC VUÔNG) */}
-        <div className="grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-white/20 text-center">
+        {/* Thanh 2 Bước (Xếp dọc trên mobile nhỏ, 2 cột ngang từ sm trở lên) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/20">
           <button
             type="button"
             onClick={() => setStep(1)}
-            className={`p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
+            className={`p-2.5 sm:p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
               step === 1
-                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white border-transparent'
+                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
             }`}
           >
-            <span className="w-5 h-5 rounded-none bg-slate-900/10 flex items-center justify-center text-xs font-black">
+            <span className="w-5 h-5 rounded-none bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
               1
             </span>
-            <span>Bước 1: Điền thông tin & Tải ảnh</span>
+            <span>Bước 1: Thông tin & Ảnh hiện trường</span>
           </button>
 
           <button
             type="button"
             onClick={() => setStep(2)}
-            className={`p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
+            className={`p-2.5 sm:p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
               step === 2
-                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white border-transparent'
+                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-sm font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
             }`}
           >
-            <span className="w-5 h-5 rounded-none bg-slate-900/10 flex items-center justify-center text-xs font-black">
+            <span className="w-5 h-5 rounded-none bg-slate-900/15 flex items-center justify-center text-xs font-black shrink-0">
               2
             </span>
             <span>Bước 2: Chọn vị trí trên bản đồ</span>
@@ -293,32 +285,32 @@ export const SubmitIncidentWizard: React.FC = () => {
       {/* THÔNG BÁO KẾT QUẢ SAU KHI GỬI */}
       {notification && (
         <div
-          className={`p-5 sm:p-6 rounded-none border shadow-sm ${
+          className={`p-4 sm:p-6 rounded-none border shadow-sm ${
             notification.type === 'duplicate'
               ? 'bg-amber-50 border-amber-300 text-amber-900'
               : 'bg-emerald-50 border-emerald-300 text-emerald-900'
           }`}
         >
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
             <CheckCircle2
-              className={`w-8 h-8 shrink-0 ${
+              className={`w-7 h-7 sm:w-8 sm:h-8 shrink-0 ${
                 notification.type === 'duplicate' ? 'text-amber-600' : 'text-emerald-600'
               }`}
             />
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0 flex-1">
               <h3 className="font-extrabold text-base sm:text-lg">
                 {notification.type === 'duplicate'
                   ? 'Đã tự động gộp phản ánh cùng sự cố!'
                   : 'Tiếp nhận phản ánh thành công!'}
               </h3>
               <p className="text-xs sm:text-sm leading-relaxed">{notification.message}</p>
-              <div className="pt-2 flex flex-wrap gap-3">
+              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                 <button
                   onClick={() => navigate('/citizen/reports')}
-                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs sm:text-sm font-bold shadow-xs flex items-center gap-2 transition"
+                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition"
                 >
                   <span>Xem hồ sơ trong danh sách Phản ánh</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
                 <button
                   onClick={() => {
@@ -335,37 +327,33 @@ export const SubmitIncidentWizard: React.FC = () => {
         </div>
       )}
 
-      {/* 2. BỐ CỤC CHÍNH 2 CỘT CHUẨN MÀN HÌNH MÁY TÍNH */}
+      {/* 2. BỐ CỤC CHÍNH 2 CỘT (PC: 8/4 | MOBILE: 1 CỘT) */}
       {!notification && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* CỘT TRÁI (8 / 12 CỘT): NỘI DUNG 2 BƯỚC */}
-          <div className="lg:col-span-8 bg-white rounded-none border border-slate-300 shadow-2xs p-5 sm:p-7">
-            {/* ========================================================
-                BƯỚC 1: ĐIỀN THÔNG TIN & TẢI ẢNH LÊN
-                ======================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* CỘT TRÁI (8 / 12 CỘT): FORM 2 BƯỚC */}
+          <div className="lg:col-span-8 bg-white rounded-none border border-slate-200 shadow-sm p-4 sm:p-6 min-w-0">
             {step === 1 && (
               <div className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                  <div>
+                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
+                  <div className="min-w-0">
                     <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                      Bước 1: Điền thông tin sự cố & Tải ảnh hiện trường
+                      Bước 1: Điền thông tin & Tải ảnh hiện trường
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Chụp ảnh hoặc chọn ảnh thực tế từ thiết bị của bạn
+                      Chụp ảnh hoặc tải ảnh thực tế từ điện thoại / máy tính
                     </p>
                   </div>
-                  <span className="text-xs text-rose-600 font-bold bg-rose-50 px-2.5 py-1 rounded-none border border-rose-300">
+                  <span className="text-[11px] text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded-none border border-rose-200 shrink-0">
                     * Bắt buộc
                   </span>
                 </div>
 
-                {/* KHUNG TẢI ẢNH THỰC TẾ (FILE UPLOAD) */}
+                {/* KHUNG TẢI ẢNH */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-slate-700 uppercase">
                     Ảnh chụp hiện trường sự cố:
                   </label>
 
-                  {/* Input ẩn để chọn file thật */}
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -374,44 +362,41 @@ export const SubmitIncidentWizard: React.FC = () => {
                     className="hidden"
                   />
 
-                  {/* Vùng xem trước & Tải ảnh (GÓC VUÔNG) */}
-                  <div className="relative aspect-[16/9] w-full rounded-none overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center shadow-inner group">
+                  <div className="relative aspect-[16/9] w-full rounded-none overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center group">
                     <img
                       src={photoUrl}
                       alt="Hiện trường"
-                      className="w-full h-full object-cover group-hover:scale-102 transition duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
 
-                    {/* Nút hành động nổi trên ảnh */}
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
+                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-3">
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs font-bold shadow-lg transition flex items-center gap-2"
                       >
-                        <Upload className="w-4 h-4" />
+                        <Upload className="w-4 h-4 shrink-0" />
                         <span>Tải ảnh khác từ máy</span>
                       </button>
                     </div>
 
-                    <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-none flex items-center gap-2">
-                      <Camera className="w-3.5 h-3.5 text-cyan-400" />
-                      <span className="font-mono text-[11px] truncate max-w-xs">{photoName}</span>
+                    <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto max-w-[90%] bg-slate-900/85 text-white text-xs px-2.5 py-1.5 rounded-none flex items-center gap-2">
+                      <Camera className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span className="font-mono text-[11px] truncate">{photoName}</span>
                     </div>
                   </div>
 
-                  {/* Nút chọn ảnh từ thiết bị */}
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-none text-xs font-bold transition flex items-center gap-1.5"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-none text-xs font-bold transition flex items-center justify-center gap-1.5"
                     >
-                      <Upload className="w-4 h-4" />
+                      <Upload className="w-4 h-4 shrink-0" />
                       <span>Chọn ảnh từ máy tính / điện thoại</span>
                     </button>
 
-                    <span className="text-xs text-slate-400">hoặc chọn nhanh ảnh mẫu thử nghiệm:</span>
+                    <span className="text-[11px] text-slate-400">hoặc chọn nhanh ảnh mẫu:</span>
                   </div>
 
                   {/* 4 Nút chọn ảnh mẫu nhanh */}
@@ -419,56 +404,56 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectSample('street_light')}
-                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
+                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${
                         selectedCategory === 'street_light'
-                          ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                          ? 'border-amber-500 bg-amber-50 text-amber-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                       }`}
                     >
-                      💡 Đèn đường hỏng
+                      💡 Đèn đường
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectSample('flooding')}
-                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
+                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${
                         selectedCategory === 'flooding'
-                          ? 'border-blue-500 bg-blue-50 text-blue-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                       }`}
                     >
-                      🌊 Ngập úng sau mưa
+                      🌊 Ngập úng
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectSample('waste')}
-                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
+                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${
                         selectedCategory === 'waste'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                       }`}
                     >
-                      🗑️ Bãi rác tự phát
+                      🗑️ Rác thải
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectSample('road_damage')}
-                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
+                      className={`p-2 text-[11px] sm:text-xs border rounded-none font-bold text-left transition truncate ${
                         selectedCategory === 'road_damage'
-                          ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                          ? 'border-rose-500 bg-rose-50 text-rose-900'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                       }`}
                     >
-                      🚧 Ổ gà mặt đường
+                      🚧 Ổ gà đường
                     </button>
                   </div>
                 </div>
 
                 {/* CHỌN DANH MỤC SỰ CỐ */}
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2 pt-1">
                   <label className="block text-xs font-bold text-slate-700 uppercase">
                     Phân loại sự cố:
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                     {CATEGORIES.map((cat) => {
                       const Icon = cat.icon;
                       const isSelected = selectedCategory === cat.id;
@@ -477,23 +462,23 @@ export const SubmitIncidentWizard: React.FC = () => {
                           key={cat.id}
                           type="button"
                           onClick={() => setSelectedCategory(cat.id)}
-                          className={`p-3.5 rounded-none border-2 text-left transition flex items-start gap-3 ${
-                            isSelected ? cat.activeBorder : 'border-slate-300 hover:border-slate-400 bg-white'
+                          className={`p-3 sm:p-3.5 rounded-none border text-left transition flex items-start gap-3 min-w-0 ${
+                            isSelected ? cat.activeBorder : 'border-slate-200 hover:border-slate-400 bg-white'
                           }`}
                         >
                           <div
-                            className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 ${
-                              isSelected ? 'bg-blue-700 text-white shadow-md' : `${cat.bg} ${cat.color}`
+                            className={`w-9 h-9 rounded-none flex items-center justify-center shrink-0 ${
+                              isSelected ? 'bg-blue-700 text-white' : `${cat.bg} ${cat.color}`
                             }`}
                           >
                             <Icon className="w-5 h-5" />
                           </div>
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-extrabold text-xs sm:text-sm text-slate-900">
+                              <span className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
                                 {cat.name}
                               </span>
-                              {isSelected && <span className="text-xs font-bold text-blue-700">✓</span>}
+                              {isSelected && <span className="text-xs font-bold text-blue-700 shrink-0">✓</span>}
                             </div>
                             <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{cat.desc}</p>
                           </div>
@@ -503,8 +488,8 @@ export const SubmitIncidentWizard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* GHI CHÚ / MÔ TẢ TÌNH TRẠNG HIỆN TRƯỜNG */}
-                <div className="space-y-1.5 pt-2">
+                {/* GHI CHÚ */}
+                <div className="space-y-1.5 pt-1">
                   <label className="block text-xs font-bold text-slate-700 uppercase">
                     Ghi chú / Mô tả tình trạng hiện trường: <span className="text-rose-500">*</span>
                   </label>
@@ -513,13 +498,13 @@ export const SubmitIncidentWizard: React.FC = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Mô tả cụ thể vị trí cột điện số mấy, kích thước hố sụt hoặc thời điểm ngập nước..."
-                    className="w-full p-3.5 border border-slate-300 rounded-none text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
+                    className="w-full p-3 border border-slate-300 rounded-none text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     required
                   />
                 </div>
 
                 {/* THÔNG TIN NGƯỜI GỬI */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-none border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-none border border-slate-200">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Số điện thoại nhận thông báo: <span className="text-rose-500">*</span>
@@ -547,51 +532,49 @@ export const SubmitIncidentWizard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* NÚT TIẾP TỤC SANG BƯỚC 2 */}
-                <div className="pt-3 flex justify-end">
+                {/* NÚT TIẾP TỤC */}
+                <div className="pt-2 flex justify-end">
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className={`flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-bold transition shadow-sm active:scale-95 border border-blue-900 ${
-                      elderlyMode ? 'text-base' : 'text-sm'
+                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-bold transition shadow-sm active:scale-[0.99] border border-blue-900 ${
+                      elderlyMode ? 'text-base' : 'text-xs sm:text-sm'
                     }`}
                   >
                     <span>Tiếp tục: Chọn vị trí trên bản đồ</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ========================================================
-                BƯỚC 2: CHỌN VỊ TRÍ TRÊN BẢN ĐỒ OPENSTREETMAP
-                ======================================================== */}
+            {/* BƯỚC 2: CHỌN VỊ TRÍ */}
             {step === 2 && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                  <div>
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                  <div className="min-w-0">
                     <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                      Bước 2: Chọn vị trí sự cố trên bản đồ OpenStreetMap
+                      Bước 2: Chọn vị trí sự cố trên bản đồ
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Lấy vị trí hiện tại của bạn hoặc lia bản đồ & nhấp vào vị trí bất kỳ
+                      Lấy vị trí hiện tại hoặc nhấp trực tiếp vào bản đồ OpenStreetMap
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={handleGetCurrentLocation}
                     disabled={isLocating}
-                    className="px-3.5 py-1.5 rounded-none bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                    className="w-full sm:w-auto px-3.5 py-2 rounded-none bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center justify-center gap-1.5 transition shrink-0"
                   >
-                    <Locate className={`w-4 h-4 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
-                    <span>{isLocating ? 'Đang định vị...' : '📍 Lấy vị trí hiện tại'}</span>
+                    <Locate className={`w-4 h-4 shrink-0 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
+                    <span>{isLocating ? 'Đang định vị...' : 'Lấy vị trí hiện tại'}</span>
                   </button>
                 </div>
 
-                {/* KHUNG BẢN ĐỒ OPENSTREETMAP TO RỘNG (GÓC VUÔNG) */}
+                {/* KHUNG BẢN ĐỒ */}
                 <div className="rounded-none overflow-hidden border border-slate-300 shadow-sm relative">
                   <OpenStreetMap
-                    height="440px"
+                    height="360px"
                     center={[location.lat, location.lng]}
                     zoom={16}
                     singlePin={{
@@ -604,11 +587,11 @@ export const SubmitIncidentWizard: React.FC = () => {
                   />
                 </div>
 
-                {/* Ô ĐỊA CHỈ TỰ ĐỘNG CẬP NHẬT THEO ĐIỂM CHỌN (GÓC VUÔNG) */}
-                <div className="bg-slate-50 p-4 rounded-none border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
+                {/* Ô ĐỊA CHỈ */}
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-none border border-slate-200 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
-                      Địa chỉ sự cố (tự động nhận diện theo điểm ghim trên bản đồ):
+                      Địa chỉ sự cố (tự nhận diện theo điểm ghim):
                     </label>
                     {isGeocoding && (
                       <span className="text-[11px] font-bold text-blue-600 animate-pulse">
@@ -621,34 +604,34 @@ export const SubmitIncidentWizard: React.FC = () => {
                     type="text"
                     value={location.address}
                     onChange={(e) => setLocation({ ...location, address: e.target.value })}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-none text-xs sm:text-sm font-semibold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-none text-xs sm:text-sm font-semibold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     placeholder="Số nhà, ngõ/hẻm, tên đường..."
                     required
                   />
-                  <p className="text-[11px] text-slate-500 italic flex items-center gap-1 font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span>Lia và nhấp chuột vào bất cứ đâu trên bản đồ để di chuyển điểm ghim sự cố. Bạn có thể tự gõ bổ sung số nhà nếu cần.</span>
+                  <p className="text-[11px] text-slate-500 italic flex items-start gap-1.5 font-medium">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                    <span>Lia và nhấp vào bản đồ để di chuyển ghim. Bạn có thể gõ bổ sung số nhà nếu cần.</span>
                   </p>
                 </div>
 
-                {/* NÚT QUAY LẠI & XÁC NHẬN GỬI (GÓC VUÔNG) */}
-                <div className="flex items-center justify-between pt-2">
+                {/* NÚT QUAY LẠI & XÁC NHẬN (XẾP DỌC TRÊN MOBILE, NGANG TRÊN PC) */}
+                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="flex items-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-none text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
+                    className="flex items-center justify-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-none text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-4 h-4 shrink-0" />
                     <span>Quay lại bước 1</span>
                   </button>
 
                   <button
                     type="submit"
-                    className={`px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-black shadow-md transition flex items-center gap-2 active:scale-95 border border-blue-900 ${
-                      elderlyMode ? 'text-base py-4 px-10' : 'text-sm'
+                    className={`px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-black shadow-sm transition flex items-center justify-center gap-2 active:scale-[0.99] border border-blue-900 ${
+                      elderlyMode ? 'text-base py-3.5' : 'text-xs sm:text-sm'
                     }`}
                   >
-                    <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
                     <span>XÁC NHẬN GỬI PHẢN ÁNH</span>
                   </button>
                 </div>
@@ -656,13 +639,12 @@ export const SubmitIncidentWizard: React.FC = () => {
             )}
           </div>
 
-          {/* CỘT PHẢI (4 / 12 CỘT): PANEL TÓM TẮT & XEM TRƯỚC (GÓC VUÔNG) */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* Live Preview Hồ Sơ */}
-            <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-5 space-y-4">
+          {/* CỘT PHẢI (4 / 12 CỘT): XEM TRƯỚC HỒ SƠ */}
+          <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4 min-w-0">
+            <div className="bg-white rounded-none border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-blue-600" />
+                  <Info className="w-4 h-4 text-blue-600 shrink-0" />
                   <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 uppercase tracking-wider">
                     Xem trước hồ sơ
                   </h3>
@@ -672,19 +654,17 @@ export const SubmitIncidentWizard: React.FC = () => {
                 </span>
               </div>
 
-              {/* Ảnh Thumbnail */}
-              <div className="aspect-video w-full rounded-none overflow-hidden bg-slate-100 border border-slate-300 relative shadow-2xs">
+              <div className="aspect-video w-full rounded-none overflow-hidden bg-slate-100 border border-slate-200 relative">
                 <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute bottom-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-none font-mono">
+                <div className="absolute bottom-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded-none font-mono">
                   {currentCategoryObj.name}
                 </div>
               </div>
 
-              {/* Tóm tắt thông tin */}
               <div className="space-y-2 text-xs">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                  <span className="text-slate-700 font-medium line-clamp-2">
+                  <span className="text-slate-700 font-medium break-words">
                     {location.address}
                   </span>
                 </div>
@@ -698,44 +678,42 @@ export const SubmitIncidentWizard: React.FC = () => {
               {description && (
                 <div className="p-3 bg-slate-50 rounded-none border border-slate-200 text-xs text-slate-700">
                   <span className="font-bold block text-slate-900 mb-0.5">Nội dung ghi chú:</span>
-                  <p className="line-clamp-3 italic">"{description}"</p>
+                  <p className="line-clamp-3 italic break-words">"{description}"</p>
                 </div>
               )}
             </div>
 
-            {/* Cam Kết Phục Vụ SLA (GÓC VUÔNG) */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-none border border-blue-200 p-5 space-y-3">
+            <div className="bg-blue-50/70 rounded-none border border-blue-200 p-4 sm:p-5 space-y-2.5">
               <div className="flex items-center gap-2 text-blue-900 font-extrabold text-xs uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                <span>Cam kết phục vụ của UBND Phường</span>
+                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Cam kết phục vụ UBND Phường</span>
               </div>
 
               <div className="space-y-2 text-xs text-slate-700 font-medium">
-                <div className="flex items-center justify-between p-2 rounded-none bg-white/80 border border-blue-100">
+                <div className="flex items-center justify-between p-2 rounded-none bg-white border border-blue-100 gap-2">
                   <span>Tiếp nhận & phân loại:</span>
-                  <strong className="text-blue-700">Trong 2 giờ</strong>
+                  <strong className="text-blue-700 whitespace-nowrap">Trong 2 giờ</strong>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-none bg-white/80 border border-blue-100">
+                <div className="flex items-center justify-between p-2 rounded-none bg-white border border-blue-100 gap-2">
                   <span>Khắc phục hoàn thành:</span>
-                  <strong className="text-emerald-700">24h - 48h</strong>
+                  <strong className="text-emerald-700 whitespace-nowrap">24h - 48h</strong>
                 </div>
               </div>
             </div>
 
-            {/* Hotline hỗ trợ khẩn cấp (GÓC VUÔNG) */}
-            <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-4 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-none bg-rose-100 text-rose-700 flex items-center justify-center font-bold border border-rose-200">
+            <div className="bg-white rounded-none border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-none bg-rose-50 text-rose-700 flex items-center justify-center font-bold border border-rose-200 shrink-0">
                   <PhoneCall className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="font-extrabold text-slate-900">Tổng đài 1022</div>
-                  <div className="text-[11px] text-slate-500">Tiếp nhận phản ánh 24/7</div>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-slate-900 truncate">Tổng đài 1022</div>
+                  <div className="text-[11px] text-slate-500 truncate">Tiếp nhận phản ánh 24/7</div>
                 </div>
               </div>
               <a
                 href="tel:1022"
-                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-none border border-rose-300 text-xs transition"
+                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-none border border-rose-200 text-xs transition whitespace-nowrap shrink-0"
               >
                 Gọi 1022
               </a>

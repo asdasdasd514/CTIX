@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Incident } from '../../types/incident';
 import { useNavigate } from 'react-router-dom';
-import { Layers, Locate } from 'lucide-react';
+import { Locate } from 'lucide-react';
 
 interface OpenStreetMapProps {
   incidents?: Incident[];
@@ -25,7 +25,7 @@ interface OpenStreetMapProps {
 export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
   incidents = [],
   selectedId,
-  center = [10.9572, 106.8184], // Tọa độ trung tâm Phường Trấn Biên (Biên Hòa, Đồng Nai)
+  center = [10.9572, 106.8184],
   zoom = 14,
   height = '360px',
   className = '',
@@ -59,7 +59,6 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         attributionControl: true,
       });
 
-      // Bản đồ nền CartoDB Voyager dựa trên dữ liệu OpenStreetMap thực tế (Tải nhanh, nét, hỗ trợ nhãn tiếng Việt)
       const streetLayer = L.tileLayer(
         'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
         {
@@ -72,11 +71,9 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
       tileLayerRef.current = streetLayer;
 
-      // Layer chứa các Marker
       const markersLayer = L.layerGroup().addTo(map);
       markersLayerRef.current = markersLayer;
 
-      // Xử lý Click vào bản đồ (Lia map & chọn vị trí bất kỳ)
       map.on('click', (e: L.LeafletMouseEvent) => {
         if (onMapClickRef.current) {
           onMapClickRef.current(e.latlng.lat, e.latlng.lng);
@@ -85,7 +82,6 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
       mapInstanceRef.current = map;
 
-      // Resize tự động khi render
       setTimeout(() => {
         map.invalidateSize();
       }, 250);
@@ -119,11 +115,10 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         }
       ).addTo(mapInstanceRef.current);
     } else {
-      // ESRI World Imagery (Vệ tinh độ phân giải cao)
       tileLayerRef.current = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+          attribution: 'Tiles &copy; Esri',
           maxZoom: 19,
         }
       ).addTo(mapInstanceRef.current);
@@ -149,7 +144,6 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
             onMapClickRef.current(latitude, longitude);
           }
 
-          // Tạo Pulse Marker vị trí hiện tại (GÓC VUÔNG)
           const gpsIcon = L.divIcon({
             className: 'custom-gps-pin',
             html: `
@@ -168,7 +162,7 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
             .openPopup();
         }
       },
-      (err) => {
+      () => {
         setIsLocating(false);
         alert('Không thể lấy vị trí GPS hiện tại. Vui lòng cấp quyền vị trí cho trình duyệt.');
       },
@@ -182,7 +176,6 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
     const markersLayer = markersLayerRef.current;
     markersLayer.clearLayers();
 
-    // 4.1. Single Pin khi người dùng chọn điểm trong Wizard tạo phản ánh
     if (singlePin) {
       const pinIcon = L.divIcon({
         className: 'single-pin-marker',
@@ -202,7 +195,7 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         popupAnchor: [0, -40],
       });
 
-      const pinMarker = L.marker([singlePin.lat, singlePin.lng], { icon: pinIcon })
+      L.marker([singlePin.lat, singlePin.lng], { icon: pinIcon })
         .addTo(markersLayer)
         .bindPopup(`<b>Điểm đã chọn:</b><br/>${singlePin.label || 'Vị trí sự cố hiện trường'}`)
         .openPopup();
@@ -211,7 +204,6 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
       return;
     }
 
-    // 4.2. Render danh sách phản ánh đô thị lên OpenStreetMap
     incidents.forEach((item) => {
       const isSelected = selectedId === item.id;
       const isResolved = item.status === 'resolved' || item.status === 'closed';
@@ -259,10 +251,10 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
       const marker = L.marker([item.location.lat, item.location.lng], { icon: customIcon });
 
       const popupHtml = `
-        <div class="p-3 max-w-[260px] text-xs font-sans text-slate-800">
+        <div class="p-3 max-w-[240px] text-xs font-sans text-slate-800">
           <div class="flex items-center justify-between border-b pb-1 mb-1.5">
             <span class="font-extrabold text-blue-700">${item.code}</span>
-            <span class="text-[10px] font-bold px-1.5 py-0.2 ${
+            <span class="text-[10px] font-bold px-1.5 py-0.5 ${
               isResolved ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
             }">${isResolved ? 'Đã hoàn thành' : 'Khẩn cấp'}</span>
           </div>
@@ -303,32 +295,32 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
   }, [incidents, selectedId, singlePin, onMarkerClick, navigate]);
 
   return (
-    <div className={`relative z-10 rounded-none overflow-hidden shadow-2xs ${className}`}>
+    <div className={`relative z-10 w-full rounded-none overflow-hidden ${className}`}>
       {/* Khung chứa Leaflet Map */}
       <div ref={mapContainerRef} style={{ height, width: '100%' }} />
 
-      {/* Cụm công cụ nổi trên bản đồ (Layer Switcher + Nút Lấy Vị Trí - GÓC VUÔNG) */}
-      <div className="absolute top-3 right-3 z-[500] flex items-center gap-2">
+      {/* Cụm công cụ nổi trên bản đồ (Gọn gàng trên cả mobile và PC) */}
+      <div className="absolute top-2.5 right-2.5 z-[500] flex items-center gap-1.5">
         {showLayerToggle && (
-          <div className="bg-white/95 backdrop-blur-xs p-1 rounded-none shadow-md border border-slate-300 flex items-center text-xs font-bold">
+          <div className="bg-white/95 backdrop-blur-sm p-0.5 rounded-none shadow-md border border-slate-300 flex items-center text-[11px] sm:text-xs font-bold">
             <button
               type="button"
               onClick={() => switchLayer('streets')}
-              className={`px-2.5 py-1 rounded-none transition border ${
+              className={`px-2 sm:px-2.5 py-1 rounded-none transition ${
                 activeLayer === 'streets'
-                  ? 'bg-blue-700 text-white border-blue-800 shadow-2xs'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-700 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              🗺️ Đường sá
+              🗺️ Đường
             </button>
             <button
               type="button"
               onClick={() => switchLayer('satellite')}
-              className={`px-2.5 py-1 rounded-none transition border ${
+              className={`px-2 sm:px-2.5 py-1 rounded-none transition ${
                 activeLayer === 'satellite'
-                  ? 'bg-blue-700 text-white border-blue-800 shadow-2xs'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-700 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               🛰️ Vệ tinh
@@ -341,10 +333,10 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
             type="button"
             onClick={handleGetLocation}
             disabled={isLocating}
-            className="p-2 rounded-none bg-white/95 hover:bg-white text-blue-700 shadow-md border border-slate-300 transition active:scale-95 font-bold flex items-center gap-1 text-xs"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-none bg-white/95 hover:bg-white text-blue-700 shadow-md border border-slate-300 transition active:scale-95 font-bold flex items-center gap-1 text-xs"
             title="Lấy vị trí GPS hiện tại của tôi"
           >
-            <Locate className={`w-4 h-4 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
+            <Locate className={`w-4 h-4 shrink-0 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
             <span className="hidden sm:inline">{isLocating ? 'Đang định vị...' : 'Vị trí của tôi'}</span>
           </button>
         )}

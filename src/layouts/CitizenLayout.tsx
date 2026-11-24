@@ -9,42 +9,47 @@ export const CitizenLayout: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans ${
+      className={`min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-800 flex flex-col font-sans ${
         elderlyMode ? 'elderly-mode' : ''
       }`}
     >
       {/* 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVIGATION) CHO CÔNG DÂN */}
       <CitizenTopNav />
 
-      {/* 2. NỘI DUNG CHÍNH RỘNG RÃI (KHÔNG CÓ SIDEBAR BÊN TRÁI) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      {/* 2. NỘI DUNG CHÍNH CĂN ĐỀU CHUẨN PC & ĐIỆN THOẠI */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 min-w-0">
         <Outlet />
       </main>
 
-      {/* 3. FOOTER DÂN SINH MINH BẠCH */}
-      <footer className="bg-white border-t border-slate-200 mt-auto py-6 px-4 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-blue-600" />
-            <div>
-              <span className="font-bold text-slate-700 block">
-                Cổng Dịch Vụ Tiếp Nhận Phản Ánh Hiện Trường Đô Thị Thông Minh
+      {/* 3. FOOTER DÂN SINH MINH BẠCH (GÓC VUÔNG, CHỐNG TRÀN MOBILE) */}
+      <footer className="bg-white border-t border-slate-200 mt-auto py-5 sm:py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4 text-blue-700" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-slate-800 block leading-snug">
+                Cổng Dịch Vụ Tiếp Nhận Phản Ánh Hiện Trường Đô Thị
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-slate-500 block mt-0.5">
                 Ủy Ban Nhân Dân Phường Trấn Biên • TP. Biên Hòa, Tỉnh Đồng Nai
               </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-[11px]">
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-rose-500" />
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-5 text-[11px] border-t md:border-t-0 border-slate-100 pt-3 md:pt-0">
+            <span className="flex items-center gap-1.5 text-slate-600">
+              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               <span>Số 128 Đường Nguyễn Ái Quốc, KP.2</span>
             </span>
-            <span className="flex items-center gap-1 font-semibold text-blue-700">
-              <Phone className="w-3.5 h-3.5" />
-              <span>Đường dây nóng: 1022 hoặc (0251) 3822.xxx</span>
-            </span>
+            <a
+              href="tel:1022"
+              className="flex items-center gap-1.5 font-bold text-blue-700 hover:underline whitespace-nowrap"
+            >
+              <Phone className="w-3.5 h-3.5 shrink-0" />
+              <span>Đường dây nóng: 1022</span>
+            </a>
           </div>
         </div>
       </footer>
