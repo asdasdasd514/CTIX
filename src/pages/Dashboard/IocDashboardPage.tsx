@@ -55,6 +55,26 @@ export const IocDashboardPage: React.FC = () => {
           .replace('.', ',')
       : '96,8';
 
+  // Dữ liệu biểu đồ xu hướng tiếp nhận & xử lý theo 4 tuần tháng 11/2026 (tính từ dữ liệu thật)
+  const weeklyChart = [
+    { label: 'Tuần 1', range: [1, 7] },
+    { label: 'Tuần 2', range: [8, 14] },
+    { label: 'Tuần 3', range: [15, 21] },
+    { label: 'Tuần 4', range: [22, 31] },
+  ].map((w) => {
+    const received = incidents.filter((i) => {
+      const day = new Date(i.createdAt).getDate();
+      return day >= w.range[0] && day <= w.range[1];
+    }).length;
+    const resolved = incidents.filter((i) => {
+      if (i.status !== 'resolved' && i.status !== 'closed') return false;
+      const day = new Date(i.createdAt).getDate();
+      return day >= w.range[0] && day <= w.range[1];
+    }).length;
+    return { label: w.label, received, resolved };
+  });
+  const maxWeeklyVal = Math.max(10, ...weeklyChart.map((w) => Math.max(w.received, w.resolved)));
+
   // Cơ cấu 4 nhóm sự cố hiện trường
   const categoryStats = [
     {
@@ -190,8 +210,68 @@ export const IocDashboardPage: React.FC = () => {
 
       {/* 2. BỐ CỤC CHÍNH 2 CỘT (ĐÚNG MẪU ẢNH 2, KHÔNG CHỨA BẢN ĐỒ) */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* CỘT TRÁI (7/12): CƠ CẤU NHÓM SỰ CỐ + THỜI GIAN XỬ LÝ TB THEO NGÀNH */}
+        {/* CỘT TRÁI (7/12): BIỂU ĐỒ XU HƯỚNG + CƠ CẤU NHÓM SỰ CỐ + THỜI GIAN XỬ LÝ TB THEO NGÀNH */}
         <div className="lg:col-span-7 space-y-5 min-w-0">
+          {/* Biểu đồ xu hướng tiếp nhận & xử lý theo tuần (đặt ngay phía trên Cơ cấu 4 nhóm sự cố) */}
+          <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-blue-700" />
+                  <span>Biểu đồ tiếp nhận & xử lý phản ánh (Tháng 11/2026)</span>
+                </h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  So sánh số lượng hồ sơ tiếp nhận mới và hồ sơ đã hoàn thành theo từng tuần
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-blue-600" /> Tiếp nhận
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-500" /> Đã xử lý
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3 sm:gap-5 pt-2 items-end h-48">
+              {weeklyChart.map((w) => {
+                const recHeight = Math.max(8, Math.round((w.received / maxWeeklyVal) * 100));
+                const resHeight = Math.max(8, Math.round((w.resolved / maxWeeklyVal) * 100));
+                return (
+                  <div key={w.label} className="flex flex-col items-center h-full justify-end gap-2">
+                    <div className="w-full flex items-end justify-center gap-2 sm:gap-3 h-36 px-1 border-b border-slate-200">
+                      {/* Cột Tiếp nhận */}
+                      <div className="flex flex-col items-center justify-end h-full flex-1 max-w-[36px] group">
+                        <span className="text-[11px] font-bold text-blue-700 mb-1">
+                          {w.received}
+                        </span>
+                        <div
+                          className="w-full bg-blue-600 hover:bg-blue-700 rounded-t-[4px] transition-all duration-500"
+                          style={{ height: `${recHeight}%` }}
+                          title={`${w.label}: ${w.received} hồ sơ tiếp nhận`}
+                        />
+                      </div>
+
+                      {/* Cột Đã xử lý */}
+                      <div className="flex flex-col items-center justify-end h-full flex-1 max-w-[36px] group">
+                        <span className="text-[11px] font-bold text-emerald-600 mb-1">
+                          {w.resolved}
+                        </span>
+                        <div
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 rounded-t-[4px] transition-all duration-500"
+                          style={{ height: `${resHeight}%` }}
+                          title={`${w.label}: ${w.resolved} hồ sơ đã xử lý`}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-600">{w.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Cơ cấu 4 nhóm sự cố hiện trường */}
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">

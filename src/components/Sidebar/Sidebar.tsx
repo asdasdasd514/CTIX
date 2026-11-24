@@ -28,28 +28,26 @@ export function Sidebar({
 
   return (
     <aside className={`officer-sidebar ${collapsed ? 'collapsed' : ''}`}>
-      {/* Bấm vào Logo / Icon để thu gọn hoặc mở rộng Sidebar */}
+      {/* Bấm vào Logo / Icon để đóng mở mượt, icon giữ nguyên vị trí không nhảy kích thước */}
       <button
         type="button"
         onClick={!onCloseMobile ? toggleSidebar : undefined}
         title={collapsed ? 'Bấm vào icon để mở rộng menu' : 'Bấm vào icon để thu gọn menu'}
         aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
-        className="sidebar-brand w-full text-left cursor-pointer hover:bg-white/5 transition border-0 bg-transparent"
+        className="sidebar-brand"
       >
         <img
           src="/images/ctix-logo.jpg"
           alt="CTIX Logo"
           className="w-9 h-9 rounded-[5px] object-cover bg-white shrink-0 border border-white/20"
         />
-        {!collapsed && (
-          <div className="min-w-0">
-            <strong className="tracking-tight">Trấn Biên SmartCity</strong>
-            <span>Cổng Quản Trị CTIX</span>
-          </div>
-        )}
+        <div className="sidebar-brand-text">
+          <strong>Trấn Biên SmartCity</strong>
+          <span>Cổng Quản Trị CTIX</span>
+        </div>
       </button>
 
-      {/* Menu chính (Dashboard / Bản đồ / Tiếp nhận / Nhiệm vụ hiện trường / Thống kê / Cài đặt) */}
+      {/* Menu chính */}
       <nav aria-label="Điều hướng quản trị" className="mt-2">
         {mainItems.map(({ path, label, icon: Icon, badge }) => (
           <NavLink
@@ -58,25 +56,27 @@ export function Sidebar({
             onClick={onCloseMobile}
             title={collapsed ? label : undefined}
           >
-            <Icon size={19} className="shrink-0" />
-            {!collapsed && (
-              <>
-                <span className="truncate">{label}</span>
-                {badge !== undefined && badge > 0 && <b>{badge}</b>}
-              </>
+            <span className="sidebar-nav-icon">
+              <Icon size={19} />
+            </span>
+            <span className="sidebar-nav-label">{label}</span>
+            {badge !== undefined && badge > 0 && (
+              <b className="sidebar-nav-badge">{badge}</b>
             )}
           </NavLink>
         ))}
 
-        <div className="my-2 border-t border-white/10" />
+        <div className="my-2 mx-3 border-t border-white/10" />
 
         <NavLink
           to="/settings"
           onClick={onCloseMobile}
           title={collapsed ? 'Cài đặt' : undefined}
         >
-          <Settings size={19} className="shrink-0" />
-          {!collapsed && <span className="truncate">Cài đặt</span>}
+          <span className="sidebar-nav-icon">
+            <Settings size={19} />
+          </span>
+          <span className="sidebar-nav-label">Cài đặt</span>
         </NavLink>
       </nav>
     </aside>

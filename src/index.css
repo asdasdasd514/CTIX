@@ -10,7 +10,24 @@ body {
   max-width: 100%;
   overflow-x: clip;
   background-color: #f8fafc;
+  color: #334155;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Làm dịu độ đậm & độ rộng chữ trên toàn hệ thống cho thanh thoát, hiện đại hơn */
+h1, h2, h3 {
+  letter-spacing: -0.015em;
+}
+.font-black {
+  font-weight: 700 !important;
+}
+.font-extrabold {
+  font-weight: 600 !important;
+}
+.text-slate-900 {
+  color: #1e293b !important;
 }
 
 /* ==========================================================================
@@ -156,10 +173,10 @@ button:disabled {
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background: #f4f6fa;
-  color: #203049;
-  font-family: Arial, "Segoe UI", sans-serif;
-  font-size: 15px;
+  background: #f8fafc;
+  color: #334155;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
   line-height: 1.5;
   overflow-x: clip;
 }
@@ -322,109 +339,132 @@ button:disabled {
   margin: auto;
 }
 .officer-sidebar {
-  width: 240px;
+  width: 244px;
   min-height: 100vh;
   height: 100vh;
   position: sticky;
   top: 0;
-  background: #101e36;
-  color: #b7c6db;
+  background: #0f1d35;
+  color: #cbd5e1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
 }
 .officer-sidebar.collapsed {
-  width: 76px;
-}
-.officer-sidebar.collapsed .sidebar-brand {
-  padding: 20px 0;
-  justify-content: center;
-}
-.officer-sidebar.collapsed nav a {
-  justify-content: center;
-  padding: 13px 0;
+  width: 72px;
 }
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 24px;
+  height: 64px;
+  min-height: 64px;
+  padding: 0 18px;
+  width: 100%;
+  border: 0;
+  background: transparent;
   color: white;
-  min-height: 92px;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background-color 180ms ease;
+  overflow: hidden;
+  white-space: nowrap;
 }
-.sidebar-brand > svg {
-  color: #79a9ff;
+.sidebar-brand:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+.officer-sidebar.collapsed .sidebar-brand-text {
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar-nav-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+.sidebar-nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+.sidebar-nav-badge {
+  margin-left: auto;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+.officer-sidebar.collapsed .sidebar-nav-label,
+.officer-sidebar.collapsed .sidebar-nav-badge {
+  opacity: 0;
+  pointer-events: none;
+}
+.officer-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.officer-sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 5px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 .sidebar-brand strong {
   display: block;
-  font-size: 23px;
-  letter-spacing: 0.03em;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
 }
 .sidebar-brand span {
   display: block;
-  font-size: 12px;
-  color: #abbdd5;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
 }
-.sidebar-locality {
-  min-height: 84px;
-  margin: 0 20px 16px;
-  padding: 16px 4px;
-  border-top: 1px solid #2b3b54;
-  border-bottom: 1px solid #2b3b54;
-}
-.sidebar-locality span {
-  display: block;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: #a8bbd3;
-}
-.sidebar-locality strong {
-  display: block;
-  margin-top: 6px;
-  color: #e4ecf8;
-  font-size: 13px;
-}
-.officer-sidebar nav {
-  padding: 0 12px;
-  display: grid;
-  gap: 6px;
-}
-.officer-sidebar nav a,
-.sidebar-bottom a,
-.sidebar-bottom button {
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  width: 100%;
-}
-.officer-sidebar nav a:hover,
-.sidebar-bottom a:hover,
-.sidebar-bottom button:hover {
+.officer-sidebar nav a:hover {
   background: #1a2c49;
   color: white;
 }
 .officer-sidebar nav a.active {
-  background: #254e87;
+  background: #1d4ed8;
   color: white;
 }
 .officer-sidebar nav a b {
   margin-left: auto;
   font-size: 11px;
   padding: 1px 7px;
-  background: #fff;
-  color: #174b97;
-  border-radius: 6px;
+  background: #ffffff;
+  color: #1d4ed8;
+  border-radius: 5px;
+  flex-shrink: 0;
 }
 .officer-sidebar svg {
   flex-shrink: 0;
-}
-.sidebar-bottom {
-  margin-top: auto;
-  padding: 16px 12px;
 }
 .sidebar-bottom p {
   color: #a9bad0;
