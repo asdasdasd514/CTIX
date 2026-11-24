@@ -145,7 +145,7 @@ export const DispatchDetailPage: React.FC = () => {
             {/* Bản Đồ Vị Trí Sự Cố OpenStreetMap */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                Bản đồ số vị trí sự cố trên địa bàn Phường (OpenStreetMap):
+                Bản đồ số vị trí sự cố trên địa bàn Phường:
               </label>
               <div className="h-48 w-full rounded-lg overflow-hidden border border-slate-200 shadow-2xs relative">
                 <OpenStreetMap

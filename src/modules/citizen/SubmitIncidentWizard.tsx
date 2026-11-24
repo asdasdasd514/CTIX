@@ -546,7 +546,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                       Bước 2: Chọn vị trí sự cố trên bản đồ
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Lấy vị trí hiện tại hoặc nhấp trực tiếp vào bản đồ OpenStreetMap
+                      Lấy vị trí hiện tại hoặc nhấp trực tiếp vào bản đồ
                     </p>
                   </div>
                   <button

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -62,7 +62,7 @@ export const NearbyIncidentsMapPage: React.FC = () => {
               Bản Đồ Phản Ánh Hiện Trường
             </h1>
             <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-blue-200">
-              OpenStreetMap
+              Bản Đồ Số
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">

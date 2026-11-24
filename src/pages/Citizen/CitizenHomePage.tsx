@@ -209,7 +209,7 @@ export const CitizenHomePage: React.FC = () => {
           <div className="flex items-center gap-2 min-w-0">
             <MapIcon className="w-5 h-5 text-blue-700 shrink-0" />
             <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-              Bản đồ sự cố quanh khu vực (OpenStreetMap)
+              Bản đồ sự cố quanh khu vực
             </h2>
           </div>
 

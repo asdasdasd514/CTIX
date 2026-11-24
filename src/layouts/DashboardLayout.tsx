@@ -51,7 +51,7 @@ export const DashboardLayout: React.FC = () => {
     if (path === '/map' || path.startsWith('/admin/map')) {
       return {
         main: 'Bản Đồ Số Không Gian Giám Sát Đô Thị',
-        sub: 'Trực quan hóa vị trí các phản ánh trên OpenStreetMap thời gian thực',
+        sub: 'Trực quan hóa vị trí các phản ánh trên bản đồ số thời gian thực',
       };
     }
     return {

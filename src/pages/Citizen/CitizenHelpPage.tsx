@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: 'Làm thế nào để chọn vị trí sự cố khi tôi không nhớ rõ số nhà?',
-    a: 'Bạn có thể sử dụng nút "Lấy vị trí hiện tại" (GPS) hoặc lia bản đồ OpenStreetMap và nhấp trực tiếp vào điểm xảy ra sự cố. Hệ thống sẽ tự động tìm tên đường và điền tọa độ chính xác cho bạn.',
+    a: 'Bạn có thể sử dụng nút "Lấy vị trí hiện tại" (GPS) hoặc lia bản đồ và nhấp trực tiếp vào điểm xảy ra sự cố. Hệ thống sẽ tự động tìm tên đường và điền tọa độ chính xác cho bạn.',
   },
   {
     q: 'Tôi có thể gửi phản ánh ẩn danh không?',
@@ -89,7 +89,7 @@ export const CitizenHelpPage: React.FC = () => {
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Người dân gửi phản ánh</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Chụp ảnh hiện trường thật, chọn vị trí trên OpenStreetMap và nhập số điện thoại nhận kết quả.
+              Chụp ảnh hiện trường thật, chọn vị trí trên bản đồ và nhập số điện thoại nhận kết quả.
             </p>
           </div>
 

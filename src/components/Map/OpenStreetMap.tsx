@@ -66,16 +66,15 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         center: [initialLat, initialLng],
         zoom,
         zoomControl: true,
-        attributionControl: true,
+        attributionControl: false,
       });
 
+      // Bản đồ nền đường phố độ nét cao (hiển thị chi tiết tên đường tiếng Việt, không yêu cầu API key)
       const streetLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        'https://mt{s}.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}',
         {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank" rel="noreferrer">CARTO</a>',
-          subdomains: 'abcd',
-          maxZoom: 19,
+          subdomains: ['0', '1', '2', '3'],
+          maxZoom: 20,
         }
       ).addTo(map);
 
@@ -139,20 +138,19 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
     if (type === 'streets') {
       tileLayerRef.current = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        'https://mt{s}.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}',
         {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank" rel="noreferrer">CARTO</a>',
-          subdomains: 'abcd',
-          maxZoom: 19,
+          subdomains: ['0', '1', '2', '3'],
+          maxZoom: 20,
         }
       ).addTo(mapInstanceRef.current);
     } else {
+      // Ảnh vệ tinh kết hợp nhãn tên đường tiếng Việt
       tileLayerRef.current = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://mt{s}.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}',
         {
-          attribution: 'Tiles &copy; Esri',
-          maxZoom: 19,
+          subdomains: ['0', '1', '2', '3'],
+          maxZoom: 20,
         }
       ).addTo(mapInstanceRef.current);
     }
