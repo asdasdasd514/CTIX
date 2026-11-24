@@ -1,4 +1,4 @@
-export type IncidentCategory = 'street_light' | 'flooding' | 'waste' | 'road_damage';
+export type IncidentCategory = 'street_light' | 'flooding' | 'waste' | 'road_damage' | 'other';
 
 export type IncidentStatus = 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
 

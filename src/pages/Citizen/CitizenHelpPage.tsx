@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   HelpCircle,
   Phone,
   ChevronDown,
-  Camera,
   Send,
   MessageSquare,
 } from 'lucide-react';
@@ -33,7 +31,6 @@ const FAQS = [
 ];
 
 export const CitizenHelpPage: React.FC = () => {
-  const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [feedback, setFeedback] = useState<string>('');
   const [feedbackSent, setFeedbackSent] = useState<boolean>(false);
@@ -51,29 +48,19 @@ export const CitizenHelpPage: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* 1. HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
-              Trung Tâm Hỗ Trợ & Hướng Dẫn
-            </h1>
-            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-blue-200">
-              Trợ Giúp
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Quy trình giải quyết phản ánh hiện trường, giải đáp thắc mắc và danh bạ hỗ trợ 24/7
-          </p>
+      {/* 1. HEADER (Đã bỏ nút Gửi phản ánh ngay) */}
+      <div className="border-b border-slate-200 pb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+            Trung Tâm Hỗ Trợ & Hướng Dẫn
+          </h1>
+          <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-blue-200">
+            Trợ Giúp
+          </span>
         </div>
-
-        <button
-          onClick={() => navigate('/citizen/submit')}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-[5px] shadow-sm transition shrink-0 active:scale-[0.99] text-xs sm:text-sm border border-blue-900 uppercase tracking-wider"
-        >
-          <Camera className="w-4 h-4 text-white shrink-0" />
-          <span>+ Gửi phản ánh ngay</span>
-        </button>
+        <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          Quy trình giải quyết phản ánh hiện trường, giải đáp thắc mắc và danh bạ hỗ trợ 24/7
+        </p>
       </div>
 
       {/* 2. QUY TRÌNH 4 BƯỚC MINH BẠCH */}

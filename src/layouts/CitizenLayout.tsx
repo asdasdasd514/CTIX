@@ -25,8 +25,12 @@ export const CitizenLayout: React.FC = () => {
       <footer className="bg-white border-t border-slate-200 mt-auto py-5 sm:py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-[5px] bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4 text-blue-700" />
+            <div className="w-9 h-9 rounded-[5px] overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0">
+              <img
+                src="/images/ctix-logo.jpg"
+                alt="Trấn Biên SmartCity"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="min-w-0">
               <span className="font-bold text-slate-800 block leading-snug">

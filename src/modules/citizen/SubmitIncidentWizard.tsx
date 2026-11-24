@@ -21,6 +21,7 @@ import {
   PhoneCall,
   Plus,
   X,
+  AlertCircle,
 } from 'lucide-react';
 
 interface UploadedPhoto {
@@ -73,6 +74,15 @@ const CATEGORIES: {
     bg: 'bg-rose-50',
     activeBorder: 'border-rose-600 ring-1 ring-rose-500 bg-rose-50/70',
   },
+  {
+    id: 'other',
+    name: 'Sự cố khác',
+    desc: 'Cây đổ, nắp cống vỡ, dây điện võng...',
+    icon: AlertCircle,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    activeBorder: 'border-violet-600 ring-1 ring-violet-500 bg-violet-50/70',
+  },
 ];
 
 export const SubmitIncidentWizard: React.FC = () => {
@@ -92,6 +102,7 @@ export const SubmitIncidentWizard: React.FC = () => {
   const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
 
   const [selectedCategory, setSelectedCategory] = useState<IncidentCategory>('street_light');
+  const [customCategoryName, setCustomCategoryName] = useState<string>('');
   const [description, setDescription] = useState<string>(
     'Bóng đèn cao áp tại ngõ 2 bị chập chờn và tắt hẳn 3 ngày nay, ban đêm rất tối và nguy hiểm.'
   );
@@ -158,41 +169,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     });
   };
 
-  const handleSelectSample = (category: IncidentCategory) => {
-    setSelectedCategory(category);
-    let sample: UploadedPhoto;
-    if (category === 'street_light') {
-      sample = {
-        url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80',
-        name: 'anh-mau-den-duong.jpg',
-      };
-      setDescription('Đèn chiếu sáng công cộng tại ngõ 2 tắt hoàn toàn ban đêm.');
-    } else if (category === 'flooding') {
-      sample = {
-        url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&auto=format&fit=crop&q=80',
-        name: 'anh-mau-ngap-nuoc.jpg',
-      };
-      setDescription('Nước ngập nửa bánh xe máy sau cơn mưa lớn, cống thoát nước bị nghẹt.');
-    } else if (category === 'waste') {
-      sample = {
-        url: 'https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?w=600&auto=format&fit=crop&q=80',
-        name: 'anh-mau-rac-thai.jpg',
-      };
-      setDescription('Bãi rác tự phát lớn tràn ra lòng đường, bốc mùi hôi thối.');
-    } else {
-      sample = {
-        url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=600&auto=format&fit=crop&q=80',
-        name: 'anh-mau-o-ga.jpg',
-      };
-      setDescription('Hố sụt lún ổ gà sâu giữa đường xe chạy, nguy cơ té ngã cho người tham gia giao thông.');
-    }
-    setPhotos((prev) => {
-      const next = [sample, ...prev.filter((p) => p.url !== sample.url)];
-      return next;
-    });
-    setActivePhotoIndex(0);
-  };
-
   const handleMapClick = async (lat: number, lng: number) => {
     setLocation((prev) => ({
       ...prev,
@@ -252,8 +228,12 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const categoryLabel =
+      selectedCategory === 'other'
+        ? customCategoryName.trim() || 'Sự cố khác'
+        : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Phản ánh sự cố';
     const result = addIncident({
-      title: `${CATEGORIES.find((c) => c.id === selectedCategory)?.name}: ${description.slice(0, 48)}...`,
+      title: `${categoryLabel}: ${description.slice(0, 48)}...`,
       description,
       category: selectedCategory,
       location,
@@ -507,61 +487,11 @@ export const SubmitIncidentWizard: React.FC = () => {
                       <Upload className="w-4 h-4 shrink-0" />
                       <span>Chọn nhiều ảnh từ máy tính / điện thoại</span>
                     </button>
-
-                    <span className="text-[11px] text-slate-400">hoặc chọn nhanh ảnh mẫu:</span>
-                  </div>
-
-                  {/* 4 Nút chọn ảnh mẫu nhanh */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('street_light')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
-                        selectedCategory === 'street_light'
-                          ? 'border-amber-500 bg-amber-50 text-amber-900'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      💡 Đèn đường
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('flooding')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
-                        selectedCategory === 'flooding'
-                          ? 'border-blue-500 bg-blue-50 text-blue-900'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      🌊 Ngập úng
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('waste')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
-                        selectedCategory === 'waste'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      🗑️ Rác thải
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('road_damage')}
-                      className={`p-2 text-[11px] sm:text-xs border rounded-[5px] font-bold text-left transition truncate ${
-                        selectedCategory === 'road_damage'
-                          ? 'border-rose-500 bg-rose-50 text-rose-900'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      🚧 Ổ gà đường
-                    </button>
                   </div>
                 </div>
 
-                {/* CHỌN DANH MỤC SỰ CỐ */}
-                <div className="space-y-2 pt-1">
+                {/* CHỌN DANH MỤC SỰ CỐ (1 BỘ LỌC DUY NHẤT + TÙY CHỌN "SỰ CỐ KHÁC") */}
+                <div className="space-y-2.5 pt-1">
                   <label className="block text-xs font-bold text-slate-700 uppercase">
                     Phân loại sự cố:
                   </label>
@@ -575,6 +505,8 @@ export const SubmitIncidentWizard: React.FC = () => {
                           type="button"
                           onClick={() => setSelectedCategory(cat.id)}
                           className={`p-3 sm:p-3.5 rounded-[5px] border text-left transition flex items-start gap-3 min-w-0 ${
+                            cat.id === 'other' ? 'sm:col-span-2' : ''
+                          } ${
                             isSelected ? cat.activeBorder : 'border-slate-200 hover:border-slate-400 bg-white'
                           }`}
                         >
@@ -598,6 +530,23 @@ export const SubmitIncidentWizard: React.FC = () => {
                       );
                     })}
                   </div>
+
+                  {/* Ô tự nhập loại sự cố khi chọn "Sự cố khác" */}
+                  {selectedCategory === 'other' && (
+                    <div className="bg-violet-50/70 border border-violet-200 p-3.5 rounded-[5px] space-y-1.5">
+                      <label className="block text-xs font-bold text-violet-900">
+                        Nhập tên loại sự cố khác: <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customCategoryName}
+                        onChange={(e) => setCustomCategoryName(e.target.value)}
+                        placeholder="Ví dụ: Cây xanh gãy đổ, mất nắp hố ga, dây cáp sà xuống đường..."
+                        className="w-full px-3 py-2 border border-violet-300 rounded-[5px] text-xs sm:text-sm font-medium focus:ring-1 focus:ring-violet-600 focus:outline-none bg-white"
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* GHI CHÚ */}
@@ -768,7 +717,9 @@ export const SubmitIncidentWizard: React.FC = () => {
                 <div className="aspect-video w-full rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative">
                   <img src={activePhoto.url} alt="Preview" className="w-full h-full object-cover" />
                   <div className="absolute bottom-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] font-mono">
-                    {currentCategoryObj.name}
+                    {selectedCategory === 'other'
+                      ? customCategoryName.trim() || 'Sự cố khác'
+                      : currentCategoryObj.name}
                   </div>
                   <div className="absolute top-2 right-2 bg-blue-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px]">
                     {photos.length} ảnh

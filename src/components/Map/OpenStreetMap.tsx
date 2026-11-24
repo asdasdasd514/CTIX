@@ -281,6 +281,11 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         markerRing = 'ring-rose-600/30';
         // Icon cảnh báo ổ gà (TriangleAlert)
         iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+      } else if (item.category === 'other') {
+        markerBg = 'bg-violet-600';
+        markerRing = 'ring-violet-600/30';
+        // Icon sự cố khác (Info/AlertCircle)
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`;
       }
 
       if (isResolved) {
