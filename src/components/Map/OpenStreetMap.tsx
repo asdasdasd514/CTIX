@@ -11,8 +11,16 @@ interface OpenStreetMapProps {
   zoom?: number;
   height?: string;
   className?: string;
+  title?: string;
+  now?: number;
+  expandable?: boolean;
+  showLegend?: boolean;
+  emptyMessage?: string;
+  onClearFilters?: () => void;
   onMarkerClick?: (incident: Incident) => void;
+  onOpenDetail?: (incident: Incident) => void;
   onMapClick?: (lat: number, lng: number) => void;
+  onViewChange?: (center: [number, number], zoom: number) => void;
   singlePin?: {
     lat: number;
     lng: number;
@@ -31,7 +39,9 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
   height = '360px',
   className = '',
   onMarkerClick,
+  onOpenDetail,
   onMapClick,
+  onViewChange,
   singlePin,
   showLayerToggle = true,
   showLocateButton = true,
@@ -45,6 +55,10 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
   onMapClickRef.current = onMapClick;
   const onMarkerClickRef = useRef(onMarkerClick);
   onMarkerClickRef.current = onMarkerClick;
+  const onOpenDetailRef = useRef(onOpenDetail);
+  onOpenDetailRef.current = onOpenDetail;
+  const onViewChangeRef = useRef(onViewChange);
+  onViewChangeRef.current = onViewChange;
 
   const [activeLayer, setActiveLayer] = useState<'streets' | 'satellite'>('streets');
   const [isLocating, setIsLocating] = useState<boolean>(false);
@@ -86,6 +100,13 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
       map.on('click', (e: L.LeafletMouseEvent) => {
         if (onMapClickRef.current) {
           onMapClickRef.current(e.latlng.lat, e.latlng.lng);
+        }
+      });
+
+      map.on('moveend zoomend', () => {
+        if (onViewChangeRef.current) {
+          const c = map.getCenter();
+          onViewChangeRef.current([c.lat, c.lng], map.getZoom());
         }
       });
 
@@ -369,7 +390,9 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         const btn = document.getElementById(`btn-action-${item.id}`);
         if (btn) {
           btn.onclick = () => {
-            if (isCitizenMode) {
+            if (onOpenDetailRef.current) {
+              onOpenDetailRef.current(item);
+            } else if (isCitizenMode) {
               navigate(`/citizen/reports/${item.id}`);
             } else {
               navigate(`/dispatch/${item.id}`);

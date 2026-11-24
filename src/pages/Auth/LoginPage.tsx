@@ -13,13 +13,12 @@ export const LoginPage: React.FC = () => {
   const handleFormLogin = (e: React.FormEvent) => {
     e.preventDefault();
     loginAs('officer');
-    navigate('/inbox');
+    navigate('/map');
   };
 
-    const handleQuickLogin = (role: keyof typeof PRESET_ACCOUNTS) => {
+  const handleQuickLogin = (role: keyof typeof PRESET_ACCOUNTS) => {
     loginAs(role);
-    if (role === 'leader') navigate('/dashboard');
-    else if (role === 'officer') navigate('/inbox');
+    if (role === 'leader' || role === 'officer') navigate('/map');
     else if (role === 'volunteer') navigate('/field/tasks');
     else navigate('/citizen/home');
   };
@@ -99,7 +98,7 @@ export const LoginPage: React.FC = () => {
               >
                 <div>
                   <div className="group-hover:text-blue-700">🏛️ Cán bộ Tiếp nhận & Phân loại</div>
-                  <div className="text-[10px] text-slate-400 font-normal">Nguyễn Thành Long • Màn hình 04 & 05</div>
+                  <div className="text-[10px] text-slate-400 font-normal">Nguyễn Thành Long • Bản đồ phản ánh & Tiếp nhận</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
               </button>
@@ -111,7 +110,7 @@ export const LoginPage: React.FC = () => {
               >
                 <div>
                   <div className="group-hover:text-purple-700">📊 Cán bộ Điều hành Chủ Trì (IOC)</div>
-                  <div className="text-[10px] text-slate-400 font-normal">Trần Văn Minh • Màn hình 01 Tổng quan</div>
+                  <div className="text-[10px] text-slate-400 font-normal">Trần Văn Minh • Bản đồ phản ánh & Thống kê</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600" />
               </button>

@@ -1,10 +1,20 @@
-export type IncidentCategory = 'street_light' | 'flooding' | 'waste' | 'road_damage' | 'other';
+export type IncidentCategory =
+  | "street_light"
+  | "flooding"
+  | "waste"
+  | "road_damage"
+  | "other";
 
-export type IncidentStatus = 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+export type IncidentStatus =
+  | "pending"
+  | "assigned"
+  | "in_progress"
+  | "resolved"
+  | "closed";
 
-export type IncidentPriority = 'normal' | 'high' | 'urgent';
+export type IncidentPriority = "normal" | "high" | "urgent";
 
-export type UserRole = 'citizen' | 'officer' | 'volunteer';
+export type UserRole = "citizen" | "officer" | "volunteer";
 
 export interface IncidentLocation {
   lat: number;
@@ -20,9 +30,31 @@ export interface IncidentSender {
 
 export interface IncidentAssignment {
   unitName: string;
+  /** Người phân công (cán bộ tiếp nhận/điều phối) */
   officerName?: string;
+  /** Cán bộ phụ trách thực hiện trong đơn vị (tùy chọn) */
+  assigneeId?: string;
+  assigneeName?: string;
   assignedAt: string;
   deadline: string;
+  notes?: string;
+}
+
+export interface AssignmentSnapshot {
+  unitName: string;
+  assigneeName?: string;
+  deadline: string;
+  notes?: string;
+  category: IncidentCategory;
+  priority: IncidentPriority;
+}
+
+export interface AssignmentChangeRecord {
+  changedAt: string;
+  changedBy: string;
+  reason: string;
+  before: AssignmentSnapshot;
+  after: AssignmentSnapshot;
 }
 
 export interface IncidentResolution {
@@ -51,10 +83,17 @@ export interface Incident {
   photosBefore: string[];
   photosAfter?: string[];
   assignedTo?: IncidentAssignment;
+  assignmentHistory?: AssignmentChangeRecord[];
   resolution?: IncidentResolution;
   rating?: IncidentRating;
   sameReportsCount: number; // Điểm cộng: số người cùng phản ánh (Upvote)
   verifiedByVolunteer?: boolean;
+  verificationNotes?: string;
+  linkedReports?: {
+    sender: IncidentSender;
+    photos: string[];
+    reportedAt: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -67,6 +106,7 @@ export interface NewIncidentInput {
   senderPhone: string;
   senderName?: string;
   photosBefore: string[];
+  duplicateOf?: string;
 }
 
 export interface CategoryInfo {
