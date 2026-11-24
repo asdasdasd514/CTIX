@@ -7,7 +7,6 @@ import {
   Camera,
   MapPin,
   CheckCircle2,
-  Sparkles,
   Lightbulb,
   Waves,
   Trash2,
@@ -38,7 +37,7 @@ const CATEGORIES: {
     icon: Lightbulb,
     color: 'text-amber-500',
     bg: 'bg-amber-50 hover:bg-amber-100/80',
-    activeBorder: 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/70',
+    activeBorder: 'border-amber-500 ring-1 ring-amber-500 bg-amber-50/70',
   },
   {
     id: 'flooding',
@@ -47,7 +46,7 @@ const CATEGORIES: {
     icon: Waves,
     color: 'text-blue-600',
     bg: 'bg-blue-50 hover:bg-blue-100/80',
-    activeBorder: 'border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/70',
+    activeBorder: 'border-blue-600 ring-1 ring-blue-500 bg-blue-50/70',
   },
   {
     id: 'waste',
@@ -56,7 +55,7 @@ const CATEGORIES: {
     icon: Trash2,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50 hover:bg-emerald-100/80',
-    activeBorder: 'border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/70',
+    activeBorder: 'border-emerald-600 ring-1 ring-emerald-500 bg-emerald-50/70',
   },
   {
     id: 'road_damage',
@@ -65,7 +64,7 @@ const CATEGORIES: {
     icon: Construction,
     color: 'text-rose-600',
     bg: 'bg-rose-50 hover:bg-rose-100/80',
-    activeBorder: 'border-rose-600 ring-2 ring-rose-500/20 bg-rose-50/70',
+    activeBorder: 'border-rose-600 ring-1 ring-rose-500 bg-rose-50/70',
   },
 ];
 
@@ -191,7 +190,6 @@ export const SubmitIncidentWizard: React.FC = () => {
         },
         () => {
           setIsLocating(false);
-          // Fallback về tọa độ trung tâm Phường Trấn Biên
           handleMapClick(10.9572, 106.8184);
         },
         { enableHighAccuracy: true, timeout: 5000 }
@@ -233,67 +231,69 @@ export const SubmitIncidentWizard: React.FC = () => {
   const currentCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
 
   return (
-    <div className="space-y-6">
-      {/* 1. HEADER BANNER CHÍNH QUYỀN SỐ */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 text-white rounded-2xl p-6 sm:p-7 shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <span className="inline-block bg-white/20 backdrop-blur-xs text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+    <div className="space-y-5">
+      {/* 1. THANH TIÊU ĐỀ & 2 BƯỚC ĐIỀU HƯỚNG (GÓC VUÔNG) */}
+      <div className="bg-blue-800 text-white rounded-none p-5 sm:p-6 shadow-sm border border-blue-900">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <span className="inline-block bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider">
               Dịch Vụ Dân Sinh • Phường Trấn Biên
             </span>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
               Gửi Phản Ánh Hiện Trường Mới
             </h1>
-            <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Chỉ 2 bước đơn giản: Điền thông tin & tải ảnh, sau đó ghim vị trí trên bản đồ OpenStreetMap
+            <p className="text-xs text-blue-100 font-medium">
+              Chỉ 2 bước: Điền thông tin & tải ảnh, sau đó ghim vị trí trên bản đồ OpenStreetMap
             </p>
           </div>
 
-          <div className="hidden lg:flex items-center gap-3 bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/20 text-xs">
-            <ShieldCheck className="w-8 h-8 text-cyan-300 shrink-0" />
+          <div className="hidden lg:flex items-center gap-3 bg-white/10 p-3 rounded-none border border-white/20 text-xs">
+            <ShieldCheck className="w-7 h-7 text-cyan-300 shrink-0" />
             <div>
               <div className="font-extrabold text-white">Cam kết tiếp nhận & xử lý</div>
-              <div className="text-blue-100 text-[11px]">Tiếp nhận trong 2h • Xử lý trong 24h-48h</div>
+              <div className="text-blue-100 text-[11px]">Tiếp nhận trong 2h • Hoàn thành 24h-48h</div>
             </div>
           </div>
         </div>
 
-        {/* Thanh 2 Bước Chuẩn Rõ Ràng */}
-        <div className="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-white/20 text-center">
-          <div
+        {/* Thanh 2 Bước Chuẩn Rõ Ràng (GÓC VUÔNG) */}
+        <div className="grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-white/20 text-center">
+          <button
+            type="button"
             onClick={() => setStep(1)}
-            className={`p-3.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2.5 ${
+            className={`p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
               step === 1
-                ? 'bg-amber-400 text-slate-900 shadow-md font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white'
+                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white border-transparent'
             }`}
           >
-            <span className="w-6 h-6 rounded-full bg-slate-900/10 flex items-center justify-center text-xs font-black">
+            <span className="w-5 h-5 rounded-none bg-slate-900/10 flex items-center justify-center text-xs font-black">
               1
             </span>
             <span>Bước 1: Điền thông tin & Tải ảnh</span>
-          </div>
+          </button>
 
-          <div
+          <button
+            type="button"
             onClick={() => setStep(2)}
-            className={`p-3.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2.5 ${
+            className={`p-3 rounded-none text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 border ${
               step === 2
-                ? 'bg-amber-400 text-slate-900 shadow-md font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white'
+                ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white border-transparent'
             }`}
           >
-            <span className="w-6 h-6 rounded-full bg-slate-900/10 flex items-center justify-center text-xs font-black">
+            <span className="w-5 h-5 rounded-none bg-slate-900/10 flex items-center justify-center text-xs font-black">
               2
             </span>
             <span>Bước 2: Chọn vị trí trên bản đồ</span>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* THÔNG BÁO KẾT QUẢ SAU KHI GỬI */}
       {notification && (
         <div
-          className={`p-5 sm:p-6 rounded-2xl border shadow-sm ${
+          className={`p-5 sm:p-6 rounded-none border shadow-sm ${
             notification.type === 'duplicate'
               ? 'bg-amber-50 border-amber-300 text-amber-900'
               : 'bg-emerald-50 border-emerald-300 text-emerald-900'
@@ -315,7 +315,7 @@ export const SubmitIncidentWizard: React.FC = () => {
               <div className="pt-2 flex flex-wrap gap-3">
                 <button
                   onClick={() => navigate('/citizen/reports')}
-                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs flex items-center gap-2 transition"
+                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs sm:text-sm font-bold shadow-xs flex items-center gap-2 transition"
                 >
                   <span>Xem hồ sơ trong danh sách Phản ánh</span>
                   <ArrowRight className="w-4 h-4" />
@@ -325,7 +325,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                     setNotification(null);
                     setStep(1);
                   }}
-                  className="px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="px-4 py-2.5 bg-white border border-slate-300 rounded-none text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
                 >
                   Gửi thêm phản ánh khác
                 </button>
@@ -339,13 +339,13 @@ export const SubmitIncidentWizard: React.FC = () => {
       {!notification && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* CỘT TRÁI (8 / 12 CỘT): NỘI DUNG 2 BƯỚC */}
-          <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7">
+          <div className="lg:col-span-8 bg-white rounded-none border border-slate-300 shadow-2xs p-5 sm:p-7">
             {/* ========================================================
                 BƯỚC 1: ĐIỀN THÔNG TIN & TẢI ẢNH LÊN
                 ======================================================== */}
             {step === 1 && (
               <div className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                   <div>
                     <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
                       Bước 1: Điền thông tin sự cố & Tải ảnh hiện trường
@@ -354,7 +354,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                       Chụp ảnh hoặc chọn ảnh thực tế từ thiết bị của bạn
                     </p>
                   </div>
-                  <span className="text-xs text-rose-500 font-bold bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+                  <span className="text-xs text-rose-600 font-bold bg-rose-50 px-2.5 py-1 rounded-none border border-rose-300">
                     * Bắt buộc
                   </span>
                 </div>
@@ -374,8 +374,8 @@ export const SubmitIncidentWizard: React.FC = () => {
                     className="hidden"
                   />
 
-                  {/* Vùng xem trước & Tải ảnh */}
-                  <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center shadow-inner group">
+                  {/* Vùng xem trước & Tải ảnh (GÓC VUÔNG) */}
+                  <div className="relative aspect-[16/9] w-full rounded-none overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center shadow-inner group">
                     <img
                       src={photoUrl}
                       alt="Hiện trường"
@@ -387,14 +387,14 @@ export const SubmitIncidentWizard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-2"
+                        className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs font-bold shadow-lg transition flex items-center gap-2"
                       >
                         <Upload className="w-4 h-4" />
                         <span>Tải ảnh khác từ máy</span>
                       </button>
                     </div>
 
-                    <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-none flex items-center gap-2">
                       <Camera className="w-3.5 h-3.5 text-cyan-400" />
                       <span className="font-mono text-[11px] truncate max-w-xs">{photoName}</span>
                     </div>
@@ -405,7 +405,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                      className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-none text-xs font-bold transition flex items-center gap-1.5"
                     >
                       <Upload className="w-4 h-4" />
                       <span>Chọn ảnh từ máy tính / điện thoại</span>
@@ -419,10 +419,10 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectSample('street_light')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
+                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
                         selectedCategory === 'street_light'
                           ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                       }`}
                     >
                       💡 Đèn đường hỏng
@@ -430,10 +430,10 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectSample('flooding')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
+                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
                         selectedCategory === 'flooding'
                           ? 'border-blue-500 bg-blue-50 text-blue-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                       }`}
                     >
                       🌊 Ngập úng sau mưa
@@ -441,10 +441,10 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectSample('waste')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
+                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
                         selectedCategory === 'waste'
                           ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                       }`}
                     >
                       🗑️ Bãi rác tự phát
@@ -452,10 +452,10 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectSample('road_damage')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
+                      className={`p-2 text-xs border rounded-none font-bold text-left transition ${
                         selectedCategory === 'road_damage'
                           ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                       }`}
                     >
                       🚧 Ổ gà mặt đường
@@ -477,12 +477,12 @@ export const SubmitIncidentWizard: React.FC = () => {
                           key={cat.id}
                           type="button"
                           onClick={() => setSelectedCategory(cat.id)}
-                          className={`p-3.5 rounded-xl border-2 text-left transition flex items-start gap-3 ${
-                            isSelected ? cat.activeBorder : 'border-slate-200 hover:border-slate-300 bg-white'
+                          className={`p-3.5 rounded-none border-2 text-left transition flex items-start gap-3 ${
+                            isSelected ? cat.activeBorder : 'border-slate-300 hover:border-slate-400 bg-white'
                           }`}
                         >
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 ${
                               isSelected ? 'bg-blue-700 text-white shadow-md' : `${cat.bg} ${cat.color}`
                             }`}
                           >
@@ -513,13 +513,13 @@ export const SubmitIncidentWizard: React.FC = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Mô tả cụ thể vị trí cột điện số mấy, kích thước hố sụt hoặc thời điểm ngập nước..."
-                    className="w-full p-3.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
+                    className="w-full p-3.5 border border-slate-300 rounded-none text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
                     required
                   />
                 </div>
 
                 {/* THÔNG TIN NGƯỜI GỬI */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-none border border-slate-200">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Số điện thoại nhận thông báo: <span className="text-rose-500">*</span>
@@ -529,7 +529,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="09xx xxx xxx"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-none text-xs sm:text-sm font-bold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                       required
                     />
                   </div>
@@ -542,7 +542,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                       value={senderName}
                       onChange={(e) => setSenderName(e.target.value)}
                       placeholder="Ví dụ: Bác Hai Trấn Biên"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-none text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     />
                   </div>
                 </div>
@@ -552,7 +552,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className={`flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold transition shadow-md active:scale-95 ${
+                    className={`flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-bold transition shadow-sm active:scale-95 border border-blue-900 ${
                       elderlyMode ? 'text-base' : 'text-sm'
                     }`}
                   >
@@ -568,7 +568,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                 ======================================================== */}
             {step === 2 && (
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                   <div>
                     <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
                       Bước 2: Chọn vị trí sự cố trên bản đồ OpenStreetMap
@@ -581,15 +581,15 @@ export const SubmitIncidentWizard: React.FC = () => {
                     type="button"
                     onClick={handleGetCurrentLocation}
                     disabled={isLocating}
-                    className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                    className="px-3.5 py-1.5 rounded-none bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
                   >
                     <Locate className={`w-4 h-4 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
                     <span>{isLocating ? 'Đang định vị...' : '📍 Lấy vị trí hiện tại'}</span>
                   </button>
                 </div>
 
-                {/* KHUNG BẢN ĐỒ OPENSTREETMAP TO RỘNG */}
-                <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-sm relative">
+                {/* KHUNG BẢN ĐỒ OPENSTREETMAP TO RỘNG (GÓC VUÔNG) */}
+                <div className="rounded-none overflow-hidden border border-slate-300 shadow-sm relative">
                   <OpenStreetMap
                     height="440px"
                     center={[location.lat, location.lng]}
@@ -604,8 +604,8 @@ export const SubmitIncidentWizard: React.FC = () => {
                   />
                 </div>
 
-                {/* Ô ĐỊA CHỈ TỰ ĐỘNG CẬP NHẬT THEO ĐIỂM CHỌN */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                {/* Ô ĐỊA CHỈ TỰ ĐỘNG CẬP NHẬT THEO ĐIỂM CHỌN (GÓC VUÔNG) */}
+                <div className="bg-slate-50 p-4 rounded-none border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
                       Địa chỉ sự cố (tự động nhận diện theo điểm ghim trên bản đồ):
@@ -621,7 +621,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                     type="text"
                     value={location.address}
                     onChange={(e) => setLocation({ ...location, address: e.target.value })}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-none text-xs sm:text-sm font-semibold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
                     placeholder="Số nhà, ngõ/hẻm, tên đường..."
                     required
                   />
@@ -631,12 +631,12 @@ export const SubmitIncidentWizard: React.FC = () => {
                   </p>
                 </div>
 
-                {/* NÚT QUAY LẠI & XÁC NHẬN GỬI */}
+                {/* NÚT QUAY LẠI & XÁC NHẬN GỬI (GÓC VUÔNG) */}
                 <div className="flex items-center justify-between pt-2">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="flex items-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
+                    className="flex items-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-none text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Quay lại bước 1</span>
@@ -644,7 +644,7 @@ export const SubmitIncidentWizard: React.FC = () => {
 
                   <button
                     type="submit"
-                    className={`px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-black shadow-lg transition flex items-center gap-2 active:scale-95 ${
+                    className={`px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none font-black shadow-md transition flex items-center gap-2 active:scale-95 border border-blue-900 ${
                       elderlyMode ? 'text-base py-4 px-10' : 'text-sm'
                     }`}
                   >
@@ -656,26 +656,26 @@ export const SubmitIncidentWizard: React.FC = () => {
             )}
           </div>
 
-          {/* CỘT PHẢI (4 / 12 CỘT): PANEL TÓM TẮT & XEM TRƯỚC */}
+          {/* CỘT PHẢI (4 / 12 CỘT): PANEL TÓM TẮT & XEM TRƯỚC (GÓC VUÔNG) */}
           <div className="lg:col-span-4 space-y-4">
             {/* Live Preview Hồ Sơ */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
                   <Info className="w-4 h-4 text-blue-600" />
                   <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 uppercase tracking-wider">
                     Xem trước hồ sơ
                   </h3>
                 </div>
-                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-none border border-blue-200">
                   Bước {step}/2
                 </span>
               </div>
 
               {/* Ảnh Thumbnail */}
-              <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative shadow-2xs">
+              <div className="aspect-video w-full rounded-none overflow-hidden bg-slate-100 border border-slate-300 relative shadow-2xs">
                 <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute bottom-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                <div className="absolute bottom-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-none font-mono">
                   {currentCategoryObj.name}
                 </div>
               </div>
@@ -696,36 +696,36 @@ export const SubmitIncidentWizard: React.FC = () => {
               </div>
 
               {description && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700">
+                <div className="p-3 bg-slate-50 rounded-none border border-slate-200 text-xs text-slate-700">
                   <span className="font-bold block text-slate-900 mb-0.5">Nội dung ghi chú:</span>
                   <p className="line-clamp-3 italic">"{description}"</p>
                 </div>
               )}
             </div>
 
-            {/* Cam Kết Phục Vụ SLA */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-2xl border border-blue-200 p-5 space-y-3">
+            {/* Cam Kết Phục Vụ SLA (GÓC VUÔNG) */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-none border border-blue-200 p-5 space-y-3">
               <div className="flex items-center gap-2 text-blue-900 font-extrabold text-xs uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
                 <span>Cam kết phục vụ của UBND Phường</span>
               </div>
 
               <div className="space-y-2 text-xs text-slate-700 font-medium">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-white/80 border border-blue-100">
+                <div className="flex items-center justify-between p-2 rounded-none bg-white/80 border border-blue-100">
                   <span>Tiếp nhận & phân loại:</span>
                   <strong className="text-blue-700">Trong 2 giờ</strong>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-white/80 border border-blue-100">
+                <div className="flex items-center justify-between p-2 rounded-none bg-white/80 border border-blue-100">
                   <span>Khắc phục hoàn thành:</span>
                   <strong className="text-emerald-700">24h - 48h</strong>
                 </div>
               </div>
             </div>
 
-            {/* Hotline hỗ trợ khẩn cấp */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 flex items-center justify-between text-xs">
+            {/* Hotline hỗ trợ khẩn cấp (GÓC VUÔNG) */}
+            <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-4 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-none bg-rose-100 text-rose-700 flex items-center justify-center font-bold border border-rose-200">
                   <PhoneCall className="w-4 h-4" />
                 </div>
                 <div>
@@ -735,7 +735,7 @@ export const SubmitIncidentWizard: React.FC = () => {
               </div>
               <a
                 href="tel:1022"
-                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-lg border border-rose-200 text-xs transition"
+                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-none border border-rose-300 text-xs transition"
               >
                 Gọi 1022
               </a>

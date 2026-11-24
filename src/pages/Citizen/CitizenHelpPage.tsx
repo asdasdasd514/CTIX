@@ -6,12 +6,7 @@ import {
   ShieldCheck,
   ChevronDown,
   Camera,
-  MapPin,
-  Clock,
-  Star,
   Send,
-  AlertTriangle,
-  ArrowRight,
   MessageSquare,
 } from 'lucide-react';
 
@@ -56,42 +51,41 @@ export const CitizenHelpPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. HEADER BANNER */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 text-white rounded-2xl p-6 sm:p-7 shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <span className="inline-block bg-white/20 backdrop-blur-xs text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-              Trung Tâm Hỗ Trợ Công Dân
-            </span>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">
-              Hướng Dẫn Sử Dụng & Giải Đáp Thắc Mắc
+    <div className="space-y-5">
+      {/* 1. HEADER (GÓC VUÔNG) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Trung Tâm Hỗ Trợ & Hướng Dẫn Sử Dụng
             </h1>
-            <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Tìm hiểu quy trình tiếp nhận, theo dõi hồ sơ và danh bạ hỗ trợ trực tuyến của UBND Phường Trấn Biên
-            </p>
+            <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-blue-200">
+              Trợ Giúp
+            </span>
           </div>
-
-          <button
-            onClick={() => navigate('/citizen/submit')}
-            className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black px-5 py-3 rounded-xl shadow-md transition shrink-0 active:scale-95 text-xs sm:text-sm"
-          >
-            <Camera className="w-4 h-4 text-slate-900" />
-            <span>GỬI PHẢN ÁNH NGAY</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            Quy trình giải quyết phản ánh hiện trường, giải đáp thắc mắc và danh bạ hỗ trợ 24/7
+          </p>
         </div>
+
+        <button
+          onClick={() => navigate('/citizen/submit')}
+          className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-none shadow-sm transition shrink-0 active:scale-95 text-xs sm:text-sm border border-blue-900 uppercase tracking-wider"
+        >
+          <Camera className="w-4 h-4 text-white" />
+          <span>+ GỬI PHẢN ÁNH NGAY</span>
+        </button>
       </div>
 
-      {/* 2. QUY TRÌNH 4 BƯỚC MINH BẠCH */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
+      {/* 2. QUY TRÌNH 4 BƯỚC MINH BẠCH (GÓC VUÔNG) */}
+      <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-5 sm:p-6 space-y-4">
         <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
           Quy trình giải quyết phản ánh hiện trường 04 bước
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm">
+          <div className="p-4 rounded-none border border-slate-300 bg-slate-50/50 space-y-2">
+            <div className="w-10 h-10 rounded-none bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm border border-blue-200">
               01
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Người dân gửi phản ánh</h3>
@@ -100,8 +94,8 @@ export const CitizenHelpPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm">
+          <div className="p-4 rounded-none border border-slate-300 bg-slate-50/50 space-y-2">
+            <div className="w-10 h-10 rounded-none bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm border border-indigo-200">
               02
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Cán bộ tiếp nhận & phân công</h3>
@@ -110,8 +104,8 @@ export const CitizenHelpPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-black text-sm">
+          <div className="p-4 rounded-none border border-slate-300 bg-slate-50/50 space-y-2">
+            <div className="w-10 h-10 rounded-none bg-amber-100 text-amber-700 flex items-center justify-center font-black text-sm border border-amber-200">
               03
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Khắc phục tại hiện trường</h3>
@@ -120,8 +114,8 @@ export const CitizenHelpPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm">
+          <div className="p-4 rounded-none border border-slate-300 bg-slate-50/50 space-y-2">
+            <div className="w-10 h-10 rounded-none bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm border border-emerald-200">
               04
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Nghiệm thu & Đánh giá 5 sao</h3>
@@ -132,10 +126,10 @@ export const CitizenHelpPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. CÂU HỎI THƯỜNG GẶP (FAQS) & FORM GÓP Ý */}
+      {/* 3. CÂU HỎI THƯỜNG GẶP (FAQS) & FORM GÓP Ý (GÓC VUÔNG) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* CỘT TRÁI (7/12 CỘT): CÂU HỎI THƯỜNG GẶP */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
+        <div className="lg:col-span-7 bg-white rounded-none border border-slate-300 shadow-2xs p-5 sm:p-6 space-y-4">
           <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-blue-600" />
             <span>Câu hỏi thường gặp của công dân (FAQ)</span>
@@ -147,7 +141,7 @@ export const CitizenHelpPage: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="rounded-xl border border-slate-200 overflow-hidden transition"
+                  className="rounded-none border border-slate-300 overflow-hidden transition"
                 >
                   <button
                     type="button"
@@ -163,7 +157,7 @@ export const CitizenHelpPage: React.FC = () => {
                   </button>
 
                   {isOpen && (
-                    <div className="p-4 pt-0 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/50">
+                    <div className="p-4 pt-0 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-200 bg-slate-50/50">
                       {faq.a}
                     </div>
                   )}
@@ -173,17 +167,17 @@ export const CitizenHelpPage: React.FC = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI (5/12 CỘT): DANH BẠ ĐƯỜNG DÂY NÓNG & FORM GÓP Ý */}
+        {/* CỘT PHẢI (5/12 CỘT): DANH BẠ ĐƯỜNG DÂY NÓNG & FORM GÓP Ý (GÓC VUÔNG) */}
         <div className="lg:col-span-5 space-y-4">
           {/* Danh bạ khẩn cấp */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3">
+          <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-5 space-y-3">
             <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
               <Phone className="w-4 h-4 text-rose-600" />
               <span>Đường dây nóng hỗ trợ khẩn cấp 24/7</span>
             </h3>
 
             <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-slate-800">Tổng đài dịch vụ công tỉnh</div>
                   <div className="text-[11px] text-slate-500">Tiếp nhận phản ánh đô thị</div>
@@ -193,7 +187,7 @@ export const CitizenHelpPage: React.FC = () => {
                 </a>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-slate-800">Trực ban Công an Phường</div>
                   <div className="text-[11px] text-slate-500">An ninh trật tự & Giao thông</div>
@@ -203,7 +197,7 @@ export const CitizenHelpPage: React.FC = () => {
                 </a>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-slate-800">Sự cố Điện lực Biên Hòa</div>
                   <div className="text-[11px] text-slate-500">Đứt cáp, chập điện, mất điện</div>
@@ -213,7 +207,7 @@ export const CitizenHelpPage: React.FC = () => {
                 </a>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-slate-800">Cấp nước & Thoát nước ngập úng</div>
                   <div className="text-[11px] text-slate-500">Vỡ đường ống nước, ngập sâu</div>
@@ -225,8 +219,8 @@ export const CitizenHelpPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Form góp ý trực tiếp */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3">
+          {/* Form góp ý trực tiếp (GÓC VUÔNG) */}
+          <div className="bg-white rounded-none border border-slate-300 shadow-2xs p-5 space-y-3">
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-blue-600" />
               <span>Gửi câu hỏi / Góp ý cho UBND Phường</span>
@@ -238,13 +232,13 @@ export const CitizenHelpPage: React.FC = () => {
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Bạn có thắc mắc hoặc góp ý gì để cải thiện ứng dụng..."
-                className="w-full p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full p-3 border border-slate-300 rounded-none text-xs focus:ring-1 focus:ring-blue-600 focus:outline-none"
                 required
               />
               <button
                 type="submit"
                 disabled={feedbackSent}
-                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
+                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs border border-blue-900"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{feedbackSent ? 'Đang gửi...' : 'Gửi ý kiến đóng góp'}</span>
