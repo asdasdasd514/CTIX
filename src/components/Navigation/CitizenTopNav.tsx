@@ -49,7 +49,7 @@ export const CitizenTopNav: React.FC = () => {
       <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 shadow-sm select-none">
         {/* 1. THANH TIỆN ÍCH TRÊN CÙNG */}
         <div className="bg-blue-950 text-white text-[11px] sm:text-xs py-1.5">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 min-w-0">
+          <div className="max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 min-w-0">
             <div className="flex items-center gap-2 min-w-0">
               <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
                 CỔNG DÂN SINH
@@ -88,7 +88,7 @@ export const CitizenTopNav: React.FC = () => {
         </div>
 
         {/* 2. THANH ĐIỀU HƯỚNG CHÍNH (PC: THANH XANH GẠCH CHÂN BÊN DƯỚI KHI ACTIVE) */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-[72px] gap-2 sm:gap-4 min-w-0">
             {/* Logo & Tên Cổng Dịch Vụ */}
             <button

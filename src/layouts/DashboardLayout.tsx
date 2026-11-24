@@ -158,8 +158,8 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        {/* Nội dung chính căn giữa max-w-7xl đồng nhất với trang Công dân */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0">
+        {/* Nội dung chính mở rộng toàn chiều rộng màn hình máy tính, không dư khoảng trống 2 bên */}
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0">
           <Outlet />
         </main>
       </div>

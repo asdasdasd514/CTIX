@@ -27,7 +27,6 @@ import {
   Trash2,
   Construction,
   AlertCircle,
-  MessageSquare,
 } from 'lucide-react';
 
 export const DispatchDetailPage: React.FC = () => {
@@ -45,7 +44,6 @@ export const DispatchDetailPage: React.FC = () => {
   const [priority, setPriority] = useState<IncidentPriority>(incident?.priority || 'high');
   const [deadlineDays, setDeadlineDays] = useState<number>(2);
   const [notes, setNotes] = useState<string>('');
-  const [sendZaloNotify, setSendZaloNotify] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -178,9 +176,7 @@ export const DispatchDetailPage: React.FC = () => {
           expectedUpdatedAt: incident.updatedAt,
         });
         setSuccessMsg(
-          `Đã phân công thành công cho Đ/c ${staff.name} (${staff.unitName})${
-            sendZaloNotify ? ' và gửi thông báo tới công dân.' : '.'
-          }`
+          `Đã phân công thành công cho Đ/c ${staff.name} (${staff.unitName}).`
         );
       } else {
         const unit = groupCandidates.find((u) => u.name === effectiveUnitName);
@@ -194,9 +190,7 @@ export const DispatchDetailPage: React.FC = () => {
           expectedUpdatedAt: incident.updatedAt,
         });
         setSuccessMsg(
-          `Đã phân công theo nhóm cho ${unit.name} (${unit.staff.length} thành viên)${
-            sendZaloNotify ? ' và gửi thông báo tới công dân.' : '.'
-          }`
+          `Đã phân công theo nhóm cho ${unit.name} (${unit.staff.length} thành viên).`
         );
       }
     } catch (err) {
@@ -581,22 +575,10 @@ export const DispatchDetailPage: React.FC = () => {
                 />
               </div>
 
-              {/* Tùy chọn thông báo */}
-              <div className="space-y-1.5 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={sendZaloNotify}
-                    onChange={(e) => setSendZaloNotify(e.target.checked)}
-                    className="accent-blue-700"
-                  />
-                  <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Gửi thông báo qua Zalo / SMS tới công dân</span>
-                </label>
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Log điều phối được ghi nhận minh bạch trên hệ thống</span>
-                </div>
+              {/* Log điều phối */}
+              <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Log điều phối được ghi nhận minh bạch trên hệ thống</span>
               </div>
 
               {/* Nút Quay lại & Xác nhận phân công */}

@@ -16,14 +16,14 @@ export const CitizenLayout: React.FC = () => {
       {/* 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (PC) & THANH MENU DƯỚI CÙNG (MOBILE) */}
       <CitizenTopNav />
 
-      {/* 2. NỘI DUNG CHÍNH CĂN ĐỀU CHUẨN PC & ĐIỆN THOẠI */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 min-w-0">
+      {/* 2. NỘI DUNG CHÍNH CĂN ĐỀU RỘNG RÃI CHUẨN PC & ĐIỆN THOẠI */}
+      <main className="flex-1 w-full max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0">
         <Outlet />
       </main>
 
       {/* 3. FOOTER DÂN SINH MINH BẠCH */}
       <footer className="bg-white border-t border-slate-200 mt-auto py-5 sm:py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="max-w-[1536px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-[5px] overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0">
               <img

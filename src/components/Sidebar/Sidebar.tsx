@@ -1,7 +1,5 @@
 import { NavLink } from 'react-router-dom';
 import {
-  PanelLeftClose,
-  PanelLeftOpen,
   LayoutDashboard,
   MapPin,
   Inbox,
@@ -30,8 +28,14 @@ export function Sidebar({
 
   return (
     <aside className={`officer-sidebar ${collapsed ? 'collapsed' : ''}`}>
-      {/* Brand Header đồng nhất logo CTIX */}
-      <div className="sidebar-brand">
+      {/* Bấm vào Logo / Icon để thu gọn hoặc mở rộng Sidebar */}
+      <button
+        type="button"
+        onClick={!onCloseMobile ? toggleSidebar : undefined}
+        title={collapsed ? 'Bấm vào icon để mở rộng menu' : 'Bấm vào icon để thu gọn menu'}
+        aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
+        className="sidebar-brand w-full text-left cursor-pointer hover:bg-white/5 transition border-0 bg-transparent"
+      >
         <img
           src="/images/ctix-logo.jpg"
           alt="CTIX Logo"
@@ -43,9 +47,9 @@ export function Sidebar({
             <span>Cổng Quản Trị CTIX</span>
           </div>
         )}
-      </div>
+      </button>
 
-      {/* Menu chính (Dashboard / Bản đồ / Tiếp nhận / Nhiệm vụ hiện trường / Thống kê) */}
+      {/* Menu chính (Dashboard / Bản đồ / Tiếp nhận / Nhiệm vụ hiện trường / Thống kê / Cài đặt) */}
       <nav aria-label="Điều hướng quản trị" className="mt-2">
         {mainItems.map(({ path, label, icon: Icon, badge }) => (
           <NavLink
@@ -64,7 +68,6 @@ export function Sidebar({
           </NavLink>
         ))}
 
-        {/* Ngăn cách nhẹ trước Cài đặt */}
         <div className="my-2 border-t border-white/10" />
 
         <NavLink
@@ -76,28 +79,6 @@ export function Sidebar({
           {!collapsed && <span className="truncate">Cài đặt</span>}
         </NavLink>
       </nav>
-
-      {/* Nút thu gọn Sidebar trên PC */}
-      {!onCloseMobile && (
-        <div className="sidebar-bottom">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            aria-label={
-              collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'
-            }
-          >
-            {collapsed ? (
-              <PanelLeftOpen size={19} />
-            ) : (
-              <>
-                <PanelLeftClose size={19} />
-                <span>Thu gọn</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </aside>
   );
 }
