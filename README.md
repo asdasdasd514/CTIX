@@ -1,70 +1,53 @@
-# CTIX — Citizen & City Incident eXchange
-## Hệ Thống Tiếp Nhận & Giám Sát Phản Ánh Hiện Trường Đô Thị Thông Minh
-**Đề bài 2 — Hackathon 2026 • Phường Trấn Biên, TP. Biên Hòa, Tỉnh Đồng Nai**
+# CTIX — Phản ánh hiện trường
 
-CTIX là nền tảng web hiện đại kết nối trực tiếp **Người dân (Công dân)** và **Chính quyền (UBND & Trung tâm Điều hành IOC)**, số hóa toàn diện quy trình phản ánh sự cố đô thị (chiếu sáng, ngập lụt, rác thải, hạ tầng giao thông).
+Bản demo cho Đề 2, Hackathon Đồng Nai 2026, dữ liệu giả lập tại Phường Trấn Biên.
 
----
-
-## 🌟 Tính Năng Nổi Bật
-
-### 1. 👤 Cổng Dịch Vụ Công Dân (Citizen Portal)
-- **Thanh Điều Hướng Trên Cùng (Top Navigation)** chuẩn 4 mục:
-  - `🏠 Trang chủ`: Tin tức đô thị, số liệu giải quyết, cảnh báo khẩn từ UBND Phường.
-  - `📋 Phản ánh`: Danh sách tất cả phản ánh trên địa bàn + Nút `+ Thêm Phản Ánh Mới` nổi bật + Xem ảnh Trước/Sau + Chấm điểm hài lòng 5 sao.
-  - `🗺️ Bản đồ`: Bản đồ số hiện trường trực quan với nút `+1 Upvote` đồng thuận sự cố.
-  - `❓ Trợ giúp`: Hướng dẫn quy trình 4 bước, câu hỏi thường gặp (FAQ) và danh bạ đường dây nóng khẩn cấp.
-- **Quy Trình Gửi Phản Ánh Tinh Gọn 2 Bước**:
-  - **Bước 1**: Tải ảnh hiện trường thật từ máy tính/điện thoại (xem trước tức thì) + Chọn danh mục + Điền ghi chú + Số điện thoại.
-  - **Bước 2**: Bản đồ OpenStreetMap tương tác:
-    - Nút **`[📍 Lấy vị trí hiện tại (GPS)]`** 1 chạm.
-    - Lia map & nhấp vào bất cứ điểm nào để đặt ghim.
-    - Tự động nhận diện tên đường qua Reverse Geocoding.
-- **Tiện ích trợ năng**: Nút phóng to **`👓 Chữ Lớn`** cho người cao tuổi.
-
-### 2. 🏛️ Bàn Làm Việc Cán Bộ & Trung Tâm IOC (Admin Portal)
-- **Sidebar IRS Chuyên Nghiệp**:
-  - Màu nền Dark Navy `#0b132b`, thu nhỏ `w-20` và mở rộng `w-64`.
-  - **La bàn định hướng kim xoay 360 độ liên tục** (`AnimatedCompass`).
-  - **Vạch phát sáng trắng cạnh trái** nhận diện mục đang mở.
-- **Màn hình 01**: Bảng điều hành tổng thể IOC (4 thẻ KPI, Bản đồ OpenStreetMap trung tâm, BXH thi đua 30 xã/phường, Sự cố khẩn cấp).
-- **Màn hình 04**: Bàn làm việc cán bộ tiếp nhận (Lọc hồ sơ theo danh mục, cảnh báo hạn xử lý SLA 24h/48h đếm ngược).
-- **Màn hình 05**: Phân công & Điều phối xử lý sự cố (Giao việc cho 3 đội tiếp ứng trực ban, thiết lập SLA, gửi Zalo/SMS điều động).
-- **Nghiệm thu Before - After**: Đối soát ảnh hiện trường trước và sau thi công của Đội thanh niên tình nguyện.
-
-### 3. 🗺️ Bản Đồ Số Đa Nguồn (Multi-Layer OpenStreetMap)
-- Tích hợp chuẩn **OpenStreetMap** qua nguồn CartoDB Voyager tốc độ cao, không bị nghẽn mạng hay lỗi DNS.
-- Hỗ trợ chuyển đổi nhanh giữa:
-  - **`🗺️ Đường sá`**: Bản đồ đô thị tiếng Việt chi tiết.
-  - **`🛰️ Vệ tinh`**: Ảnh vệ tinh độ phân giải cao ESRI World Imagery.
-
----
-
-## 🛠️ Công Nghệ Sử Dụng
-
-- **Frontend Core**: React 19, TypeScript
-- **Bundler & Build Tool**: Vite 8
-- **Styling**: Tailwind CSS
-- **Mapping & GIS**: Leaflet, OpenStreetMap, CartoDB Voyager, ESRI Satellite, Nominatim API
-- **State Management**: Zustand (kèm LocalStorage persist)
-- **Routing**: React Router DOM v7
-- **Iconography**: Lucide React
-
----
-
-## 🚀 Hướng Dẫn Cài Đặt & Khởi Chạy
+## Chạy và kiểm tra
 
 ```bash
-# 1. Cài đặt các gói phụ thuộc
 npm install
-
-# 2. Khởi chạy môi trường phát triển (Dev Server)
 npm run dev
-
-# 3. Biên dịch bản sản xuất (Production Build)
 npm run build
+npm run lint
+npm test
 ```
 
-Mở trình duyệt truy cập:
-- `http://localhost:5173/citizen/home` (Cổng Người Dân)
-- `http://localhost:5173/dashboard` (Bàn Điều Hành IOC Cán Bộ)
+Kiểm thử logic dùng Node 22.22+ và bộ chuyển TypeScript Sucrase đã có trong cây phụ thuộc của dự án. Không cần cài thêm thư viện cho ứng dụng.
+
+## Các màn hình
+
+- `/dashboard` hoặc `/inbox`: bàn làm việc, bộ lọc việc cần làm, danh sách và bản đồ cùng chọn một hồ sơ, giao loại/đơn vị/mức độ/hạn/ghi chú.
+- `/map`: bản đồ phản ánh và cùng bộ công cụ điều phối.
+- `/dispatch/:id`: chi tiết đúng hồ sơ; ID sai hiện không tìm thấy, không mở hồ sơ khác.
+- `/field/tasks`: xác minh, nhận việc, ảnh sau xử lý và công khai kết quả.
+- `/statistics`: thống kê được tính từ hồ sơ, lọc theo tháng tiếp nhận.
+- `/citizen/submit`: gửi phản ánh 3 bước: ảnh → vị trí → loại và mô tả.
+- `/citizen/reports`: theo dõi tiến độ, ảnh trước/sau và đánh giá từ 1–5 sao. Bộ lọc “của tôi” dùng số điện thoại tài khoản demo.
+- `/citizen/map`: bản đồ công khai và đồng phản ánh.
+
+## Demo realtime trên một máy
+
+1. Mở `/dashboard`, dùng “Mở tab người dân” và “Mở tab hiện trường”.
+2. Các tab phải cùng origin: cùng protocol, host và port, cùng hồ sơ trình duyệt. Không trộn `localhost` với `127.0.0.1` hoặc chế độ ẩn danh.
+3. Người dân chọn ảnh thật hoặc ảnh minh họa được ghi rõ, ghim vị trí, nhập địa chỉ và gửi.
+4. Cán bộ thấy hồ sơ mới không cần tải lại; chọn đúng hồ sơ, đơn vị, hạn và ghi chú để giao.
+5. Hiện trường nhận và bắt đầu, thêm ảnh sau cùng nội dung khắc phục, hoàn tất. Người dân xem ảnh và đánh giá.
+
+Zustand giữ UI, localStorage lưu dữ liệu và sự kiện `storage` cập nhật các tab khác. Vai trò demo được giữ riêng trong sessionStorage từng tab. Đây chưa phải xác thực/phân quyền máy chủ hoặc realtime nhiều thiết bị. localStorage không có giao dịch; không dùng cho nhiều người ghi đồng thời.
+
+## Bản đồ và dữ liệu
+
+- Leaflet, nền đường phố Esri World Street Map và vệ tinh Esri World Imagery; attribution giữ trên bản đồ. Nguồn Esri được chọn vì trên máy thử, `tile.openstreetmap.org` không phân giải DNS và nguồn CARTO cũ trả watermark yêu cầu key.
+- Ghim giữ theo ID. Lọc/chọn/nhận cập nhật không tự kéo tâm hoặc dựng lại mọi marker. Chỉ “Về điểm đã chọn”, GPS và thao tác người dùng mới đổi góc xem.
+- Các vị trí mẫu được dựng để minh họa, chưa phải tọa độ hiện trường đã xác minh. Hồ sơ mới lấy tọa độ được người dùng ghim.
+- GPS thất bại báo lỗi, không ghi tọa độ trung tâm phường thành vị trí GPS.
+- Mất nền bản đồ vẫn có danh sách; nút thử lại tải lại nền. Bản đồ cần mạng, không có chế độ tải bản đồ offline.
+- Mẫu mới: 64 hồ sơ, 47 đã xử lý, đèn 18/ngập 15/rác 21/mặt đường 10; trung bình 3,2 ngày từ timestamps mẫu. Bản lưu cũ được giữ, không tự reset.
+- Khôi phục mẫu thay thế dữ liệu demo trên origin hiện tại, luôn có xác nhận. Không khôi phục nếu muốn giữ hồ sơ vừa nhập.
+- Ảnh tải vào được thu nhỏ trước khi lưu; lỗi dung lượng phải báo chưa lưu, không báo thành công giả.
+- Gộp trùng trong 50 m chỉ thực hiện khi người gửi xác nhận, giữ ảnh và thông tin gửi bổ sung; không tự tăng mức khẩn cấp.
+- Không tích hợp gửi Zalo/SMS hoặc mô hình AI trong bản demo này.
+
+Nguồn dịch vụ: [Esri World Street Map](https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer), [CARTO API key](https://carto.com/basemaps/apikey/), [MDN storage event](https://developer.mozilla.org/en-US/docs/Web/API/Window/storage_event).
+
+Nghiên cứu và kết quả kiểm thử được lưu trong `docs/`.

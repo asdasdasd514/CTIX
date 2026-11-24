@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useIncidentStore } from '../../store/useIncidentStore';
-import { useAuthStore } from '../../store/useAuthStore';
-import { Incident } from '../../types/incident';
-import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useIncidentStore } from "../../store/useIncidentStore";
+import { useAuthStore } from "../../store/useAuthStore";
+import { OpenStreetMap } from "../../components/Map/OpenStreetMap";
 import {
   MapPin,
   Lightbulb,
@@ -14,23 +13,39 @@ import {
   ArrowRight,
   Camera,
   Layers,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const NearbyIncidentsMapPage: React.FC = () => {
   const navigate = useNavigate();
-  const { incidents, categoryFilter, setCategoryFilter, upvoteIncident } = useIncidentStore();
+  const { incidents, categoryFilter, setCategoryFilter, upvoteIncident } =
+    useIncidentStore();
   const { currentUser } = useAuthStore();
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('all');
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(incidents[0] || null);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "resolved"
+  >("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Lọc dữ liệu hiển thị trên bản đồ
   const filteredList = incidents.filter((item) => {
-    if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-    if (statusFilter === 'pending' && (item.status === 'resolved' || item.status === 'closed')) return false;
-    if (statusFilter === 'resolved' && item.status !== 'resolved' && item.status !== 'closed') return false;
+    if (categoryFilter !== "all" && item.category !== categoryFilter)
+      return false;
+    if (
+      statusFilter === "pending" &&
+      (item.status === "resolved" || item.status === "closed")
+    )
+      return false;
+    if (
+      statusFilter === "resolved" &&
+      item.status !== "resolved" &&
+      item.status !== "closed"
+    )
+      return false;
     return true;
   });
+
+  const selectedIncident =
+    filteredList.find((i) => i.id === selectedId) || null;
 
   return (
     <div className="space-y-6">
@@ -45,12 +60,13 @@ export const NearbyIncidentsMapPage: React.FC = () => {
               Giám Sát Phản Ánh Hiện Trường Phường Trấn Biên
             </h1>
             <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Trực quan hóa vị trí các phản ánh trên OpenStreetMap thời gian thực • Bấm để xem chi tiết hoặc đồng thuận (+1 Upvote)
+              Trực quan hóa vị trí các phản ánh trên OpenStreetMap thời gian
+              thực • Bấm để xem chi tiết hoặc đồng thuận (+1 Upvote)
             </p>
           </div>
 
           <button
-            onClick={() => navigate('/citizen/submit')}
+            onClick={() => navigate("/citizen/submit")}
             className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black px-5 py-3 rounded-xl shadow-md transition shrink-0 active:scale-95 text-xs sm:text-sm"
           >
             <Camera className="w-4 h-4 text-slate-900" />
@@ -70,51 +86,51 @@ export const NearbyIncidentsMapPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
             <button
-              onClick={() => setCategoryFilter('all')}
+              onClick={() => setCategoryFilter("all")}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                categoryFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                categoryFilter === "all"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Tất cả ({incidents.length})
             </button>
             <button
-              onClick={() => setCategoryFilter('street_light')}
+              onClick={() => setCategoryFilter("street_light")}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition ${
-                categoryFilter === 'street_light'
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                categoryFilter === "street_light"
+                  ? "bg-amber-500 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Lightbulb className="w-3.5 h-3.5" /> 💡 Đèn chiếu sáng
             </button>
             <button
-              onClick={() => setCategoryFilter('flooding')}
+              onClick={() => setCategoryFilter("flooding")}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition ${
-                categoryFilter === 'flooding'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                categoryFilter === "flooding"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Waves className="w-3.5 h-3.5" /> 🌊 Ngập úng
             </button>
             <button
-              onClick={() => setCategoryFilter('waste')}
+              onClick={() => setCategoryFilter("waste")}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition ${
-                categoryFilter === 'waste'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                categoryFilter === "waste"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Trash2 className="w-3.5 h-3.5" /> 🗑️ Rác thải
             </button>
             <button
-              onClick={() => setCategoryFilter('road_damage')}
+              onClick={() => setCategoryFilter("road_damage")}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition ${
-                categoryFilter === 'road_damage'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                categoryFilter === "road_damage"
+                  ? "bg-rose-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Construction className="w-3.5 h-3.5" /> 🚧 Ổ gà mặt đường
@@ -142,27 +158,27 @@ export const NearbyIncidentsMapPage: React.FC = () => {
             height="580px"
             incidents={filteredList}
             selectedId={selectedIncident?.id}
-            onMarkerClick={(item) => setSelectedIncident(item)}
+            onMarkerClick={(item) => setSelectedId(item.id)}
           />
 
-          {/* Chú giải nổi trên OpenStreetMap */}
-          <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs text-slate-800 p-3 rounded-xl border border-slate-200 text-xs shadow-md flex flex-wrap items-center gap-3.5 z-[400]">
-            <span className="font-extrabold text-slate-500 uppercase text-[10px]">Chú giải OSM:</span>
-            <span className="flex items-center gap-1.5 font-bold text-slate-700">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Đèn đường
+          <div className="work-map-legend">
+            <span>
+              <i className="legend-dot amber" />
+              Chờ phân công
             </span>
-            <span className="flex items-center gap-1.5 font-bold text-slate-700">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Ngập nước
+            <span>
+              <i className="legend-dot blue" />
+              Đang xử lý
             </span>
-            <span className="flex items-center gap-1.5 font-bold text-slate-700">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" /> Rác thải
+            <span>
+              <i className="legend-dot rose" />
+              Khẩn / quá hạn
             </span>
-            <span className="flex items-center gap-1.5 font-bold text-slate-700">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-600" /> Ổ gà
+            <span>
+              <i className="legend-dot green" />
+              Đã xử lý
             </span>
-            <span className="flex items-center gap-1.5 font-bold text-slate-700">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 ring-2 ring-emerald-300" /> Đã hoàn thành
-            </span>
+            <span>Đ: đèn · N: ngập · R: rác · M: mặt đường</span>
           </div>
         </div>
 
@@ -177,14 +193,16 @@ export const NearbyIncidentsMapPage: React.FC = () => {
                   </span>
                   <span
                     className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                      selectedIncident.status === 'resolved' || selectedIncident.status === 'closed'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
+                      selectedIncident.status === "resolved" ||
+                      selectedIncident.status === "closed"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
                     }`}
                   >
-                    {selectedIncident.status === 'resolved' || selectedIncident.status === 'closed'
-                      ? '✓ Đã hoàn thành'
-                      : 'Đang giải quyết'}
+                    {selectedIncident.status === "resolved" ||
+                    selectedIncident.status === "closed"
+                      ? "✓ Đã hoàn thành"
+                      : "Đang giải quyết"}
                   </span>
                 </div>
 
@@ -220,27 +238,40 @@ export const NearbyIncidentsMapPage: React.FC = () => {
 
                 {/* Nút đồng phản ánh */}
                 <button
-                  onClick={() => upvoteIncident(selectedIncident.id)}
+                  onClick={() => {
+                    try {
+                      upvoteIncident(selectedIncident.id);
+                    } catch (error) {
+                      alert((error as Error).message);
+                    }
+                  }}
                   className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
                 >
                   <ThumbsUp className="w-4 h-4 text-blue-600" />
-                  <span>Tôi cũng thấy sự cố này (+{selectedIncident.sameReportsCount} người)</span>
+                  <span>
+                    Tôi cũng thấy sự cố này (+
+                    {selectedIncident.sameReportsCount} người)
+                  </span>
                 </button>
 
                 {/* Nút phân công nhanh nếu là cán bộ */}
-                {currentUser.role !== 'citizen' && selectedIncident.status === 'pending' && (
-                  <button
-                    onClick={() => navigate(`/dispatch/${selectedIncident.id}`)}
-                    className="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md"
-                  >
-                    <span>Chuyển sang phân công xử lý</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
+                {currentUser.role !== "citizen" &&
+                  selectedIncident.status === "pending" && (
+                    <button
+                      onClick={() =>
+                        navigate(`/dispatch/${selectedIncident.id}`)
+                      }
+                      className="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md"
+                    >
+                      <span>Chuyển sang phân công xử lý</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
               </div>
             ) : (
               <div className="text-center py-16 text-slate-400 text-xs">
-                Chạm vào bất kỳ điểm ghim nào trên bản đồ OpenStreetMap để xem chi tiết
+                Chạm vào bất kỳ điểm ghim nào trên bản đồ OpenStreetMap để xem
+                chi tiết
               </div>
             )}
           </div>

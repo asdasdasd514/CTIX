@@ -1,748 +1,341 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useIncidentStore } from '../../store/useIncidentStore';
-import { IncidentCategory, IncidentLocation } from '../../types/incident';
-import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Camera,
   MapPin,
   CheckCircle2,
-  Sparkles,
-  Lightbulb,
-  Waves,
-  Trash2,
-  Construction,
   ArrowRight,
   ArrowLeft,
-  Upload,
-  Locate,
-  Info,
-  Clock,
-  ShieldCheck,
-  PhoneCall,
-} from 'lucide-react';
-
-const CATEGORIES: {
-  id: IncidentCategory;
-  name: string;
-  desc: string;
-  icon: React.ElementType;
-  color: string;
-  bg: string;
-  activeBorder: string;
-}[] = [
-  {
-    id: 'street_light',
-    name: 'Đèn đường chiếu sáng',
-    desc: 'Mất điện, bóng cháy, chập chờn ban đêm',
-    icon: Lightbulb,
-    color: 'text-amber-500',
-    bg: 'bg-amber-50 hover:bg-amber-100/80',
-    activeBorder: 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/70',
-  },
-  {
-    id: 'flooding',
-    name: 'Ngập nước sau mưa',
-    desc: 'Đọng nước sâu, cống nghẹt rác',
-    icon: Waves,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50 hover:bg-blue-100/80',
-    activeBorder: 'border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/70',
-  },
-  {
-    id: 'waste',
-    name: 'Rác thải tự phát',
-    desc: 'Bãi rác trái phép, phế thải bốc mùi',
-    icon: Trash2,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50 hover:bg-emerald-100/80',
-    activeBorder: 'border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/70',
-  },
-  {
-    id: 'road_damage',
-    name: 'Mặt đường & Ổ gà',
-    desc: 'Mặt đường sụt lún, hố sâu nguy hiểm',
-    icon: Construction,
-    color: 'text-rose-600',
-    bg: 'bg-rose-50 hover:bg-rose-100/80',
-    activeBorder: 'border-rose-600 ring-2 ring-rose-500/20 bg-rose-50/70',
-  },
-];
-
-export const SubmitIncidentWizard: React.FC = () => {
-  const navigate = useNavigate();
-  const { addIncident, elderlyMode } = useIncidentStore();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // CHUẨN 2 BƯỚC:
-  // Bước 1: Điền thông tin phản ánh & Tải ảnh lên
-  // Bước 2: Chọn vị trí sự cố trên bản đồ OpenStreetMap
-  const [step, setStep] = useState<1 | 2>(1);
-
-  const [photoUrl, setPhotoUrl] = useState<string>(
-    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80'
-  );
-  const [photoName, setPhotoName] = useState<string>('anh-hien-truong-1.jpg');
-  const [selectedCategory, setSelectedCategory] = useState<IncidentCategory>('street_light');
-  const [description, setDescription] = useState<string>(
-    'Bóng đèn cao áp tại ngõ 2 bị chập chờn và tắt hẳn 3 ngày nay, ban đêm rất tối và nguy hiểm.'
-  );
-  const [phone, setPhone] = useState<string>('0912.345.678');
-  const [senderName, setSenderName] = useState<string>('Bác Hai Trấn Biên');
-
+} from "lucide-react";
+import { OpenStreetMap } from "../../components/Map/OpenStreetMap";
+import { useIncidentStore } from "../../store/useIncidentStore";
+import { PRESET_ACCOUNTS } from "../../store/useAuthStore";
+import type { IncidentCategory, IncidentLocation } from "../../types/incident";
+import { CATEGORIES, distanceMeters, isComplete } from "../../lib/incidents";
+import { readPhoto } from "../../lib/photos";
+export function SubmitIncidentWizard() {
+  const { incidents, addIncident } = useIncidentStore();
+  const [step, setStep] = useState(1);
+  const [photo, setPhoto] = useState("");
+  const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<IncidentLocation>({
     lat: 10.9572,
     lng: 106.8184,
-    address: '128 Đường Nguyễn Ái Quốc, Khu phố 2, Phường Trấn Biên',
+    address: "",
   });
-
-  const [isLocating, setIsLocating] = useState<boolean>(false);
-  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
-
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'duplicate';
-    message: string;
+  const [positionChosen, setPositionChosen] = useState(false);
+  const [category, setCategory] = useState<IncidentCategory>("street_light");
+  const [description, setDescription] = useState("");
+  const [phone, setPhone] = useState(
+    PRESET_ACCOUNTS.citizen.phone.replace(/[\s.]/g, ""),
+  );
+  const [error, setError] = useState("");
+  const [group, setGroup] = useState(false);
+  const [result, setResult] = useState<{
     code: string;
+    id: string;
+    grouped: boolean;
   } | null>(null);
-
-  // Xử lý tải ảnh thật từ máy tính/điện thoại
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoName(file.name);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setPhotoUrl(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+  const duplicate = incidents.find(
+    (i) =>
+      i.category === category &&
+      !isComplete(i) &&
+      distanceMeters(i.location, location) <= 50,
+  );
+  const next = () => {
+    setError("");
+    if (step === 1 && !photo) {
+      setError("Chụp hoặc chọn một ảnh hiện trường.");
+      return;
     }
-  };
-
-  // Nạp nhanh ảnh mẫu có sẵn để trải nghiệm
-  const handleSelectSample = (category: IncidentCategory) => {
-    setSelectedCategory(category);
-    if (category === 'street_light') {
-      setPhotoUrl('https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80');
-      setDescription('Đèn chiếu sáng công cộng tại ngõ 2 tắt hoàn toàn ban đêm.');
-      setPhotoName('anh-mau-den-duong.jpg');
-    } else if (category === 'flooding') {
-      setPhotoUrl('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&auto=format&fit=crop&q=80');
-      setDescription('Nước ngập nửa bánh xe máy sau cơn mưa lớn, cống thoát nước bị nghẹt.');
-      setPhotoName('anh-mau-ngap-nuoc.jpg');
-    } else if (category === 'waste') {
-      setPhotoUrl('https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?w=600&auto=format&fit=crop&q=80');
-      setDescription('Bãi rác tự phát lớn tràn ra lòng đường, bốc mùi hôi thối.');
-      setPhotoName('anh-mau-rac-thai.jpg');
-    } else {
-      setPhotoUrl('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=600&auto=format&fit=crop&q=80');
-      setDescription('Hố sụt lún ổ gà sâu giữa đường xe chạy, nguy cơ té ngã cho người tham gia giao thông.');
-      setPhotoName('anh-mau-o-ga.jpg');
+    if (step === 2 && (!positionChosen || !location.address.trim())) {
+      setError("Chọn điểm trên bản đồ và nhập địa chỉ dễ tìm.");
+      return;
     }
+    setStep(step + 1);
   };
-
-  // Lia bản đồ & Click chọn vị trí + Reverse Geocoding tự động
-  const handleMapClick = async (lat: number, lng: number) => {
-    setLocation((prev) => ({
-      ...prev,
-      lat,
-      lng,
-      address: `Tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}) • Đang nhận diện địa chỉ...`,
-    }));
-    setIsGeocoding(true);
-
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.display_name) {
-          const shortAddress = data.display_name.split(',').slice(0, 3).join(', ');
-          setLocation({
-            lat,
-            lng,
-            address: `${shortAddress}, Phường Trấn Biên`,
-            ward: 'Phường Trấn Biên',
-          });
-        }
-      }
-    } catch {
-      setLocation({
-        lat,
-        lng,
-        address: `Khu vực tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}), Phường Trấn Biên`,
-        ward: 'Phường Trấn Biên',
-      });
-    } finally {
-      setIsGeocoding(false);
-    }
-  };
-
-  // Lấy vị trí GPS hiện tại
-  const handleGetCurrentLocation = () => {
-    setIsLocating(true);
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setIsLocating(false);
-          handleMapClick(pos.coords.latitude, pos.coords.longitude);
-        },
-        () => {
-          setIsLocating(false);
-          // Fallback về tọa độ trung tâm Phường Trấn Biên
-          handleMapClick(10.9572, 106.8184);
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    } else {
-      setIsLocating(false);
-      handleMapClick(10.9572, 106.8184);
-    }
-  };
-
-  // Xác nhận gửi phản ánh
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = addIncident({
-      title: `${CATEGORIES.find((c) => c.id === selectedCategory)?.name}: ${description.slice(0, 48)}...`,
-      description,
-      category: selectedCategory,
-      location,
-      photosBefore: [photoUrl],
-      senderPhone: phone,
-      senderName: senderName || 'Công dân ẩn danh',
-    });
-
-    if (result.isDuplicateGrouped) {
-      setNotification({
-        type: 'duplicate',
-        message: `Hệ thống phát hiện đã có phản ánh cùng sự cố tại vị trí này (${result.existingCode || 'PA-xxx'}). Đã tự động gộp phản ánh của bạn để tăng độ khẩn cấp!`,
-        code: result.existingCode || 'PA-GOP',
-      });
-    } else {
-      setNotification({
-        type: 'success',
-        message: `Gửi phản ánh thành công! Mã hồ sơ của bạn là ${result.incident.code}. UBND Phường Trấn Biên tiếp nhận xử lý trong thời gian cam kết.`,
-        code: result.incident.code,
-      });
-    }
-  };
-
-  const currentCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
-
+  if (result)
+    return (
+      <section className="citizen-submit work-surface work-empty">
+        <CheckCircle2 size={48} color="#15803d" />
+        <h2>
+          {result.grouped
+            ? "Đã thêm vào phản ánh cùng sự cố"
+            : "Đã gửi phản ánh"}
+        </h2>
+        <p>
+          Mã hồ sơ: <strong>{result.code}</strong>
+        </p>
+        <p>
+          Ảnh và thông tin đã được lưu. Cán bộ tiếp nhận có thể xem ở tab bàn
+          làm việc.
+        </p>
+        <Link
+          className="work-primary"
+          to={`/citizen/reports?id=${encodeURIComponent(result.id)}`}
+        >
+          Theo dõi phản ánh
+        </Link>
+        <button
+          className="work-secondary"
+          onClick={() => {
+            setResult(null);
+            setStep(1);
+            setPhoto("");
+            setDescription("");
+            setPositionChosen(false);
+            setGroup(false);
+          }}
+        >
+          Gửi phản ánh khác
+        </button>
+      </section>
+    );
   return (
-    <div className="space-y-6">
-      {/* 1. HEADER BANNER CHÍNH QUYỀN SỐ */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 text-white rounded-2xl p-6 sm:p-7 shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <span className="inline-block bg-white/20 backdrop-blur-xs text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-              Dịch Vụ Dân Sinh • Phường Trấn Biên
-            </span>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">
-              Gửi Phản Ánh Hiện Trường Mới
-            </h1>
-            <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Chỉ 2 bước đơn giản: Điền thông tin & tải ảnh, sau đó ghim vị trí trên bản đồ OpenStreetMap
-            </p>
-          </div>
-
-          <div className="hidden lg:flex items-center gap-3 bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/20 text-xs">
-            <ShieldCheck className="w-8 h-8 text-cyan-300 shrink-0" />
-            <div>
-              <div className="font-extrabold text-white">Cam kết tiếp nhận & xử lý</div>
-              <div className="text-blue-100 text-[11px]">Tiếp nhận trong 2h • Xử lý trong 24h-48h</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Thanh 2 Bước Chuẩn Rõ Ràng */}
-        <div className="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-white/20 text-center">
-          <div
-            onClick={() => setStep(1)}
-            className={`p-3.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2.5 ${
-              step === 1
-                ? 'bg-amber-400 text-slate-900 shadow-md font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white'
-            }`}
-          >
-            <span className="w-6 h-6 rounded-full bg-slate-900/10 flex items-center justify-center text-xs font-black">
-              1
-            </span>
-            <span>Bước 1: Điền thông tin & Tải ảnh</span>
-          </div>
-
-          <div
-            onClick={() => setStep(2)}
-            className={`p-3.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2.5 ${
-              step === 2
-                ? 'bg-amber-400 text-slate-900 shadow-md font-black'
-                : 'bg-white/10 hover:bg-white/20 text-white'
-            }`}
-          >
-            <span className="w-6 h-6 rounded-full bg-slate-900/10 flex items-center justify-center text-xs font-black">
-              2
-            </span>
-            <span>Bước 2: Chọn vị trí trên bản đồ</span>
-          </div>
+    <div className="citizen-submit officer-workbench">
+      <div className="work-heading">
+        <div>
+          <h1>Gửi phản ánh hiện trường</h1>
+          <p>Chụp ảnh, chọn vị trí và mô tả sự cố để phường tiếp nhận.</p>
         </div>
       </div>
-
-      {/* THÔNG BÁO KẾT QUẢ SAU KHI GỬI */}
-      {notification && (
-        <div
-          className={`p-5 sm:p-6 rounded-2xl border shadow-sm ${
-            notification.type === 'duplicate'
-              ? 'bg-amber-50 border-amber-300 text-amber-900'
-              : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-          }`}
-        >
-          <div className="flex items-start gap-4">
-            <CheckCircle2
-              className={`w-8 h-8 shrink-0 ${
-                notification.type === 'duplicate' ? 'text-amber-600' : 'text-emerald-600'
-              }`}
+      <ol className="submit-steps">
+        {[
+          { label: "Ảnh hiện trường", icon: Camera },
+          { label: "Vị trí", icon: MapPin },
+          { label: "Loại sự cố", icon: CheckCircle2 },
+        ].map(({ label, icon: Icon }, index) => (
+          <li
+            key={label}
+            aria-current={step === index + 1 ? "step" : undefined}
+            className={step >= index + 1 ? "current" : ""}
+          >
+            <Icon size={18} />
+            <span>
+              {index + 1}. {label}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <form
+        className="work-surface work-detail"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setError("");
+          try {
+            const response = addIncident({
+              category,
+              description,
+              location,
+              photosBefore: [photo],
+              senderName: PRESET_ACCOUNTS.citizen.name,
+              senderPhone: phone,
+              duplicateOf: group ? duplicate?.id : undefined,
+            });
+            setResult({
+              code: response.incident.code,
+              id: response.incident.id,
+              grouped: response.isDuplicateGrouped,
+            });
+          } catch (error) {
+            setError((error as Error).message);
+          }
+        }}
+      >
+        {step === 1 && (
+          <>
+            <h2>Chụp hoặc chọn ảnh hiện trường</h2>
+            <p>
+              Chọn ảnh rõ sự cố. Tránh chụp thông tin riêng tư của người khác.
+            </p>
+            {photo && (
+              <img
+                className="submit-photo"
+                src={photo}
+                alt="Ảnh hiện trường đã chọn"
+              />
+            )}
+            <label className="work-form-label">
+              Chọn ảnh JPG, PNG hoặc WebP (tối đa 10 MB)
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                disabled={loading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setError("");
+                  setLoading(true);
+                  try {
+                    setPhoto(await readPhoto(file));
+                  } catch (error) {
+                    setError((error as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="work-text-link"
+              onClick={() =>
+                setPhoto(
+                  "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=70",
+                )
+              }
+            >
+              Dùng ảnh minh họa để thử demo
+            </button>
+          </>
+        )}
+        {step === 2 && (
+          <>
+            <h2>Sự cố ở đâu?</h2>
+            <p>
+              Chạm lên bản đồ để ghim đúng điểm. Có thể dùng GPS nếu bạn đang ở
+              hiện trường.
+            </p>
+            <OpenStreetMap
+              height="340px"
+              singlePin={
+                positionChosen
+                  ? { ...location, label: location.address || "Vị trí đã chọn" }
+                  : undefined
+              }
+              onMapClick={(lat, lng) => {
+                setLocation({ ...location, lat, lng });
+                setPositionChosen(true);
+                setGroup(false);
+              }}
             />
-            <div className="space-y-2">
-              <h3 className="font-extrabold text-base sm:text-lg">
-                {notification.type === 'duplicate'
-                  ? 'Đã tự động gộp phản ánh cùng sự cố!'
-                  : 'Tiếp nhận phản ánh thành công!'}
-              </h3>
-              <p className="text-xs sm:text-sm leading-relaxed">{notification.message}</p>
-              <div className="pt-2 flex flex-wrap gap-3">
-                <button
-                  onClick={() => navigate('/citizen/reports')}
-                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs flex items-center gap-2 transition"
-                >
-                  <span>Xem hồ sơ trong danh sách Phản ánh</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setNotification(null);
-                    setStep(1);
-                  }}
-                  className="px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-                >
-                  Gửi thêm phản ánh khác
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. BỐ CỤC CHÍNH 2 CỘT CHUẨN MÀN HÌNH MÁY TÍNH */}
-      {!notification && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* CỘT TRÁI (8 / 12 CỘT): NỘI DUNG 2 BƯỚC */}
-          <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7">
-            {/* ========================================================
-                BƯỚC 1: ĐIỀN THÔNG TIN & TẢI ẢNH LÊN
-                ======================================================== */}
-            {step === 1 && (
-              <div className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                      Bước 1: Điền thông tin sự cố & Tải ảnh hiện trường
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Chụp ảnh hoặc chọn ảnh thực tế từ thiết bị của bạn
-                    </p>
-                  </div>
-                  <span className="text-xs text-rose-500 font-bold bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
-                    * Bắt buộc
-                  </span>
-                </div>
-
-                {/* KHUNG TẢI ẢNH THỰC TẾ (FILE UPLOAD) */}
-                <div className="space-y-3">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Ảnh chụp hiện trường sự cố:
-                  </label>
-
-                  {/* Input ẩn để chọn file thật */}
+            <p className="work-help">
+              {positionChosen
+                ? `Đã ghim: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+                : "Chưa chọn vị trí sự cố."}
+            </p>
+            <label className="work-form-label">
+              Địa chỉ hoặc mốc dễ tìm
+              <input
+                aria-label="Địa chỉ sự cố"
+                value={location.address}
+                onChange={(e) =>
+                  setLocation({ ...location, address: e.target.value })
+                }
+                placeholder="Ví dụ: trước số nhà 20, đường Nguyễn Ái Quốc…"
+                maxLength={300}
+              />
+            </label>
+          </>
+        )}
+        {step === 3 && (
+          <>
+            <h2>Chọn loại và mô tả sự cố</h2>
+            <div className="submit-categories">
+              {Object.entries(CATEGORIES).map(([value, label]) => (
+                <label key={value}>
                   <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-
-                  {/* Vùng xem trước & Tải ảnh */}
-                  <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center shadow-inner group">
-                    <img
-                      src={photoUrl}
-                      alt="Hiện trường"
-                      className="w-full h-full object-cover group-hover:scale-102 transition duration-500"
-                    />
-
-                    {/* Nút hành động nổi trên ảnh */}
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-2"
-                      >
-                        <Upload className="w-4 h-4" />
-                        <span>Tải ảnh khác từ máy</span>
-                      </button>
-                    </div>
-
-                    <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-2">
-                      <Camera className="w-3.5 h-3.5 text-cyan-400" />
-                      <span className="font-mono text-[11px] truncate max-w-xs">{photoName}</span>
-                    </div>
-                  </div>
-
-                  {/* Nút chọn ảnh từ thiết bị */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Chọn ảnh từ máy tính / điện thoại</span>
-                    </button>
-
-                    <span className="text-xs text-slate-400">hoặc chọn nhanh ảnh mẫu thử nghiệm:</span>
-                  </div>
-
-                  {/* 4 Nút chọn ảnh mẫu nhanh */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('street_light')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
-                        selectedCategory === 'street_light'
-                          ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      💡 Đèn đường hỏng
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('flooding')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
-                        selectedCategory === 'flooding'
-                          ? 'border-blue-500 bg-blue-50 text-blue-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      🌊 Ngập úng sau mưa
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('waste')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
-                        selectedCategory === 'waste'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      🗑️ Bãi rác tự phát
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSample('road_damage')}
-                      className={`p-2 text-xs border rounded-lg font-bold text-left transition ${
-                        selectedCategory === 'road_damage'
-                          ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-2xs'
-                          : 'bg-white hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      🚧 Ổ gà mặt đường
-                    </button>
-                  </div>
-                </div>
-
-                {/* CHỌN DANH MỤC SỰ CỐ */}
-                <div className="space-y-2 pt-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Phân loại sự cố:
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {CATEGORIES.map((cat) => {
-                      const Icon = cat.icon;
-                      const isSelected = selectedCategory === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setSelectedCategory(cat.id)}
-                          className={`p-3.5 rounded-xl border-2 text-left transition flex items-start gap-3 ${
-                            isSelected ? cat.activeBorder : 'border-slate-200 hover:border-slate-300 bg-white'
-                          }`}
-                        >
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                              isSelected ? 'bg-blue-700 text-white shadow-md' : `${cat.bg} ${cat.color}`
-                            }`}
-                          >
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-extrabold text-xs sm:text-sm text-slate-900">
-                                {cat.name}
-                              </span>
-                              {isSelected && <span className="text-xs font-bold text-blue-700">✓</span>}
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{cat.desc}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* GHI CHÚ / MÔ TẢ TÌNH TRẠNG HIỆN TRƯỜNG */}
-                <div className="space-y-1.5 pt-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Ghi chú / Mô tả tình trạng hiện trường: <span className="text-rose-500">*</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Mô tả cụ thể vị trí cột điện số mấy, kích thước hố sụt hoặc thời điểm ngập nước..."
-                    className="w-full p-3.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
-                    required
-                  />
-                </div>
-
-                {/* THÔNG TIN NGƯỜI GỬI */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Số điện thoại nhận thông báo: <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="09xx xxx xxx"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Họ tên người gửi (không bắt buộc):
-                    </label>
-                    <input
-                      type="text"
-                      value={senderName}
-                      onChange={(e) => setSenderName(e.target.value)}
-                      placeholder="Ví dụ: Bác Hai Trấn Biên"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                    />
-                  </div>
-                </div>
-
-                {/* NÚT TIẾP TỤC SANG BƯỚC 2 */}
-                <div className="pt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className={`flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold transition shadow-md active:scale-95 ${
-                      elderlyMode ? 'text-base' : 'text-sm'
-                    }`}
-                  >
-                    <span>Tiếp tục: Chọn vị trí trên bản đồ</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ========================================================
-                BƯỚC 2: CHỌN VỊ TRÍ TRÊN BẢN ĐỒ OPENSTREETMAP
-                ======================================================== */}
-            {step === 2 && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                      Bước 2: Chọn vị trí sự cố trên bản đồ OpenStreetMap
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Lấy vị trí hiện tại của bạn hoặc lia bản đồ & nhấp vào vị trí bất kỳ
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGetCurrentLocation}
-                    disabled={isLocating}
-                    className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
-                  >
-                    <Locate className={`w-4 h-4 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
-                    <span>{isLocating ? 'Đang định vị...' : '📍 Lấy vị trí hiện tại'}</span>
-                  </button>
-                </div>
-
-                {/* KHUNG BẢN ĐỒ OPENSTREETMAP TO RỘNG */}
-                <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-sm relative">
-                  <OpenStreetMap
-                    height="440px"
-                    center={[location.lat, location.lng]}
-                    zoom={16}
-                    singlePin={{
-                      lat: location.lat,
-                      lng: location.lng,
-                      label: location.address,
+                    type="radio"
+                    name="category"
+                    value={value}
+                    checked={category === value}
+                    onChange={() => {
+                      setCategory(value as IncidentCategory);
+                      setGroup(false);
                     }}
-                    onMapClick={handleMapClick}
-                    incidents={[]}
                   />
-                </div>
-
-                {/* Ô ĐỊA CHỈ TỰ ĐỘNG CẬP NHẬT THEO ĐIỂM CHỌN */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
-                      Địa chỉ sự cố (tự động nhận diện theo điểm ghim trên bản đồ):
-                    </label>
-                    {isGeocoding && (
-                      <span className="text-[11px] font-bold text-blue-600 animate-pulse">
-                        Đang lấy tên đường...
-                      </span>
-                    )}
-                  </div>
-
+                  {label}
+                </label>
+              ))}
+            </div>
+            <label className="work-form-label">
+              Mô tả ngắn
+              <textarea
+                required
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={2000}
+                placeholder="Sự cố xảy ra như thế nào, có nguy hiểm không?"
+              />
+            </label>
+            <label className="work-form-label">
+              Số điện thoại theo dõi hồ sơ
+              <input
+                type="tel"
+                inputMode="numeric"
+                required
+                pattern="0[0-9]{9}"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </label>
+            <p className="work-help">
+              Địa chỉ: {location.address} · {location.lat.toFixed(5)},{" "}
+              {location.lng.toFixed(5)}
+            </p>
+            {duplicate && (
+              <div className="work-warning">
+                <strong>
+                  Có phản ánh tương tự trong 50 m: {duplicate.code}
+                </strong>
+                <p>{duplicate.title}</p>
+                <label className="urgent-filter">
                   <input
-                    type="text"
-                    value={location.address}
-                    onChange={(e) => setLocation({ ...location, address: e.target.value })}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white shadow-2xs"
-                    placeholder="Số nhà, ngõ/hẻm, tên đường..."
-                    required
+                    type="checkbox"
+                    checked={group}
+                    onChange={(e) => setGroup(e.target.checked)}
                   />
-                  <p className="text-[11px] text-slate-500 italic flex items-center gap-1 font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span>Lia và nhấp chuột vào bất cứ đâu trên bản đồ để di chuyển điểm ghim sự cố. Bạn có thể tự gõ bổ sung số nhà nếu cần.</span>
-                  </p>
-                </div>
-
-                {/* NÚT QUAY LẠI & XÁC NHẬN GỬI */}
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="flex items-center gap-1.5 px-5 py-3 border border-slate-300 text-slate-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 transition"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Quay lại bước 1</span>
-                  </button>
-
-                  <button
-                    type="submit"
-                    className={`px-8 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-black shadow-lg transition flex items-center gap-2 active:scale-95 ${
-                      elderlyMode ? 'text-base py-4 px-10' : 'text-sm'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-                    <span>XÁC NHẬN GỬI PHẢN ÁNH</span>
-                  </button>
-                </div>
-              </form>
+                  Tôi xác nhận đây là cùng sự cố, thêm ảnh của tôi vào hồ sơ này
+                </label>
+                <p className="work-help">
+                  Nếu là sự cố khác, để trống để tạo hồ sơ riêng.
+                </p>
+              </div>
             )}
-          </div>
-
-          {/* CỘT PHẢI (4 / 12 CỘT): PANEL TÓM TẮT & XEM TRƯỚC */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* Live Preview Hồ Sơ */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-blue-600" />
-                  <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 uppercase tracking-wider">
-                    Xem trước hồ sơ
-                  </h3>
-                </div>
-                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                  Bước {step}/2
-                </span>
-              </div>
-
-              {/* Ảnh Thumbnail */}
-              <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative shadow-2xs">
-                <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute bottom-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded font-mono">
-                  {currentCategoryObj.name}
-                </div>
-              </div>
-
-              {/* Tóm tắt thông tin */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                  <span className="text-slate-700 font-medium line-clamp-2">
-                    {location.address}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span className="text-slate-600">Thời gian tạo: Ngay bây giờ</span>
-                </div>
-              </div>
-
-              {description && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700">
-                  <span className="font-bold block text-slate-900 mb-0.5">Nội dung ghi chú:</span>
-                  <p className="line-clamp-3 italic">"{description}"</p>
-                </div>
-              )}
-            </div>
-
-            {/* Cam Kết Phục Vụ SLA */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-2xl border border-blue-200 p-5 space-y-3">
-              <div className="flex items-center gap-2 text-blue-900 font-extrabold text-xs uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                <span>Cam kết phục vụ của UBND Phường</span>
-              </div>
-
-              <div className="space-y-2 text-xs text-slate-700 font-medium">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-white/80 border border-blue-100">
-                  <span>Tiếp nhận & phân loại:</span>
-                  <strong className="text-blue-700">Trong 2 giờ</strong>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-white/80 border border-blue-100">
-                  <span>Khắc phục hoàn thành:</span>
-                  <strong className="text-emerald-700">24h - 48h</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Hotline hỗ trợ khẩn cấp */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
-                  <PhoneCall className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="font-extrabold text-slate-900">Tổng đài 1022</div>
-                  <div className="text-[11px] text-slate-500">Tiếp nhận phản ánh 24/7</div>
-                </div>
-              </div>
-              <a
-                href="tel:1022"
-                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-lg border border-rose-200 text-xs transition"
-              >
-                Gọi 1022
-              </a>
-            </div>
-          </div>
+          </>
+        )}
+        {error && (
+          <p className="work-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="submit-actions">
+          {step > 1 && (
+            <button
+              type="button"
+              className="work-secondary"
+              onClick={() => {
+                setStep(step - 1);
+                setError("");
+              }}
+            >
+              <ArrowLeft size={16} />
+              Quay lại
+            </button>
+          )}
+          {step < 3 ? (
+            <button
+              type="button"
+              className="work-primary"
+              disabled={loading}
+              onClick={next}
+            >
+              {loading ? "Đang đọc ảnh…" : "Tiếp tục"}
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button type="submit" className="work-primary">
+              Gửi phản ánh
+            </button>
+          )}
         </div>
-      )}
+      </form>
+      <p className="work-footer-note">
+        Bản demo dùng dữ liệu giả lập; đồng bộ các tab cùng trình duyệt trên máy
+        này.
+      </p>
     </div>
   );
-};
+}

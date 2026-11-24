@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Incident } from '../../types/incident';
-import { useIncidentStore } from '../../store/useIncidentStore';
-import { X, Send, Clock, Building, ShieldCheck } from 'lucide-react';
+import React, { useState } from "react";
+import { Incident } from "../../types/incident";
+import { useIncidentStore } from "../../store/useIncidentStore";
+import { X, Send, Clock, Building } from "lucide-react";
 
 interface Props {
   incident: Incident;
@@ -9,28 +9,41 @@ interface Props {
 }
 
 const DEPARTMENTS = [
-  'Đội Trật tự Đô thị Phường Trấn Biên',
-  'Công ty Chiếu sáng Đô thị Biên Hòa',
-  'Công ty Cổ phần Cấp thoát nước Trấn Biên',
-  'Đội Thanh niên Tình nguyện Phường (Xác minh tại chỗ)',
-  'Hợp tác xã Vệ sinh Môi trường Trấn Biên',
+  "Đội Trật tự Đô thị Phường Trấn Biên",
+  "Công ty Chiếu sáng Đô thị Biên Hòa",
+  "Công ty Cổ phần Cấp thoát nước Trấn Biên",
+  "Đội Thanh niên Tình nguyện Phường (Xác minh tại chỗ)",
+  "Hợp tác xã Vệ sinh Môi trường Trấn Biên",
 ];
 
 export const DispatchModal: React.FC<Props> = ({ incident, onClose }) => {
   const { assignIncident } = useIncidentStore();
 
   const [selectedUnit, setSelectedUnit] = useState<string>(
-    incident.category === 'street_light' ? DEPARTMENTS[1] :
-    incident.category === 'flooding' ? DEPARTMENTS[2] :
-    incident.category === 'waste' ? DEPARTMENTS[4] : DEPARTMENTS[0]
+    incident.category === "street_light"
+      ? DEPARTMENTS[1]
+      : incident.category === "flooding"
+        ? DEPARTMENTS[2]
+        : incident.category === "waste"
+          ? DEPARTMENTS[4]
+          : DEPARTMENTS[0],
   );
   const [deadlineDays, setDeadlineDays] = useState<number>(3);
-  const [officerName, setOfficerName] = useState<string>('Cán bộ Nguyễn Hữu Nghĩa (UBND Phường)');
+  const [officerName, setOfficerName] = useState<string>(
+    "Cán bộ Nguyễn Hữu Nghĩa (UBND Phường)",
+  );
 
   const handleDispatch = (e: React.FormEvent) => {
     e.preventDefault();
-    assignIncident(incident.id, selectedUnit, deadlineDays, officerName);
-    alert(`Đã giao việc thành công cho [${selectedUnit}] với thời hạn SLA là ${deadlineDays} ngày!`);
+    try {
+      assignIncident(incident.id, selectedUnit, deadlineDays, officerName);
+    } catch (error) {
+      alert((error as Error).message);
+      return;
+    }
+    alert(
+      `Đã giao việc thành công cho [${selectedUnit}] với thời hạn SLA là ${deadlineDays} ngày!`,
+    );
     onClose();
   };
 
@@ -43,10 +56,15 @@ export const DispatchModal: React.FC<Props> = ({ incident, onClose }) => {
             <span className="text-[11px] bg-white/20 text-white px-2 py-0.5 rounded font-semibold">
               Màn hình 4 • Điều phối & Phân công xử lý
             </span>
-            <h3 className="text-base sm:text-lg font-bold mt-1">Giao Xử Lý Phản Ánh Hiện Trường</h3>
+            <h3 className="text-base sm:text-lg font-bold mt-1">
+              Giao Xử Lý Phản Ánh Hiện Trường
+            </h3>
             <p className="text-xs text-blue-100">Hồ sơ số: {incident.code}</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10 text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-full hover:bg-white/10 text-white"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -55,8 +73,12 @@ export const DispatchModal: React.FC<Props> = ({ incident, onClose }) => {
           {/* Thông tin sự cố */}
           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
             <div className="font-bold text-slate-800">{incident.title}</div>
-            <div className="text-slate-600">📍 Địa chỉ: {incident.location.address}</div>
-            <div className="text-slate-500">👤 Người gửi: {incident.sender.name} ({incident.sender.phone})</div>
+            <div className="text-slate-600">
+              📍 Địa chỉ: {incident.location.address}
+            </div>
+            <div className="text-slate-500">
+              👤 Người gửi: {incident.sender.name} ({incident.sender.phone})
+            </div>
           </div>
 
           {/* Chọn đơn vị giao việc */}
@@ -86,9 +108,9 @@ export const DispatchModal: React.FC<Props> = ({ incident, onClose }) => {
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { days: 1, label: 'Khẩn cấp (24 giờ)' },
-                { days: 3, label: 'Chuẩn (3 ngày)' },
-                { days: 5, label: 'Mở rộng (5 ngày)' },
+                { days: 1, label: "Khẩn cấp (24 giờ)" },
+                { days: 3, label: "Chuẩn (3 ngày)" },
+                { days: 5, label: "Mở rộng (5 ngày)" },
               ].map((opt) => (
                 <button
                   type="button"
@@ -96,8 +118,8 @@ export const DispatchModal: React.FC<Props> = ({ incident, onClose }) => {
                   onClick={() => setDeadlineDays(opt.days)}
                   className={`p-2.5 rounded-lg border text-xs font-bold transition text-center ${
                     deadlineDays === opt.days
-                      ? 'border-blue-600 bg-blue-50 text-blue-900 shadow-sm'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? "border-blue-600 bg-blue-50 text-blue-900 shadow-sm"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   {opt.label}

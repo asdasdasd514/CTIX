@@ -1,154 +1,223 @@
-import React, { useState } from 'react';
-import { useIncidentStore } from '../../store/useIncidentStore';
-import { Incident } from '../../types/incident';
-import { IncidentResolutionModal } from './IncidentResolutionModal';
-import { Users, CheckCircle2, MapPin, Camera, Clock, ShieldAlert } from 'lucide-react';
-
-export const FieldTasksPage: React.FC = () => {
-  const { incidents, verifyIncident, elderlyMode } = useIncidentStore();
-
-  const [activeSubTab, setActiveSubTab] = useState<'need_verify' | 'assigned' | 'completed'>('assigned');
-  const [resolveTarget, setResolveTarget] = useState<Incident | null>(null);
-
-  // Lọc nhiệm vụ của Đội Thanh niên & Lực lượng Hiện trường
-  const needVerifyList = incidents.filter(i => i.status === 'pending' || !i.verifiedByVolunteer);
-  const assignedList = incidents.filter(i => i.status === 'assigned' || i.status === 'in_progress');
-  const completedList = incidents.filter(i => i.status === 'resolved' || i.status === 'closed');
-
-  const currentList = activeSubTab === 'need_verify' ? needVerifyList : activeSubTab === 'assigned' ? assignedList : completedList;
-
-  const handleQuickVerify = (id: string) => {
-    const notes = prompt('Nhập kết quả xác minh tại chỗ (Ví dụ: "Đã kiểm tra thực tế có ổ gà sâu 12cm đúng như người dân báo"):');
-    if (notes !== null) {
-      verifyIncident(id, notes);
-      alert('Đã xác nhận tin báo có thật! UBND Phường đã nhận được kết quả xác minh.');
+import { useState } from "react";
+import {
+  Camera,
+  MapPin,
+  CheckCircle2,
+  ClipboardCheck,
+  Play,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { useIncidentStore } from "../../store/useIncidentStore";
+import { IncidentResolutionModal } from "./IncidentResolutionModal";
+import {
+  CATEGORIES,
+  STATUS_LABELS,
+  deadlineLabel,
+  formatDate,
+  isComplete,
+  isOverdue,
+} from "../../lib/incidents";
+export function FieldTasksPage() {
+  const { incidents, verifyIncident, startIncident } = useIncidentStore();
+  const [tab, setTab] = useState<"assigned" | "verify" | "completed">(
+    "assigned",
+  );
+  const [resolveId, setResolveId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [verifyId, setVerifyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const groups = {
+    assigned: incidents.filter(
+      (i) => i.status === "assigned" || i.status === "in_progress",
+    ),
+    verify: incidents.filter((i) => !isComplete(i) && !i.verifiedByVolunteer),
+    completed: incidents.filter(isComplete),
+  };
+  const target = incidents.find((i) => i.id === resolveId);
+  const act = (action: () => void, text: string) => {
+    setError("");
+    try {
+      action();
+      setMessage(text);
+    } catch (error) {
+      setError((error as Error).message);
     }
   };
-
   return (
-    <div className="space-y-4">
-      {/* Banner */}
-      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+    <div className="officer-workbench">
+      <div className="work-heading">
         <div>
-          <span className="text-[11px] bg-blue-100 text-blue-900 px-2 py-0.5 rounded font-bold uppercase">
-            Vai trò 3 • Đội Thanh niên tình nguyện & Hiện trường
-          </span>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
-            Nhiệm Vụ Xác Minh & Nghiệm Thu Hiện Trường
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Hỗ trợ UBND Phường Trấn Biên xác minh tin báo và chụp ảnh hoàn thành sau xử lý
-          </p>
+          <h2>Nhiệm vụ hiện trường</h2>
+          <p>Xác minh tại chỗ, nhận việc và cập nhật ảnh sau xử lý</p>
         </div>
+        <Link className="work-text-link" to="/dashboard">
+          Bàn làm việc →
+        </Link>
       </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+      <div className="work-tabs">
         <button
-          onClick={() => setActiveSubTab('assigned')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded ${activeSubTab === 'assigned' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+          aria-pressed={tab === "assigned"}
+          onClick={() => setTab("assigned")}
         >
-          Cần xử lý & Nghiệm thu ({assignedList.length})
+          Cần xử lý ({groups.assigned.length})
         </button>
         <button
-          onClick={() => setActiveSubTab('need_verify')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded ${activeSubTab === 'need_verify' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+          aria-pressed={tab === "verify"}
+          onClick={() => setTab("verify")}
         >
-          Cần xác minh tại chỗ ({needVerifyList.length})
+          Cần xác minh ({groups.verify.length})
         </button>
         <button
-          onClick={() => setActiveSubTab('completed')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded ${activeSubTab === 'completed' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+          aria-pressed={tab === "completed"}
+          onClick={() => setTab("completed")}
         >
-          Đã nghiệm thu xong ({completedList.length})
+          Đã xử lý ({groups.completed.length})
         </button>
       </div>
-
-      {/* Danh sách nhiệm vụ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {currentList.map((item) => {
-          const isResolved = item.status === 'resolved' || item.status === 'closed';
-
-          return (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between hover:border-blue-300 transition"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                    {item.code}
-                  </span>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    item.verifiedByVolunteer ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {item.verifiedByVolunteer ? '✓ Đã xác minh tại chỗ' : 'Chưa xác minh'}
-                  </span>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
-                    <img src={item.photosBefore[0]} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-slate-900 text-sm line-clamp-1">{item.title}</h3>
-                    <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-rose-500" />
-                      <span className="truncate">{item.location.address}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {item.assignedTo && (
-                  <div className="text-xs bg-slate-50 p-2 rounded border border-slate-200 space-y-0.5">
-                    <div className="text-slate-700">🏢 <strong>Giao cho:</strong> {item.assignedTo.unitName}</div>
-                    <div className="text-amber-700 font-semibold flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Hạn SLA: {new Date(item.assignedTo.deadline).toLocaleDateString('vi-VN')}
-                    </div>
-                  </div>
-                )}
+      {message && (
+        <p className="work-success" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="work-error" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="work-help">
+        Bản demo hiển thị nhiệm vụ của các tổ minh họa trên địa bàn. Xác minh
+        không thay thế việc phân công.
+      </p>
+      <div className="field-grid">
+        {groups[tab]
+          .sort(
+            (a, b) =>
+              Number(isOverdue(b)) - Number(isOverdue(a)) ||
+              Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+          )
+          .map((item) => (
+            <article className="work-surface field-task" key={item.id}>
+              <div className="work-incident-top">
+                <span className="work-code">{item.code}</span>
+                <span
+                  className={`work-badge ${isComplete(item) ? "green" : "blue"}`}
+                >
+                  {STATUS_LABELS[item.status]}
+                </span>
               </div>
-
-              {/* Thao tác */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                {!item.verifiedByVolunteer && (
+              <h3>{item.title}</h3>
+              <p className="work-address">
+                <MapPin size={14} />
+                {item.location.address}
+              </p>
+              <p className="work-help">
+                {CATEGORIES[item.category]} ·{" "}
+                {item.verifiedByVolunteer ? "Đã xác minh" : "Chưa xác minh"}
+              </p>
+              {item.assignedTo && (
+                <div className="work-assignment">
+                  <strong>{item.assignedTo.unitName}</strong>
+                  <span className={isOverdue(item) ? "overdue-text" : ""}>
+                    {deadlineLabel(item)} ·{" "}
+                    {formatDate(item.assignedTo.deadline)}
+                  </span>
+                  {item.assignedTo.notes && <p>{item.assignedTo.notes}</p>}
+                </div>
+              )}
+              {item.verificationNotes && (
+                <p className="work-help">Xác minh: {item.verificationNotes}</p>
+              )}
+              {item.resolution && (
+                <p className="work-help">Kết quả: {item.resolution.notes}</p>
+              )}
+              <div className="field-actions">
+                {!isComplete(item) && !item.verifiedByVolunteer && (
                   <button
-                    onClick={() => handleQuickVerify(item.id)}
-                    className="px-3 py-1.5 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg transition"
+                    className="work-secondary"
+                    onClick={() => {
+                      setVerifyId(verifyId === item.id ? null : item.id);
+                      setNotes("");
+                    }}
                   >
-                    🔍 Xác minh tại chỗ
+                    <ClipboardCheck size={16} />
+                    Xác minh
                   </button>
                 )}
-
-                {!isResolved ? (
+                {item.status === "assigned" && (
                   <button
-                    onClick={() => setResolveTarget(item)}
-                    className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow transition flex items-center justify-center gap-1.5"
+                    className="work-primary"
+                    onClick={() =>
+                      act(
+                        () => startIncident(item.id),
+                        "Đã nhận việc. Trạng thái mới đã đồng bộ đến tab cán bộ.",
+                      )
+                    }
                   >
-                    <Camera className="w-4 h-4" />
-                    <span>Màn 5: Nghiệm thu ảnh Sau</span>
+                    <Play size={15} />
+                    Nhận và bắt đầu
                   </button>
-                ) : (
-                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Đã hoàn thành nghiệm thu
+                )}
+                {item.status === "in_progress" && (
+                  <button
+                    className="work-primary"
+                    onClick={() => setResolveId(item.id)}
+                  >
+                    <Camera size={16} />
+                    Cập nhật kết quả
+                  </button>
+                )}
+                {isComplete(item) && (
+                  <span className="work-text-link">
+                    <CheckCircle2 size={16} />
+                    Đã công khai kết quả
                   </span>
                 )}
               </div>
-            </div>
-          );
-        })}
+              {verifyId === item.id && !isComplete(item) && (
+                <form
+                  className="dispatch-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    act(() => {
+                      verifyIncident(item.id, notes);
+                      setVerifyId(null);
+                    }, "Đã lưu xác minh tại chỗ.");
+                  }}
+                >
+                  <label>
+                    Kết quả xác minh
+                    <textarea
+                      autoFocus
+                      required
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Mô tả tình trạng thực tế đã kiểm tra…"
+                      rows={3}
+                    />
+                  </label>
+                  <button className="work-primary" type="submit">
+                    Lưu xác minh
+                  </button>
+                </form>
+              )}
+            </article>
+          ))}
       </div>
-
-      {/* Modal Nghiệm thu kết quả Màn hình 5 */}
-      {resolveTarget && (
+      {!groups[tab].length && (
+        <div className="work-empty">
+          <CheckCircle2 size={32} />
+          <h3>Không có nhiệm vụ trong nhóm này</h3>
+          <p>Nhiệm vụ mới được giao sẽ xuất hiện tại đây.</p>
+        </div>
+      )}
+      {target && (
         <IncidentResolutionModal
-          incident={resolveTarget}
-          onClose={() => setResolveTarget(null)}
+          key={target.id}
+          incident={target}
+          onClose={() => setResolveId(null)}
         />
       )}
     </div>
   );
-};
+}

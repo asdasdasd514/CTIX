@@ -1,10 +1,19 @@
-export type IncidentCategory = 'street_light' | 'flooding' | 'waste' | 'road_damage';
+export type IncidentCategory =
+  | "street_light"
+  | "flooding"
+  | "waste"
+  | "road_damage";
 
-export type IncidentStatus = 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+export type IncidentStatus =
+  | "pending"
+  | "assigned"
+  | "in_progress"
+  | "resolved"
+  | "closed";
 
-export type IncidentPriority = 'normal' | 'high' | 'urgent';
+export type IncidentPriority = "normal" | "high" | "urgent";
 
-export type UserRole = 'citizen' | 'officer' | 'volunteer';
+export type UserRole = "citizen" | "officer" | "volunteer";
 
 export interface IncidentLocation {
   lat: number;
@@ -23,6 +32,7 @@ export interface IncidentAssignment {
   officerName?: string;
   assignedAt: string;
   deadline: string;
+  notes?: string;
 }
 
 export interface IncidentResolution {
@@ -55,6 +65,12 @@ export interface Incident {
   rating?: IncidentRating;
   sameReportsCount: number; // Điểm cộng: số người cùng phản ánh (Upvote)
   verifiedByVolunteer?: boolean;
+  verificationNotes?: string;
+  linkedReports?: {
+    sender: IncidentSender;
+    photos: string[];
+    reportedAt: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -67,6 +83,7 @@ export interface NewIncidentInput {
   senderPhone: string;
   senderName?: string;
   photosBefore: string[];
+  duplicateOf?: string;
 }
 
 export interface CategoryInfo {

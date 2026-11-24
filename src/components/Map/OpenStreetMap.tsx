@@ -1,8 +1,29 @@
-import React, { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import { Incident } from '../../types/incident';
-import { useNavigate } from 'react-router-dom';
-import { Layers, Locate, Navigation } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
+import { useLocation, useNavigate } from "react-router-dom";
+import type { Incident } from "../../types/incident";
+import {
+  CATEGORIES,
+  CATEGORY_CODES,
+  MAP_STATUS_ORDER,
+  MAP_STATUS_VISUALS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  getIncidentMapVisual,
+  isOverdue,
+  validCoordinates,
+} from "../../lib/incidents";
+import {
+  Locate,
+  LocateFixed,
+  Layers,
+  RotateCcw,
+  AlertTriangle,
+  Maximize2,
+  Minimize2,
+  X,
+  Search,
+} from "lucide-react";
 
 interface OpenStreetMapProps {
   incidents?: Incident[];
@@ -11,348 +32,717 @@ interface OpenStreetMapProps {
   zoom?: number;
   height?: string;
   className?: string;
+  title?: string;
+  now?: number;
+  expandable?: boolean;
+  showLegend?: boolean;
+  emptyMessage?: string;
+  onClearFilters?: () => void;
   onMarkerClick?: (incident: Incident) => void;
+  onOpenDetail?: (incident: Incident) => void;
   onMapClick?: (lat: number, lng: number) => void;
-  singlePin?: {
-    lat: number;
-    lng: number;
-    label?: string;
-  };
+  singlePin?: { lat: number; lng: number; label?: string };
   showLayerToggle?: boolean;
   showLocateButton?: boolean;
 }
 
-export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
-  incidents = [],
+const EMPTY: Incident[] = [];
+const DEFAULT_CENTER: [number, number] = [10.9572, 106.8184];
+const tileUrl = {
+  streets:
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+  satellite:
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+};
+
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function OpenStreetMap({
+  incidents = EMPTY,
   selectedId,
-  center = [10.9572, 106.8184], // Tọa độ trung tâm Phường Trấn Biên (Biên Hòa, Đồng Nai)
+  center = DEFAULT_CENTER,
   zoom = 14,
-  height = '360px',
-  className = '',
+  height = "420px",
+  className = "",
+  title,
+  now,
+  expandable = false,
+  showLegend = false,
+  emptyMessage,
+  onClearFilters,
   onMarkerClick,
+  onOpenDetail,
   onMapClick,
   singlePin,
   showLayerToggle = true,
   showLocateButton = true,
-}) => {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const onMapClickRef = useRef(onMapClick);
-  onMapClickRef.current = onMapClick;
+}: OpenStreetMapProps) {
+  const shellRef = useRef<HTMLDivElement>(null);
+  const container = useRef<HTMLDivElement>(null);
+  const expandButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const singleMarkerRef = useRef<L.Marker | null>(null);
+  const markerDataRef = useRef(new Map<string, Incident>());
+  const markerAppearanceRef = useRef(new Map<string, string>());
+  const previousSelectionRef = useRef<string | undefined>(undefined);
+  const markersRef = useRef(new Map<string, L.Marker>());
+  const savedScrollRef = useRef({ x: 0, y: 0 });
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const pendingViewRef = useRef<{ center: L.LatLng; zoom: number } | undefined>(
+    undefined,
+  );
+  const closeOptionsRef = useRef({ restoreFocus: true, restoreScroll: true });
+  const wasExpandedRef = useRef(false);
 
-  const [activeLayer, setActiveLayer] = useState<'streets' | 'satellite'>('streets');
-  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const clickRef = useRef(onMapClick);
+  useEffect(() => {
+    clickRef.current = onMapClick;
+  }, [onMapClick]);
+  const markerClickRef = useRef(onMarkerClick);
+  useEffect(() => {
+    markerClickRef.current = onMarkerClick;
+  }, [onMarkerClick]);
+  const openDetailRef = useRef(onOpenDetail);
+  useEffect(() => {
+    openDetailRef.current = onOpenDetail;
+  }, [onOpenDetail]);
 
   const navigate = useNavigate();
-
-  // 1. Khởi tạo bản đồ OpenStreetMap (OSM)
+  const { pathname } = useLocation();
+  const publicMap = pathname.startsWith("/citizen");
+  const [layer, setLayer] = useState<"streets" | "satellite">("streets");
+  const [retry, setRetry] = useState(0);
+  const [tileError, setTileError] = useState(false);
+  const [gpsError, setGpsError] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const expandedRef = useRef(false);
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    expandedRef.current = expanded;
+  }, [expanded]);
 
-    if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center,
-        zoom,
-        zoomControl: true,
-        attributionControl: true,
-      });
+  const validIncidentsCount = useMemo(
+    () =>
+      incidents.filter((item) =>
+        validCoordinates(item.location.lat, item.location.lng),
+      ).length,
+    [incidents],
+  );
+  const invalidCoordsCount = incidents.length - validIncidentsCount;
+  const selectedIncident = useMemo(
+    () =>
+      selectedId
+        ? incidents.find(
+            (item) =>
+              item.id === selectedId &&
+              validCoordinates(item.location.lat, item.location.lng),
+          )
+        : undefined,
+    [incidents, selectedId],
+  );
 
-      // Bản đồ nền CartoDB Voyager dựa trên dữ liệu OpenStreetMap thực tế (Tải nhanh, nét, hỗ trợ nhãn tiếng Việt)
-      const streetLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> đóng góp &copy; <a href="https://carto.com/" target="_blank" rel="noreferrer">CARTO</a>',
-          subdomains: 'abcd',
-          maxZoom: 19,
-        }
-      ).addTo(map);
+  const syncMapSize = useCallback(
+    (preserveView?: { center: L.LatLng; zoom: number }) => {
+      const map = mapRef.current;
+      const el = container.current;
+      if (!map || !el || el.clientWidth === 0 || el.clientHeight === 0) return;
+      const target = preserveView ?? {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+      };
+      map.invalidateSize({ animate: false, pan: true });
+      map.setView(target.center, target.zoom, { animate: false });
+    },
+    [],
+  );
 
-      tileLayerRef.current = streetLayer;
-
-      // Layer chứa các Marker
-      const markersLayer = L.layerGroup().addTo(map);
-      markersLayerRef.current = markersLayer;
-
-      // Xử lý Click vào bản đồ (Lia map & chọn vị trí bất kỳ)
-      map.on('click', (e: L.LeafletMouseEvent) => {
-        if (onMapClickRef.current) {
-          onMapClickRef.current(e.latlng.lat, e.latlng.lng);
-        }
-      });
-
-      mapInstanceRef.current = map;
-
-      // Resize tự động khi render
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 250);
+  const openExpanded = useCallback(() => {
+    const map = mapRef.current;
+    const el = container.current;
+    savedScrollRef.current = { x: window.scrollX, y: window.scrollY };
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    if (map && el && el.clientWidth > 0 && el.clientHeight > 0) {
+      pendingViewRef.current = {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+      };
     }
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
+    setExpanded(true);
   }, []);
 
-  // 2. Chuyển đổi lớp bản đồ (Đường phố OSM vs Ảnh vệ tinh ESRI)
-  const switchLayer = (type: 'streets' | 'satellite') => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    if (tileLayerRef.current) {
-      map.removeLayer(tileLayerRef.current);
-    }
-
-    if (type === 'satellite') {
-      const satLayer = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          attribution: '&copy; ESRI Satellite & OpenStreetMap contributors',
-          maxZoom: 19,
-        }
-      ).addTo(map);
-      tileLayerRef.current = satLayer;
-    } else {
-      const streetLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; CARTO',
-          subdomains: 'abcd',
-          maxZoom: 19,
-        }
-      ).addTo(map);
-      tileLayerRef.current = streetLayer;
-    }
-
-    setActiveLayer(type);
-  };
-
-  // 3. Lấy vị trí GPS hiện tại của người dùng
-  const handleGetLocation = () => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    setIsLocating(true);
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setIsLocating(false);
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          map.setView([lat, lng], 16);
-          if (onMapClickRef.current) {
-            onMapClickRef.current(lat, lng);
-          }
-        },
-        (error) => {
-          setIsLocating(false);
-          // Fallback về trung tâm Phường Trấn Biên nếu trình duyệt chặn GPS
-          const defaultLat = 10.9572;
-          const defaultLng = 106.8184;
-          map.setView([defaultLat, defaultLng], 15);
-          if (onMapClickRef.current) {
-            onMapClickRef.current(defaultLat, defaultLng);
-          }
-        },
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    } else {
-      setIsLocating(false);
-      map.setView([10.9572, 106.8184], 15);
-    }
-  };
-
-  // 4. Cập nhật vị trí trung tâm khi prop center thay đổi
+  const closeExpanded = useCallback(
+    (options?: { restoreFocus?: boolean; restoreScroll?: boolean }) => {
+      const map = mapRef.current;
+      const el = container.current;
+      closeOptionsRef.current = {
+        restoreFocus: options?.restoreFocus ?? true,
+        restoreScroll: options?.restoreScroll ?? true,
+      };
+      if (map && el && el.clientWidth > 0 && el.clientHeight > 0) {
+        pendingViewRef.current = {
+          center: map.getCenter(),
+          zoom: map.getZoom(),
+        };
+      }
+      setExpanded(false);
+    },
+    [],
+  );
+  const closeExpandedRef = useRef(closeExpanded);
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (map && center) {
-      map.setView(center, zoom);
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 200);
-    }
-  }, [center[0], center[1], zoom]);
+    closeExpandedRef.current = closeExpanded;
+  }, [closeExpanded]);
 
-  // 5. Render các Marker khi incidents hoặc singlePin thay đổi
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    const markersLayer = markersLayerRef.current;
-    if (!map || !markersLayer) return;
-
-    markersLayer.clearLayers();
-
-    // Render singlePin nếu có (dành cho chọn vị trí gửi phản ánh)
-    if (singlePin) {
-      const singlePinIcon = L.divIcon({
-        className: 'custom-single-pin',
-        html: `
-          <div class="relative flex items-center justify-center cursor-pointer">
-            <div class="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-xl border-2 border-white animate-bounce">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
-            <span class="absolute -bottom-1.5 w-5 h-2 bg-black/40 rounded-full blur-[1px]"></span>
-          </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 36],
-        popupAnchor: [0, -36],
-      });
-
-      const pinMarker = L.marker([singlePin.lat, singlePin.lng], { icon: singlePinIcon });
-      if (singlePin.label) {
-        pinMarker.bindPopup(`
-          <div class="p-2.5 text-xs font-sans text-slate-800">
-            <div class="font-extrabold text-blue-700 flex items-center gap-1">📍 Vị trí sự cố đã ghim</div>
-            <div class="text-slate-700 mt-1 font-medium">${singlePin.label}</div>
-            <div class="text-[10px] text-slate-400 mt-1">Tọa độ: ${singlePin.lat.toFixed(4)}, ${singlePin.lng.toFixed(4)}</div>
-          </div>
-        `);
-      }
-      markersLayer.addLayer(pinMarker);
-    }
-
-    // Render danh sách incidents
-    incidents.forEach((item) => {
-      const isSelected = selectedId === item.id;
-      const isResolved = item.status === 'resolved' || item.status === 'closed';
-
-      let bgClass = 'bg-rose-600';
-      let iconEmoji = '🚧';
-      if (item.category === 'street_light') {
-        bgClass = 'bg-amber-500';
-        iconEmoji = '💡';
-      } else if (item.category === 'flooding') {
-        bgClass = 'bg-blue-600';
-        iconEmoji = '🌊';
-      } else if (item.category === 'waste') {
-        bgClass = 'bg-emerald-600';
-        iconEmoji = '🗑️';
-      }
-
-      if (isResolved) {
-        bgClass = 'bg-emerald-600 ring-2 ring-emerald-300';
-      }
-
-      const customIcon = L.divIcon({
-        className: 'custom-osm-pin',
-        html: `
-          <div class="relative flex items-center justify-center cursor-pointer transition-transform hover:scale-125 ${
-            isSelected ? 'scale-125 z-40' : ''
-          }">
-            <div class="w-8 h-8 rounded-full ${bgClass} text-white flex items-center justify-center text-xs font-bold shadow-md border-2 border-white">
-              <span>${iconEmoji}</span>
-            </div>
-            ${
-              item.sameReportsCount > 1
-                ? `<span class="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] font-bold px-1 rounded-full border border-white">+${item.sameReportsCount}</span>`
-                : ''
-            }
-          </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16],
-      });
-
-      const marker = L.marker([item.location.lat, item.location.lng], { icon: customIcon });
-
-      const popupHtml = `
-        <div class="p-3 max-w-[260px] text-xs font-sans text-slate-800">
-          <div class="flex items-center justify-between border-b pb-1 mb-1.5">
-            <span class="font-extrabold text-blue-700">${item.code}</span>
-            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${
-              isResolved ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-            }">${isResolved ? 'Đã hoàn thành' : 'Khẩn cấp'}</span>
-          </div>
-          <div class="font-bold text-slate-900 text-xs line-clamp-1 mb-1">${item.title}</div>
-          <div class="text-[11px] text-slate-500 line-clamp-2 mb-2">📍 ${item.location.address}</div>
-          <div class="aspect-video w-full rounded overflow-hidden mb-2 bg-slate-100 border">
-            <img src="${item.photosBefore[0]}" alt="" class="w-full h-full object-cover" />
-          </div>
-          <button id="btn-dispatch-${item.id}" class="w-full py-1.5 bg-[#0f3b7d] hover:bg-blue-700 text-white rounded font-bold text-[11px] text-center transition block">
-            Xem hồ sơ & Phân công →
-          </button>
-        </div>
-      `;
-
-      marker.bindPopup(popupHtml, { className: 'smartcity-osm-popup' });
-
-      marker.on('click', () => {
-        if (onMarkerClick) onMarkerClick(item);
-      });
-
-      marker.on('popupopen', () => {
-        const btn = document.getElementById(`btn-dispatch-${item.id}`);
-        if (btn) {
-          btn.onclick = () => {
-            navigate(`/dispatch/${item.id}`);
-          };
-        }
-      });
-
-      markersLayer.addLayer(marker);
-
-      if (isSelected) {
-        setTimeout(() => {
-          marker.openPopup();
-        }, 300);
-      }
+    if (!container.current) return;
+    const map = L.map(container.current, {
+      center: DEFAULT_CENTER,
+      zoom: 14,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+      fadeAnimation: false,
     });
-  }, [incidents, selectedId, singlePin, onMarkerClick, navigate]);
+    const markers = markersRef.current;
+    const markerData = markerDataRef.current;
+    const appearances = markerAppearanceRef.current;
+    mapRef.current = map;
+    map.on("click", (event: L.LeafletMouseEvent) =>
+      clickRef.current?.(event.latlng.lat, event.latlng.lng),
+    );
+    const observer = new ResizeObserver(() => {
+      const el = container.current;
+      if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
+      map.invalidateSize({ animate: false, pan: true });
+    });
+    observer.observe(container.current);
+
+    let orientTimer: number | undefined;
+    const handleViewportChange = () => {
+      syncMapSize();
+      window.clearTimeout(orientTimer);
+      orientTimer = window.setTimeout(() => syncMapSize(), 180);
+    };
+    window.addEventListener("orientationchange", handleViewportChange);
+
+    return () => {
+      window.clearTimeout(orientTimer);
+      window.removeEventListener("orientationchange", handleViewportChange);
+      observer.disconnect();
+      map.remove();
+      mapRef.current = null;
+      markers.clear();
+      markerData.clear();
+      appearances.clear();
+      singleMarkerRef.current = null;
+      document.body.classList.remove("map-fullscreen-open");
+    };
+  }, [syncMapSize]);
+
+  useEffect(() => {
+    if (expanded) {
+      wasExpandedRef.current = true;
+      document.body.classList.add("map-fullscreen-open");
+      const view = pendingViewRef.current;
+      syncMapSize(view);
+      const raf = window.requestAnimationFrame(() => {
+        syncMapSize(view);
+        closeButtonRef.current?.focus({ preventScroll: true });
+      });
+      const settle = window.setTimeout(() => {
+        syncMapSize(view);
+        pendingViewRef.current = undefined;
+      }, 90);
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeExpanded();
+          return;
+        }
+        if (event.key === "Tab" && shellRef.current) {
+          const focusables = Array.from(
+            shellRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+          ).filter((el) => el.offsetParent !== null);
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          const active = document.activeElement as HTMLElement | null;
+          if (event.shiftKey && (!active || active === first || !shellRef.current.contains(active))) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && (!active || active === last || !shellRef.current.contains(active))) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      };
+      const handleResize = () => syncMapSize();
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("resize", handleResize);
+      return () => {
+        window.cancelAnimationFrame(raf);
+        window.clearTimeout(settle);
+        window.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("resize", handleResize);
+        document.body.classList.remove("map-fullscreen-open");
+      };
+    }
+
+    if (wasExpandedRef.current) {
+      wasExpandedRef.current = false;
+      document.body.classList.remove("map-fullscreen-open");
+      const view = pendingViewRef.current;
+      const { restoreFocus, restoreScroll } = closeOptionsRef.current;
+      const { x, y } = savedScrollRef.current;
+      if (restoreScroll) window.scrollTo(x, y);
+      syncMapSize(view);
+      const raf = window.requestAnimationFrame(() => {
+        if (restoreScroll) window.scrollTo(x, y);
+        syncMapSize(view);
+        if (restoreFocus) {
+          const target =
+            previousFocusRef.current && previousFocusRef.current.isConnected
+              ? previousFocusRef.current
+              : expandButtonRef.current;
+          target?.focus({ preventScroll: true });
+        }
+        pendingViewRef.current = undefined;
+      });
+      return () => window.cancelAnimationFrame(raf);
+    }
+  }, [expanded, closeExpanded, syncMapSize]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    setTileError(false);
+    setLoading(true);
+    const tiles = L.tileLayer(tileUrl[layer], {
+      maxZoom: 19,
+      attribution:
+        layer === "streets"
+          ? "Tiles &copy; Esri — HERE, Garmin, USGS, OpenStreetMap contributors"
+          : "Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics",
+    });
+    tiles.on("tileerror", () => {
+      setTileError(true);
+      setLoading(false);
+    });
+    tiles.on("loading", () => setLoading(true));
+    tiles.on("load", () => setLoading(false));
+    tiles.addTo(map);
+    return () => {
+      tiles.off();
+      map.removeLayer(tiles);
+    };
+  }, [layer, retry]);
+
+  const [centerLat, centerLng] = center;
+  useEffect(() => {
+    if (validCoordinates(centerLat, centerLng))
+      mapRef.current?.setView([centerLat, centerLng], zoom, { animate: false });
+  }, [centerLat, centerLng, zoom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const referenceNow = now ?? Date.now();
+    const visibleIds = new Set(
+      incidents
+        .filter((item) =>
+          validCoordinates(item.location.lat, item.location.lng),
+        )
+        .map((item) => item.id),
+    );
+    for (const [id, marker] of markersRef.current) {
+      if (!visibleIds.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+        markerDataRef.current.delete(id);
+        markerAppearanceRef.current.delete(id);
+      }
+    }
+    for (const item of incidents) {
+      if (!validCoordinates(item.location.lat, item.location.lng)) continue;
+      const visual = getIncidentMapVisual(item, referenceNow);
+      const appearance = `${visual.key}:${item.category}`;
+      let marker = markersRef.current.get(item.id);
+      if (!marker || markerAppearanceRef.current.get(item.id) !== appearance) {
+        const icon = L.divIcon({
+          className: `incident-map-marker status-${visual.key}`,
+          html: `<span class="marker-body shape-${visual.shape}" style="background:${visual.color}"><span class="marker-cat">${CATEGORY_CODES[item.category]}</span><em class="marker-sym" aria-hidden="true">${visual.symbol}</em></span>`,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+          popupAnchor: [0, -18],
+        });
+        if (marker) marker.setIcon(icon);
+        else {
+          marker = L.marker([item.location.lat, item.location.lng], {
+            icon,
+            title: `${item.code} · ${visual.label} · ${CATEGORIES[item.category]} — ${item.title}`,
+            alt: `${item.code} (${visual.label})`,
+            autoPanOnFocus: false,
+          }).addTo(map);
+          marker.on("click", () => {
+            const latest = markerDataRef.current.get(item.id);
+            if (latest) markerClickRef.current?.(latest);
+          });
+          markersRef.current.set(item.id, marker);
+        }
+        markerAppearanceRef.current.set(item.id, appearance);
+      }
+      const position = marker.getLatLng();
+      if (
+        position.lat !== item.location.lat ||
+        position.lng !== item.location.lng
+      ) {
+        marker.setLatLng([item.location.lat, item.location.lng]);
+      }
+      if (markerDataRef.current.get(item.id) === item) continue;
+      markerDataRef.current.set(item.id, item);
+      marker
+        .getElement()
+        ?.setAttribute(
+          "title",
+          `${item.code} · ${visual.label} · ${CATEGORIES[item.category]} — ${item.title}`,
+        );
+      const popup = document.createElement("div");
+      popup.className = "map-summary";
+      const header = document.createElement("div");
+      header.className = "map-summary-head";
+      const code = document.createElement("strong");
+      code.textContent = item.code;
+      const badge = document.createElement("span");
+      badge.className = `map-summary-status status-${visual.key}`;
+      const overdue = isOverdue(item, referenceNow);
+      badge.textContent = `${visual.symbol} ${STATUS_LABELS[item.status]}${
+        overdue
+          ? " · Quá hạn"
+          : item.priority === "urgent"
+            ? " · Khẩn cấp"
+            : ""
+      }`;
+      header.append(code, badge);
+      popup.append(header);
+
+      const meta = document.createElement("p");
+      meta.className = "map-summary-meta";
+      meta.textContent = `${CATEGORIES[item.category]} · ${PRIORITY_LABELS[item.priority]}`;
+      popup.append(meta);
+
+      const heading = document.createElement("h3");
+      heading.textContent = item.title;
+      popup.append(heading);
+
+      const address = document.createElement("p");
+      address.textContent = item.location.address;
+      popup.append(address);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = publicMap ? "Xem tiến độ phản ánh" : "Mở hồ sơ";
+      button.onclick = () => {
+        const latest = markerDataRef.current.get(item.id) ?? item;
+        if (openDetailRef.current) {
+          if (expandedRef.current) {
+            closeExpandedRef.current({
+              restoreFocus: false,
+              restoreScroll: false,
+            });
+          }
+          openDetailRef.current(latest);
+        } else if (markerClickRef.current) {
+          markerClickRef.current(latest);
+        } else {
+          navigate(
+            publicMap
+              ? `/citizen/reports?id=${encodeURIComponent(latest.id)}`
+              : `/dispatch/${encodeURIComponent(latest.id)}`,
+          );
+        }
+      };
+      popup.append(button);
+      if (marker.getPopup()) marker.setPopupContent(popup);
+      else marker.bindPopup(popup, { maxWidth: 280, autoPan: false });
+    }
+  }, [incidents, navigate, now, publicMap]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    markersRef.current.forEach((marker, id) => {
+      marker.getElement()?.classList.toggle("is-selected", id === selectedId);
+      marker.setZIndexOffset(id === selectedId ? 1000 : 0);
+      if (
+        id === selectedId &&
+        selectedId !== previousSelectionRef.current &&
+        container.current &&
+        container.current.clientWidth > 0 &&
+        map.getBounds().contains(marker.getLatLng())
+      ) {
+        marker.openPopup();
+      }
+      if (id !== selectedId && marker.isPopupOpen()) marker.closePopup();
+    });
+    previousSelectionRef.current = selectedId;
+  }, [selectedId, incidents]);
+
+  const pinLat = singlePin?.lat;
+  const pinLng = singlePin?.lng;
+  const pinLabel = singlePin?.label;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (
+      pinLat === undefined ||
+      pinLng === undefined ||
+      !validCoordinates(pinLat, pinLng)
+    ) {
+      singleMarkerRef.current?.remove();
+      singleMarkerRef.current = null;
+      return;
+    }
+    let marker = singleMarkerRef.current;
+    if (!marker) {
+      marker = L.marker([pinLat, pinLng], {
+        autoPanOnFocus: false,
+        icon: L.divIcon({
+          className: "incident-map-marker is-selected",
+          html: '<span class="marker-body shape-alert" style="background:#be123c"><span class="marker-cat">●</span></span>',
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+          popupAnchor: [0, -18],
+        }),
+      }).addTo(map);
+      singleMarkerRef.current = marker;
+    } else if (
+      marker.getLatLng().lat !== pinLat ||
+      marker.getLatLng().lng !== pinLng
+    ) {
+      marker.setLatLng([pinLat, pinLng]);
+    }
+    if (pinLabel) {
+      const label = document.createElement("span");
+      label.textContent = pinLabel;
+      if (marker.getPopup()) marker.setPopupContent(label);
+      else marker.bindPopup(label, { autoPan: false });
+    }
+  }, [pinLat, pinLng, pinLabel]);
+
+  function focusSelected() {
+    if (!selectedId || !mapRef.current) return;
+    const marker = markersRef.current.get(selectedId);
+    if (!marker) return;
+    mapRef.current.panTo(marker.getLatLng(), { animate: false });
+    marker.openPopup();
+  }
+
+  function locate() {
+    setGpsError("");
+    if (!navigator.geolocation) {
+      setGpsError(
+        "Trình duyệt chưa hỗ trợ GPS. Vui lòng chọn vị trí thủ công trên bản đồ.",
+      );
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        const { latitude: lat, longitude: lng } = position.coords;
+        mapRef.current?.setView([lat, lng], 16, { animate: false });
+        clickRef.current?.(lat, lng);
+      },
+      (error) => {
+        setLocating(false);
+        setGpsError(
+          error.code === 1
+            ? "Quyền GPS bị từ chối. Bật định vị trình duyệt hoặc chọn vị trí thủ công trên bản đồ."
+            : "Chưa lấy được vị trí GPS lúc này. Thử lại hoặc chọn thủ công trên bản đồ.",
+        );
+      },
+      { timeout: 7000, enableHighAccuracy: true },
+    );
+  }
+
+  const showEmptyOverlay =
+    !singlePin && !onMapClick && validIncidentsCount === 0 && !!emptyMessage;
 
   return (
-    <div className={`relative z-10 rounded-2xl overflow-hidden shadow-2xs ${className}`}>
-      {/* Khung chứa Leaflet Map */}
-      <div ref={mapContainerRef} style={{ height, width: '100%' }} />
+    <div
+      ref={shellRef}
+      className={`map-shell ${expanded ? "is-expanded" : ""} ${className}`}
+      role={expanded ? "dialog" : undefined}
+      aria-modal={expanded ? true : undefined}
+      aria-label={expanded ? "Bản đồ phản ánh toàn màn hình" : undefined}
+    >
+      <div className="map-bar">
+        <div className="map-bar-main">
+          {title && <span className="map-bar-title">{title}</span>}
+          {expandable &&
+            (expanded ? (
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className="map-btn map-btn-primary"
+                onClick={() => closeExpanded()}
+              >
+                <Minimize2 size={16} aria-hidden="true" />
+                <span>Thu nhỏ</span>
+              </button>
+            ) : (
+              <button
+                ref={expandButtonRef}
+                type="button"
+                className="map-btn map-btn-primary"
+                onClick={openExpanded}
+              >
+                <Maximize2 size={16} aria-hidden="true" />
+                <span>Mở rộng bản đồ</span>
+              </button>
+            ))}
+        </div>
+        <div className="map-bar-actions">
+          {selectedIncident && (
+            <button
+              type="button"
+              className="map-btn"
+              onClick={focusSelected}
+            >
+              <LocateFixed size={16} aria-hidden="true" />
+              <span>Về điểm đã chọn</span>
+            </button>
+          )}
+          {showLayerToggle && (
+            <button
+              type="button"
+              className="map-btn"
+              aria-pressed={layer === "satellite"}
+              onClick={() =>
+                setLayer(layer === "streets" ? "satellite" : "streets")
+              }
+            >
+              <Layers size={16} aria-hidden="true" />
+              <span>{layer === "streets" ? "Vệ tinh" : "Đường phố"}</span>
+            </button>
+          )}
+          {showLocateButton && (
+            <button
+              type="button"
+              className="map-btn"
+              onClick={locate}
+              disabled={locating}
+            >
+              <Locate size={16} aria-hidden="true" />
+              <span>{locating ? "Đang định vị…" : "Vị trí của tôi"}</span>
+            </button>
+          )}
+          {expanded && (
+            <button
+              type="button"
+              className="map-btn map-btn-close"
+              aria-label="Đóng bản đồ toàn màn hình"
+              onClick={() => closeExpanded()}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
 
-      {/* Cụm công cụ nổi trên bản đồ (Layer Switcher + Nút Lấy Vị Trí) */}
-      <div className="absolute top-3 right-3 z-[500] flex items-center gap-2">
-        {showLayerToggle && (
-          <div className="bg-white/95 backdrop-blur-xs p-1 rounded-xl shadow-md border border-slate-200 flex items-center text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => switchLayer('streets')}
-              className={`px-2.5 py-1 rounded-lg transition ${
-                activeLayer === 'streets'
-                  ? 'bg-blue-700 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🗺️ Đường sá
-            </button>
-            <button
-              type="button"
-              onClick={() => switchLayer('satellite')}
-              className={`px-2.5 py-1 rounded-lg transition ${
-                activeLayer === 'satellite'
-                  ? 'bg-blue-700 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🛰️ Vệ tinh
-            </button>
+      {(tileError || gpsError || invalidCoordsCount > 0) && (
+        <div className="map-status-stack">
+          {tileError && (
+            <div className="map-message" role="alert">
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>
+                Chưa tải được nền bản đồ. Bạn vẫn có thể xem danh sách hồ sơ và
+                thử tải lại.
+              </span>
+              <button type="button" onClick={() => setRetry((n) => n + 1)}>
+                <RotateCcw size={15} aria-hidden="true" />
+                Thử lại
+              </button>
+            </div>
+          )}
+          {gpsError && (
+            <div className="map-message" role="alert">
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>{gpsError}</span>
+              <button type="button" onClick={() => setGpsError("")}>
+                Đóng
+              </button>
+            </div>
+          )}
+          {invalidCoordsCount > 0 && (
+            <div className="map-message" role="status">
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>
+                Có {invalidCoordsCount} hồ sơ thiếu tọa độ hợp lệ nên chưa hiện
+                ghim.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="map-canvas-wrap">
+        <div
+          ref={container}
+          className="map-canvas"
+          style={expanded ? undefined : { height, width: "100%" }}
+          aria-label="Bản đồ phản ánh hiện trường"
+        />
+        {loading && !tileError && (
+          <span className="map-loading" role="status">
+            Đang tải nền bản đồ…
+          </span>
+        )}
+        {showEmptyOverlay && (
+          <div className="map-empty-overlay" role="status">
+            <Search size={20} aria-hidden="true" />
+            <div>
+              <strong>Không có kết quả trên bản đồ</strong>
+              <p>{emptyMessage}</p>
+            </div>
+            {onClearFilters && (
+              <button
+                type="button"
+                className="work-secondary"
+                onClick={onClearFilters}
+              >
+                Xóa bộ lọc
+              </button>
+            )}
           </div>
         )}
-
-        {showLocateButton && (
-          <button
-            type="button"
-            onClick={handleGetLocation}
-            disabled={isLocating}
-            className="p-2 rounded-xl bg-white/95 hover:bg-white text-blue-700 shadow-md border border-slate-200 transition active:scale-95 font-bold flex items-center gap-1 text-xs"
-            title="Lấy vị trí GPS hiện tại của tôi"
-          >
-            <Locate className={`w-4 h-4 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />
-            <span className="hidden sm:inline">{isLocating ? 'Đang định vị...' : 'Vị trí của tôi'}</span>
-          </button>
-        )}
       </div>
+
+      {showLegend && (
+        <div className="work-map-legend" aria-label="Chú giải ghim bản đồ">
+          {MAP_STATUS_ORDER.map((key) => {
+            const visual = MAP_STATUS_VISUALS[key];
+            return (
+              <span key={key} className="legend-item">
+                <i
+                  className={`legend-pin shape-${visual.shape}`}
+                  style={{ background: visual.color }}
+                  aria-hidden="true"
+                >
+                  {visual.symbol}
+                </i>
+                <span>{visual.label}</span>
+              </span>
+            );
+          })}
+          <span className="legend-categories">
+            Đ: Đèn · N: Ngập · R: Rác · M: Mặt đường
+          </span>
+        </div>
+      )}
     </div>
   );
-};
+}
