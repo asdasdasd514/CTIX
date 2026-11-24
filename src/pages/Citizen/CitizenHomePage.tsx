@@ -36,26 +36,35 @@ export const CitizenHomePage: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* 1. HERO BANNER CHÀO MỪNG (BO NHẸ 5PX, CÂN ĐỐI PC & MOBILE) */}
-      <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white rounded-[5px] p-5 sm:p-8 shadow-sm relative overflow-hidden border border-blue-950">
+      {/* 1. HERO BANNER CHÀO MỪNG VỚI ẢNH NỀN VĂN MIẾU TRẤN BIÊN */}
+      <section className="relative bg-blue-950 text-white rounded-[5px] p-5 sm:p-8 lg:p-10 shadow-sm overflow-hidden border border-blue-950">
+        {/* Ảnh nền Văn Miếu Trấn Biên */}
+        <img
+          src="/images/tran-bien-banner.jpg"
+          alt="Văn Miếu Trấn Biên - Biên Hòa, Đồng Nai"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-65"
+        />
+        {/* Lớp phủ gradient giúp chữ luôn sắc nét mà vẫn nhìn rõ cảnh Văn Miếu Trấn Biên */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/75 to-blue-900/30" />
+
         <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-[5px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-white/20">
+          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-[5px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-white/25">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span>Hệ thống tiếp nhận 24/7 • Phường Trấn Biên</span>
           </div>
 
-          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug">
+          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug drop-shadow-sm">
             Chung tay xây dựng Đô thị Trấn Biên Văn minh - An toàn
           </h1>
 
-          <p className="text-xs sm:text-sm text-blue-100 font-medium leading-relaxed">
+          <p className="text-xs sm:text-sm text-blue-50 font-medium leading-relaxed drop-shadow-sm">
             Phát hiện đèn đường hỏng, ngập nước, bãi rác tự phát hay ổ gà nguy hiểm? Chụp ảnh và gửi ngay để UBND Phường tiếp nhận xử lý đúng thời hạn cam kết.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => navigate('/citizen/submit')}
-              className={`flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-[5px] shadow-sm transition active:scale-[0.99] border border-amber-500 uppercase tracking-wide ${
+              className={`flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-[5px] shadow-md transition active:scale-[0.99] border border-amber-500 uppercase tracking-wide ${
                 elderlyMode ? 'px-6 py-4 text-base' : 'px-5 py-3 text-xs sm:text-sm'
               }`}
             >
@@ -66,16 +75,12 @@ export const CitizenHomePage: React.FC = () => {
 
             <button
               onClick={() => navigate('/citizen/reports')}
-              className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-3 rounded-[5px] border border-white/25 transition text-xs sm:text-sm"
+              className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold px-5 py-3 rounded-[5px] border border-white/30 transition text-xs sm:text-sm"
             >
               <ClipboardList className="w-4 h-4 shrink-0" />
               <span>Xem danh sách phản ánh</span>
             </button>
           </div>
-        </div>
-
-        <div className="absolute right-6 bottom-0 top-0 w-1/3 opacity-10 pointer-events-none hidden lg:flex items-center justify-center">
-          <Camera className="w-56 h-56 text-white" />
         </div>
       </section>
 
@@ -206,55 +211,50 @@ export const CitizenHomePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setMapCategory('all')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${
-                mapCategory === 'all'
-                  ? 'bg-blue-700 text-white border-blue-800'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-              }`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${mapCategory === 'all'
+                ? 'bg-blue-700 text-white border-blue-800'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                }`}
             >
               Tất cả ({incidents.length})
             </button>
             <button
               type="button"
               onClick={() => setMapCategory('street_light')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${
-                mapCategory === 'street_light'
-                  ? 'bg-amber-500 text-white border-amber-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400'
-              }`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${mapCategory === 'street_light'
+                ? 'bg-amber-500 text-white border-amber-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400'
+                }`}
             >
               Đèn đường
             </button>
             <button
               type="button"
               onClick={() => setMapCategory('flooding')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${
-                mapCategory === 'flooding'
-                  ? 'bg-blue-600 text-white border-blue-700'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
-              }`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${mapCategory === 'flooding'
+                ? 'bg-blue-600 text-white border-blue-700'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
+                }`}
             >
               Ngập úng
             </button>
             <button
               type="button"
               onClick={() => setMapCategory('waste')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${
-                mapCategory === 'waste'
-                  ? 'bg-emerald-600 text-white border-emerald-700'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-400'
-              }`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${mapCategory === 'waste'
+                ? 'bg-emerald-600 text-white border-emerald-700'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-400'
+                }`}
             >
               Rác thải
             </button>
             <button
               type="button"
               onClick={() => setMapCategory('road_damage')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${
-                mapCategory === 'road_damage'
-                  ? 'bg-rose-600 text-white border-rose-700'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-rose-400'
-              }`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-[5px] border transition ${mapCategory === 'road_damage'
+                ? 'bg-rose-600 text-white border-rose-700'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-rose-400'
+                }`}
             >
               Ổ gà
             </button>
@@ -274,23 +274,38 @@ export const CitizenHomePage: React.FC = () => {
               />
             </div>
 
-            {/* Thanh chú giải gọn dưới chân bản đồ */}
-            <div className="bg-slate-50 border-t border-slate-200 px-3.5 py-2 text-[11px] flex flex-wrap items-center gap-x-4 gap-y-1">
+            {/* Thanh chú giải gọn dưới chân bản đồ (đồng bộ icon với bản đồ) */}
+            <div className="bg-slate-50 border-t border-slate-200 px-3.5 py-2 text-[11px] flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <span className="font-extrabold text-slate-500 uppercase text-[10px]">Chú giải:</span>
               <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-amber-500 shrink-0" /> Đèn đường
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white inline-flex items-center justify-center shrink-0">
+                  <Lightbulb className="w-3 h-3" />
+                </span>
+                Đèn đường
               </span>
               <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-blue-600 shrink-0" /> Ngập nước
+                <span className="w-5 h-5 rounded-full bg-blue-600 text-white inline-flex items-center justify-center shrink-0">
+                  <Waves className="w-3 h-3" />
+                </span>
+                Ngập nước
               </span>
               <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-600 shrink-0" /> Rác thải
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center shrink-0">
+                  <Trash2 className="w-3 h-3" />
+                </span>
+                Rác thải
               </span>
               <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-rose-600 shrink-0" /> Ổ gà
+                <span className="w-5 h-5 rounded-full bg-rose-600 text-white inline-flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-3 h-3" />
+                </span>
+                Ổ gà
               </span>
               <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-700 shrink-0" /> Đã xong
+                <span className="w-5 h-5 rounded-full bg-emerald-700 text-white inline-flex items-center justify-center text-[10px] font-black shrink-0">
+                  ✓
+                </span>
+                Đã xong
               </span>
             </div>
           </div>
@@ -305,11 +320,10 @@ export const CitizenHomePage: React.FC = () => {
                       {selectedMapIncident.code}
                     </span>
                     <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded-[5px] border whitespace-nowrap ${
-                        selectedMapIncident.status === 'resolved' || selectedMapIncident.status === 'closed'
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : 'bg-amber-100 text-amber-800 border-amber-300'
-                      }`}
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-[5px] border whitespace-nowrap ${selectedMapIncident.status === 'resolved' || selectedMapIncident.status === 'closed'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}
                     >
                       {selectedMapIncident.status === 'resolved' || selectedMapIncident.status === 'closed'
                         ? '✓ Đã hoàn thành'
@@ -347,7 +361,7 @@ export const CitizenHomePage: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/citizen/reports')}
+                    onClick={() => navigate(`/citizen/reports/${selectedMapIncident.id}`)}
                     className="w-full py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-[5px] text-xs font-bold transition"
                   >
                     Xem chi tiết tiến độ →
@@ -384,7 +398,7 @@ export const CitizenHomePage: React.FC = () => {
             {myRecentReports.map((item) => (
               <div
                 key={item.id}
-                onClick={() => navigate('/citizen/reports')}
+                onClick={() => navigate(`/citizen/reports/${item.id}`)}
                 className="p-3 rounded-[5px] border border-slate-200 hover:border-blue-600 bg-slate-50/60 hover:bg-blue-50/30 transition cursor-pointer flex items-start sm:items-center justify-between gap-3"
               >
                 <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
@@ -397,11 +411,10 @@ export const CitizenHomePage: React.FC = () => {
                         {item.code}
                       </span>
                       <span
-                        className={`sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] border ${
-                          item.status === 'resolved' || item.status === 'closed'
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                            : 'bg-amber-100 text-amber-800 border-amber-300'
-                        }`}
+                        className={`sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] border ${item.status === 'resolved' || item.status === 'closed'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                          }`}
                       >
                         {item.status === 'resolved' || item.status === 'closed' ? 'Đã xong' : 'Đang xử lý'}
                       </span>
@@ -418,11 +431,10 @@ export const CitizenHomePage: React.FC = () => {
 
                 <div className="hidden sm:block shrink-0 text-right">
                   <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-[5px] border whitespace-nowrap ${
-                      item.status === 'resolved' || item.status === 'closed'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : 'bg-amber-100 text-amber-800 border-amber-300'
-                    }`}
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-[5px] border whitespace-nowrap ${item.status === 'resolved' || item.status === 'closed'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                      }`}
                   >
                     {item.status === 'resolved' || item.status === 'closed' ? 'Đã xong' : 'Đang xử lý'}
                   </span>

@@ -9,6 +9,7 @@ import { DispatchDetailPage } from './pages/Officer/DispatchDetailPage';
 import { NearbyIncidentsMapPage } from './modules/map/NearbyIncidentsMapPage';
 import { SubmitIncidentWizard } from './modules/citizen/SubmitIncidentWizard';
 import { MyReportsPage } from './modules/citizen/MyReportsPage';
+import { CitizenReportDetailPage } from './modules/citizen/CitizenReportDetailPage';
 import { FieldTasksPage } from './modules/field/FieldTasksPage';
 import { CitizenHomePage } from './pages/Citizen/CitizenHomePage';
 import { CitizenHelpPage } from './pages/Citizen/CitizenHelpPage';
@@ -27,8 +28,9 @@ export const App: React.FC = () => {
         <Route path="/citizen" element={<CitizenLayout />}>
           <Route index element={<CitizenHomePage />} />
           <Route path="home" element={<CitizenHomePage />} />
-          {/* Mục "Phản ánh": Hiển thị danh sách tất cả phản ánh + Nút Thêm phản ánh */}
+          {/* Mục "Phản ánh": Hiển thị danh sách tất cả phản ánh + Trang chi tiết riêng */}
           <Route path="reports" element={<MyReportsPage />} />
+          <Route path="reports/:id" element={<CitizenReportDetailPage />} />
           <Route path="my-reports" element={<MyReportsPage />} />
           {/* Trang form thêm phản ánh 2 bước */}
           <Route path="submit" element={<SubmitIncidentWizard />} />

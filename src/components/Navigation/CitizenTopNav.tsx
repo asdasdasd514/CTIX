@@ -123,10 +123,9 @@ export const CitizenTopNav: React.FC = () => {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `relative flex items-center gap-2 px-3.5 lg:px-5 text-sm font-bold transition whitespace-nowrap ${
-                        isActive
-                          ? 'text-blue-700'
-                          : 'text-slate-600 hover:text-blue-700 hover:bg-slate-50/80'
+                      `relative flex items-center gap-2 px-3.5 lg:px-5 text-sm font-bold transition whitespace-nowrap ${isActive
+                        ? 'text-blue-700'
+                        : 'text-slate-600 hover:text-blue-700 hover:bg-slate-50/80'
                       }`
                     }
                   >
@@ -156,11 +155,10 @@ export const CitizenTopNav: React.FC = () => {
               <button
                 onClick={toggleElderlyMode}
                 type="button"
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-[5px] text-xs font-bold transition border whitespace-nowrap ${
-                  elderlyMode
-                    ? 'bg-amber-400 text-slate-900 border-amber-500 font-black'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
-                }`}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-[5px] text-xs font-bold transition border whitespace-nowrap ${elderlyMode
+                  ? 'bg-amber-400 text-slate-900 border-amber-500 font-black'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
+                  }`}
                 title="Phóng to font chữ cho người cao tuổi"
               >
                 <Eye className="w-3.5 h-3.5 shrink-0" />
@@ -199,8 +197,7 @@ export const CitizenTopNav: React.FC = () => {
           <NavLink
             to="/citizen/home"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-1 transition ${
-                isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
+              `flex flex-col items-center justify-center gap-1 py-1 transition ${isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
               }`
             }
           >
@@ -216,8 +213,7 @@ export const CitizenTopNav: React.FC = () => {
           <NavLink
             to="/citizen/reports"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-end gap-1 pb-1 transition ${
-                isActive ? 'text-blue-700 font-bold' : 'text-slate-600 font-semibold'
+              `flex flex-col items-center justify-end gap-1 pb-1 transition ${isActive ? 'text-blue-700 font-bold' : 'text-slate-600 font-semibold'
               }`
             }
           >
@@ -225,11 +221,10 @@ export const CitizenTopNav: React.FC = () => {
               <>
                 <div className="relative -mt-7">
                   <div
-                    className={`w-13 h-13 w-[54px] h-[54px] rounded-[14px] flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
-                      isActive
-                        ? 'bg-blue-700 text-white shadow-blue-700/40 ring-4 ring-white'
-                        : 'bg-blue-700 hover:bg-blue-800 text-white shadow-blue-700/30 ring-4 ring-white'
-                    }`}
+                    className={`w-13 h-13 w-[54px] h-[54px] rounded-[14px] flex items-center justify-center shadow-lg transition-transform active:scale-95 ${isActive
+                      ? 'bg-blue-700 text-white shadow-blue-700/40 ring-4 ring-white'
+                      : 'bg-blue-700 hover:bg-blue-800 text-white shadow-blue-700/30 ring-4 ring-white'
+                      }`}
                   >
                     <Megaphone className="w-6 h-6 text-white" />
                   </div>
@@ -248,8 +243,7 @@ export const CitizenTopNav: React.FC = () => {
           <NavLink
             to="/citizen/help"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-1 transition ${
-                isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
+              `flex flex-col items-center justify-center gap-1 py-1 transition ${isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
               }`
             }
           >

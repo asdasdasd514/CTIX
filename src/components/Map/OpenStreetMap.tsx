@@ -209,43 +209,53 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
       const isResolved = item.status === 'resolved' || item.status === 'closed';
 
       let markerBg = 'bg-amber-500';
-      let iconEmoji = '💡';
+      let markerRing = 'ring-amber-500/30';
+      // Icon bóng đèn (Đèn đường)
+      let iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`;
 
       if (item.category === 'flooding') {
         markerBg = 'bg-blue-600';
-        iconEmoji = '🌊';
+        markerRing = 'ring-blue-600/30';
+        // Icon sóng nước (Waves - Ngập úng)
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>`;
       } else if (item.category === 'waste') {
         markerBg = 'bg-emerald-600';
-        iconEmoji = '🗑️';
+        markerRing = 'ring-emerald-600/30';
+        // Icon thùng rác (Trash2 - Rác thải)
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`;
       } else if (item.category === 'road_damage') {
         markerBg = 'bg-rose-600';
-        iconEmoji = '🚧';
+        markerRing = 'ring-rose-600/30';
+        // Icon cảnh báo công trường / Ổ gà (TriangleAlert)
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
       }
 
       if (isResolved) {
         markerBg = 'bg-emerald-700';
-        iconEmoji = '✓';
+        markerRing = 'ring-emerald-500/30';
+        // Icon dấu tích hoàn thành (Check)
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
       }
 
       const customIcon = L.divIcon({
         className: 'incident-osm-marker',
         html: `
-          <div class="relative group cursor-pointer">
-            <div class="w-8 h-8 ${markerBg} text-white flex items-center justify-center text-xs shadow-md border-2 ${
-              isSelected ? 'border-yellow-400 ring-2 ring-yellow-400 scale-125 z-50' : 'border-white'
+          <div class="relative group cursor-pointer flex items-center justify-center">
+            <div class="w-9 h-9 rounded-full ${markerBg} text-white flex items-center justify-center shadow-lg border-2 ${
+              isSelected ? 'border-yellow-300 ring-4 ring-yellow-400/50 scale-115 z-50' : `border-white ring-4 ${markerRing}`
             } transition duration-200">
-              <span>${iconEmoji}</span>
+              ${iconSvg}
             </div>
             ${
               item.sameReportsCount > 1
-                ? `<span class="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] font-bold px-1 border border-white">+${item.sameReportsCount}</span>`
+                ? `<span class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border border-white shadow-sm leading-none">+${item.sameReportsCount}</span>`
                 : ''
             }
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16],
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -18],
       });
 
       const marker = L.marker([item.location.lat, item.location.lng], { icon: customIcon });
