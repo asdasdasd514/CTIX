@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident } from '../../types/incident';
@@ -18,17 +18,28 @@ import {
 
 export const NearbyIncidentsMapPage: React.FC = () => {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
+  const isCitizenView = routeLocation.pathname.startsWith('/citizen');
   const { incidents, categoryFilter, setCategoryFilter, upvoteIncident } = useIncidentStore();
   const { currentUser } = useAuthStore();
   const detailRef = useRef<HTMLDivElement | null>(null);
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('all');
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(incidents[0] || null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>(
+    isCitizenView ? 'pending' : 'all'
+  );
 
-  const filteredList = incidents.filter((item) => {
+  const baseList = isCitizenView
+    ? incidents.filter((item) => item.status !== 'resolved' && item.status !== 'closed')
+    : incidents;
+
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(baseList[0] || null);
+
+  const filteredList = baseList.filter((item) => {
     if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-    if (statusFilter === 'pending' && (item.status === 'resolved' || item.status === 'closed')) return false;
-    if (statusFilter === 'resolved' && item.status !== 'resolved' && item.status !== 'closed') return false;
+    if (!isCitizenView) {
+      if (statusFilter === 'pending' && (item.status === 'resolved' || item.status === 'closed')) return false;
+      if (statusFilter === 'resolved' && item.status !== 'resolved' && item.status !== 'closed') return false;
+    }
     return true;
   });
 
@@ -226,20 +237,30 @@ export const NearbyIncidentsMapPage: React.FC = () => {
                 {/* Nút đồng phản ánh */}
                 <button
                   onClick={() => upvoteIncident(selectedIncident.id)}
-                  className="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-none text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.99]"
+                  className="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
                   <ThumbsUp className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>Tôi cũng thấy sự cố này (+{selectedIncident.sameReportsCount})</span>
                 </button>
 
-                {currentUser.role !== 'citizen' && selectedIncident.status === 'pending' && (
+                {isCitizenView ? (
                   <button
-                    onClick={() => navigate(`/dispatch/${selectedIncident.id}`)}
-                    className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm border border-blue-900"
+                    onClick={() => navigate(`/citizen/reports/${selectedIncident.id}`)}
+                    className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm border border-blue-900"
                   >
-                    <span>Chuyển sang phân công xử lý</span>
+                    <span>Xem chi tiết phản ánh</span>
                     <ArrowRight className="w-4 h-4 shrink-0" />
                   </button>
+                ) : (
+                  currentUser.role !== 'citizen' && selectedIncident.status === 'pending' && (
+                    <button
+                      onClick={() => navigate(`/dispatch/${selectedIncident.id}`)}
+                      className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm border border-blue-900"
+                    >
+                      <span>Chuyển sang phân công xử lý</span>
+                      <ArrowRight className="w-4 h-4 shrink-0" />
+                    </button>
+                  )
                 )}
               </div>
             ) : (

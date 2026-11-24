@@ -202,9 +202,12 @@ export const CitizenReportDetailPage: React.FC = () => {
             <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
               Vị trí sự cố trên bản đồ
             </h2>
-            <div className="rounded-[5px] overflow-hidden border border-slate-200">
+            <div className="rounded-[5px] overflow-hidden border border-slate-200 h-[300px]">
               <OpenStreetMap
-                height="280px"
+                key={incident.id}
+                height="100%"
+                className="h-full"
+                mode="citizen"
                 center={[incident.location.lat, incident.location.lng]}
                 zoom={16}
                 singlePin={{
@@ -212,7 +215,6 @@ export const CitizenReportDetailPage: React.FC = () => {
                   lng: incident.location.lng,
                   label: incident.location.address,
                 }}
-                incidents={[]}
                 showLocateButton={false}
               />
             </div>

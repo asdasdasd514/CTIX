@@ -22,14 +22,21 @@ export const CitizenHomePage: React.FC = () => {
   const navigate = useNavigate();
   const { incidents, elderlyMode, upvoteIncident } = useIncidentStore();
 
-  const [mapCategory, setMapCategory] = useState<'all' | IncidentCategory>('all');
-  const [selectedMapIncident, setSelectedMapIncident] = useState<Incident | null>(incidents[0] || null);
+  // Chỉ hiển thị trên bản đồ các sự cố CHƯA xử lý xong (ẩn các sự cố đã hoàn thành / đã đóng)
+  const activeIncidents = incidents.filter(
+    (i) => i.status !== 'resolved' && i.status !== 'closed'
+  );
 
-  const pendingCount = incidents.filter((i) => i.status === 'pending').length;
+  const [mapCategory, setMapCategory] = useState<'all' | IncidentCategory>('all');
+  const [selectedMapIncident, setSelectedMapIncident] = useState<Incident | null>(
+    activeIncidents[0] || null
+  );
+
+  const pendingCount = activeIncidents.length;
   const resolvedCount = incidents.filter((i) => i.status === 'resolved' || i.status === 'closed').length;
   const myRecentReports = incidents.slice(0, 3);
 
-  const filteredMapIncidents = incidents.filter((item) => {
+  const filteredMapIncidents = activeIncidents.filter((item) => {
     if (mapCategory !== 'all' && item.category !== mapCategory) return false;
     return true;
   });
@@ -216,7 +223,7 @@ export const CitizenHomePage: React.FC = () => {
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                 }`}
             >
-              Tất cả ({incidents.length})
+              Tất cả chưa xử lý ({activeIncidents.length})
             </button>
             <button
               type="button"
@@ -268,6 +275,7 @@ export const CitizenHomePage: React.FC = () => {
               <OpenStreetMap
                 height="100%"
                 className="h-full"
+                mode="citizen"
                 incidents={filteredMapIncidents}
                 selectedId={selectedMapIncident?.id}
                 onMarkerClick={(item) => setSelectedMapIncident(item)}
@@ -300,12 +308,6 @@ export const CitizenHomePage: React.FC = () => {
                   <AlertTriangle className="w-3 h-3" />
                 </span>
                 Ổ gà
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <span className="w-5 h-5 rounded-full bg-emerald-700 text-white inline-flex items-center justify-center text-[10px] font-black shrink-0">
-                  ✓
-                </span>
-                Đã xong
               </span>
             </div>
           </div>
