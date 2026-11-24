@@ -8,6 +8,11 @@ import {
   Clock,
   ClipboardList,
   CheckCircle2,
+  Calendar,
+  Building2,
+  UserCheck,
+  Filter,
+  RotateCcw,
 } from "lucide-react";
 import { useIncidentStore } from "../../store/useIncidentStore";
 import {
@@ -152,60 +157,120 @@ export function StatisticsPage() {
   return (
     <div className="officer-workbench">
       {/* 1. Phạm vi thống kê và thời điểm cập nhật */}
-      <div className="work-heading">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2>Thống kê phản ánh</h2>
-          <p>
-            Hồ sơ tiếp nhận trong kỳ, trạng thái tính đến thời điểm cập nhật ·
-            Cập nhật {formatDate(lastSyncedAt)}
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
+            Thống kê phản ánh
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Hồ sơ tiếp nhận trong kỳ, trạng thái tính đến thời điểm cập nhật · Cập nhật {formatDate(lastSyncedAt)}
           </p>
         </div>
-        <div className="work-heading-links">
-          <Link className="work-secondary" to={buildMapUrl()}>
-            <MapIcon size={16} aria-hidden="true" />
-            Xem danh sách này trên bản đồ
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Link
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[5px] bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition"
+            to={buildMapUrl()}
+          >
+            <MapIcon size={15} className="text-blue-600" aria-hidden="true" />
+            Xem trên bản đồ
           </Link>
-          <Link className="work-text-link" to={buildListUrl({ status: "all" })}>
-            Mở Tiếp nhận & phân công{" "}
-            <ArrowUpRight size={16} aria-hidden="true" />
+          <Link
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-xs font-semibold text-white transition"
+            to={buildListUrl({ status: "all" })}
+          >
+            Mở Tiếp nhận & phân công
+            <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
         </div>
       </div>
 
-      <section className="work-surface" aria-label="Bộ lọc phạm vi thống kê">
-        <div className="work-toolbar">
-          <label className="stat-filter-field">
-            <span>Tháng tiếp nhận</span>
+      {/* Bộ lọc chuẩn đồng bộ phong cách toàn hệ thống */}
+      <section
+        className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 space-y-3.5"
+        aria-label="Bộ lọc phạm vi thống kê"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <Filter className="w-4 h-4 text-blue-600" />
+            <span>Bộ lọc phạm vi thống kê</span>
+            <span className="px-2 py-0.5 rounded-[4px] bg-blue-50 text-blue-700 text-[11px] font-semibold">
+              {items.length} hồ sơ phù hợp
+            </span>
+          </div>
+          {(month || category !== "all" || unit !== "all" || activeAssignee !== "all") && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] text-xs font-semibold text-slate-600 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 transition"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Đặt lại bộ lọc</span>
+            </button>
+          )}
+        </div>
+
+        {/* Hàng 1: Chọn nhanh loại sự cố dạng chip giống Công dân & Tiếp nhận */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setCategory("all")}
+            className={`px-3 py-1.5 rounded-[5px] text-xs font-semibold border transition ${
+              category === "all"
+                ? "bg-blue-700 text-white border-blue-700"
+                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+            }`}
+          >
+            Tất cả lĩnh vực
+          </button>
+          {Object.entries(CATEGORIES).map(([id, label]) => {
+            const active = category === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setCategory(active ? "all" : (id as IncidentCategory))}
+                className={`px-3 py-1.5 rounded-[5px] text-xs font-semibold border transition ${
+                  active
+                    ? "bg-blue-50 text-blue-700 border-blue-400"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Hàng 2: Tháng tiếp nhận, Đơn vị phụ trách, Người phụ trách */}
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 ${
+            assigneeOptions.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+          } gap-3`}
+        >
+          <label className="block">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              Tháng tiếp nhận
+            </span>
             <input
               aria-label="Tháng tiếp nhận"
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
+              className="w-full h-10 px-3 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
             />
           </label>
-          <label className="stat-filter-field">
-            <span>Loại sự cố</span>
-            <select
-              aria-label="Lọc thống kê theo loại sự cố"
-              value={category}
-              onChange={(e) =>
-                setCategory(e.target.value as IncidentCategory | "all")
-              }
-            >
-              <option value="all">Tất cả loại sự cố</option>
-              {Object.entries(CATEGORIES).map(([id, label]) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="stat-filter-field">
-            <span>Đơn vị phụ trách</span>
+
+          <label className="block">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              Đơn vị phụ trách
+            </span>
             <select
               aria-label="Lọc thống kê theo đơn vị"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
+              className="w-full h-10 px-3 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
             >
               <option value="all">Tất cả đơn vị</option>
               <option value={UNASSIGNED_UNIT_FILTER}>Chưa giao đơn vị</option>
@@ -216,13 +281,18 @@ export function StatisticsPage() {
               ))}
             </select>
           </label>
+
           {assigneeOptions.length > 0 && (
-            <label className="stat-filter-field">
-              <span>Người phụ trách</span>
+            <label className="block">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                Người phụ trách
+              </span>
               <select
                 aria-label="Lọc thống kê theo người phụ trách"
                 value={activeAssignee}
                 onChange={(e) => setAssignee(e.target.value)}
+                className="w-full h-10 px-3 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
               >
                 <option value="all">Tất cả người phụ trách</option>
                 {assigneeOptions.map((name) => (
@@ -232,15 +302,6 @@ export function StatisticsPage() {
                 ))}
               </select>
             </label>
-          )}
-          {(month || category !== "all" || unit !== "all" || activeAssignee !== "all") && (
-            <button
-              type="button"
-              className="work-secondary"
-              onClick={clearFilters}
-            >
-              Xem tất cả
-            </button>
           )}
         </div>
       </section>

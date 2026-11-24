@@ -471,12 +471,6 @@ button:disabled {
   font-size: 11px;
   padding: 12px;
 }
-.collapsed .sidebar-brand {
-  padding: 24px;
-}
-.collapsed .sidebar-locality {
-  display: none;
-}
 .officer-workbench {
   display: grid;
   gap: 20px;

@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   MapPin,
   Inbox,
+  Users,
   ClipboardList,
   ChartNoAxesCombined,
   Settings,
@@ -22,13 +23,14 @@ export function Sidebar({
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/map', label: 'Bản đồ', icon: MapPin },
     { path: '/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
+    { path: '/members', label: 'Thành viên & Nhóm', icon: Users },
     { path: '/field/tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
     { path: '/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
   ];
 
   return (
     <aside className={`officer-sidebar ${collapsed ? 'collapsed' : ''}`}>
-      {/* Bấm vào Logo / Icon để đóng mở mượt, icon giữ nguyên vị trí không nhảy kích thước */}
+      {/* Bấm vào Logo / Icon để đóng mở mượt, icon giữ nguyên 36x36 căn giữa chuẩn không bị cắt */}
       <button
         type="button"
         onClick={!onCloseMobile ? toggleSidebar : undefined}
@@ -39,7 +41,7 @@ export function Sidebar({
         <img
           src="/images/ctix-logo.jpg"
           alt="CTIX Logo"
-          className="w-9 h-9 rounded-[5px] object-cover bg-white shrink-0 border border-white/20"
+          className="w-9 h-9 rounded-[5px] object-cover bg-white shrink-0 border border-white/25 shadow-sm"
         />
         <div className="sidebar-brand-text">
           <strong>Trấn Biên SmartCity</strong>

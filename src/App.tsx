@@ -11,6 +11,7 @@ import { useIncidentStore } from './store/useIncidentStore';
 import { useAuthStore } from './store/useAuthStore';
 import { OfficerInboxPage } from './pages/Officer/OfficerInboxPage';
 import { DispatchDetailPage } from './pages/Officer/DispatchDetailPage';
+import { MembersPage } from './pages/Officer/MembersPage';
 import { NearbyIncidentsMapPage } from './modules/map/NearbyIncidentsMapPage';
 import { SubmitIncidentWizard } from './modules/citizen/SubmitIncidentWizard';
 import { MyReportsPage } from './modules/citizen/MyReportsPage';
@@ -102,6 +103,9 @@ export const App: React.FC = () => {
 
           <Route path="inbox" element={<OfficerInboxPage />} />
           <Route path="admin/inbox" element={<OfficerInboxPage />} />
+
+          <Route path="members" element={<MembersPage />} />
+          <Route path="admin/members" element={<MembersPage />} />
 
           <Route path="dispatch/:id" element={<DispatchDetailPage />} />
           <Route path="admin/dispatch/:id" element={<DispatchDetailPage />} />

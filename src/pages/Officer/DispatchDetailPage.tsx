@@ -2,11 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTeamStore } from '../../store/useTeamStore';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   CATEGORIES,
-  DEMO_UNITS,
-  PRIORITY_LABELS,
   STATUS_LABELS,
   formatDate,
 } from '../../lib/incidents';
@@ -34,6 +33,7 @@ export const DispatchDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { incidents, assignIncident } = useIncidentStore();
   const { currentUser } = useAuthStore();
+  const { units, members } = useTeamStore();
 
   const incident = incidents.find((item) => item.id === id);
 
@@ -47,26 +47,15 @@ export const DispatchDetailPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Danh sách toàn bộ nhân sự kèm đơn vị & số việc đang xử lý
+  // Danh sách toàn bộ nhân sự kèm đơn vị & số việc đang xử lý (đồng bộ từ useTeamStore)
   const staffCandidates = useMemo(() => {
-    const list: {
-      id: string;
-      name: string;
-      initials: string;
-      role: string;
-      unitName: string;
-      category: string;
-      activeTasks: number;
-      distance: string;
-      phone: string;
-    }[] = [];
-
     const distances = ['450m (~5p)', '1.2km (~8p)', '1.8km (~12p)', '2.1km (~15p)', '2.6km (~18p)'];
-    const phones = ['0912.839.888', '0908.411.233', '0918.552.190', '0977.304.889', '0909.612.445'];
+    const unitMap = new Map(units.map((u) => [u.id, u]));
 
-    let idx = 0;
-    DEMO_UNITS.forEach((unit) => {
-      unit.staff.forEach((member) => {
+    const list = members
+      .filter((m) => m.status !== 'off_duty')
+      .map((member, idx) => {
+        const unit = unitMap.get(member.unitId);
         const activeTasks = incidents.filter(
           (inc) =>
             (inc.status === 'assigned' || inc.status === 'in_progress') &&
@@ -78,20 +67,18 @@ export const DispatchDetailPage: React.FC = () => {
             ? `${parts[parts.length - 2][0]}${parts[parts.length - 1][0]}`.toUpperCase()
             : member.name.slice(0, 2).toUpperCase();
 
-        list.push({
+        return {
           id: member.id,
           name: member.name,
           initials,
           role: member.role,
-          unitName: unit.name,
-          category: unit.category,
+          unitName: unit?.name || 'UBND Phường Trấn Biên',
+          category: unit?.category || 'other',
           activeTasks,
           distance: distances[idx % distances.length],
-          phone: phones[idx % phones.length],
-        });
-        idx++;
+          phone: member.phone,
+        };
       });
-    });
 
     // Ưu tiên đưa nhân sự cùng lĩnh vực & rảnh việc lên đầu
     if (incident) {
@@ -103,23 +90,27 @@ export const DispatchDetailPage: React.FC = () => {
       });
     }
     return list;
-  }, [incidents, incident]);
+  }, [incidents, incident, units, members]);
 
-  // Danh sách các Tổ đội (Nhóm)
+  // Danh sách các Tổ đội (Nhóm) đồng bộ từ useTeamStore
   const groupCandidates = useMemo(() => {
-    return DEMO_UNITS.map((unit) => {
-      const activeTasks = incidents.filter(
-        (inc) =>
-          (inc.status === 'assigned' || inc.status === 'in_progress') &&
-          inc.assignedTo?.unitName === unit.name
-      ).length;
-      return {
-        ...unit,
-        activeTasks,
-        isRecommended: incident?.category === unit.category,
-      };
-    }).sort((a, b) => (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0));
-  }, [incidents, incident]);
+    return units
+      .map((unit) => {
+        const staff = members.filter((m) => m.unitId === unit.id);
+        const activeTasks = incidents.filter(
+          (inc) =>
+            (inc.status === 'assigned' || inc.status === 'in_progress') &&
+            inc.assignedTo?.unitName === unit.name
+        ).length;
+        return {
+          ...unit,
+          staff,
+          activeTasks,
+          isRecommended: incident?.category === unit.category,
+        };
+      })
+      .sort((a, b) => (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0));
+  }, [incidents, incident, units, members]);
 
   // Tự chọn ứng viên tối ưu mặc định
   const effectiveStaffId = selectedStaffId || staffCandidates[0]?.id || '';
