@@ -155,21 +155,21 @@ export const CitizenTopNav: React.FC = () => {
 
             {/* Tiện ích Phía Phải */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Chế độ Chữ Lớn */}
+              {/* Chế độ Người cao tuổi (Tối giản + Tương phản cao + Chữ lớn) */}
               <button
                 onClick={toggleElderlyMode}
                 type="button"
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-[5px] text-xs font-bold transition border whitespace-nowrap ${elderlyMode
-                  ? 'bg-amber-400 text-slate-900 border-amber-500 font-black'
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[5px] text-xs font-bold transition border whitespace-nowrap ${elderlyMode
+                  ? 'bg-amber-400 text-slate-950 border-slate-900 font-black shadow-sm'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
                   }`}
-                title="Phóng to font chữ cho người cao tuổi"
+                title="Bật giao diện tối giản, chữ lớn và tương phản cao cho người cao tuổi"
               >
-                <Eye className="w-3.5 h-3.5 shrink-0" />
+                <Eye className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">
-                  {elderlyMode ? 'Đang bật Chữ Lớn' : 'Chữ Lớn'}
+                  {elderlyMode ? '✓ Chế độ Người cao tuổi' : 'Người cao tuổi'}
                 </span>
-                <span className="sm:hidden">{elderlyMode ? 'A+' : 'A'}</span>
+                <span className="sm:hidden">{elderlyMode ? '✓ A+' : 'A+'}</span>
               </button>
 
               {/* Profile Người Dân */}

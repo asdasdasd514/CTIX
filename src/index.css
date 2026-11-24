@@ -13,34 +13,67 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Chế độ Chữ Lớn / Trợ Năng cho Người Cao Tuổi */
+/* ==========================================================================
+   CHẾ ĐỘ NGƯỜI CAO TUỔI (Chữ lớn + Độ tương phản cao + Nút bấm lớn >= 52px)
+   ========================================================================== */
 body.elderly-mode {
-  font-size: 1.125rem;
-  line-height: 1.7;
+  font-size: 1.15rem;
+  line-height: 1.75;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+}
+
+body.elderly-mode .text-slate-400,
+body.elderly-mode .text-slate-500,
+body.elderly-mode .text-slate-600 {
+  color: #1e293b !important;
+}
+
+body.elderly-mode .text-\[10px\],
+body.elderly-mode .text-\[11px\],
+body.elderly-mode .text-xs {
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+}
+
+body.elderly-mode .text-sm {
+  font-size: 1.08rem !important;
+  line-height: 1.55 !important;
 }
 
 body.elderly-mode button,
 body.elderly-mode input,
 body.elderly-mode select,
 body.elderly-mode textarea {
-  font-size: 1.05rem;
-  min-height: 44px;
+  font-size: 1.08rem !important;
+  min-height: 52px;
+  border-width: 2px !important;
+}
+
+body.elderly-mode button:focus-visible,
+body.elderly-mode input:focus-visible,
+body.elderly-mode textarea:focus-visible,
+body.elderly-mode select:focus-visible {
+  outline: 3px solid #1d4ed8 !important;
+  outline-offset: 2px !important;
 }
 
 body.elderly-mode h1 {
-  font-size: 1.85rem !important;
+  font-size: 2rem !important;
+  line-height: 1.25 !important;
 }
 
 body.elderly-mode h2 {
-  font-size: 1.5rem !important;
+  font-size: 1.55rem !important;
+  line-height: 1.3 !important;
 }
 
 body.elderly-mode h3 {
-  font-size: 1.25rem !important;
+  font-size: 1.3rem !important;
 }
 
 body.elderly-mode .elderly-highlight {
-  font-weight: 700 !important;
+  font-weight: 800 !important;
 }
 
 /* ==========================================================================

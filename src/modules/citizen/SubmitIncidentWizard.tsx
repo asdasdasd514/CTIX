@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 import {
   Camera,
   MapPin,
@@ -22,6 +23,8 @@ import {
   Plus,
   X,
   AlertCircle,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 
 interface UploadedPhoto {
@@ -123,6 +126,19 @@ export const SubmitIncidentWizard: React.FC = () => {
     message: string;
     code: string;
   } | null>(null);
+
+  // Nhập mô tả bằng giọng nói tiếng Việt (Web Speech API)
+  const {
+    isListening,
+    interimText,
+    error: voiceError,
+    toggleListening,
+  } = useVoiceInput((spokenText) => {
+    setDescription((prev) => {
+      const trimmed = prev.trim();
+      return trimmed ? `${trimmed} ${spokenText}` : spokenText;
+    });
+  });
 
   const activePhoto = photos[activePhotoIndex] || photos[0];
 
@@ -559,16 +575,59 @@ export const SubmitIncidentWizard: React.FC = () => {
                   )}
                 </div>
 
-                {/* GHI CHÚ */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Ghi chú / Mô tả tình trạng hiện trường: <span className="text-rose-500">*</span>
-                  </label>
+                {/* GHI CHÚ + NHẬP BẰNG GIỌNG NÓI TIẾNG VIỆT */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      Ghi chú / Mô tả tình trạng hiện trường: <span className="text-rose-500">*</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[5px] text-xs font-black border transition shadow-sm active:scale-[0.99] ${
+                        isListening
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 animate-pulse'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                      }`}
+                    >
+                      {isListening ? (
+                        <>
+                          <MicOff className="w-4 h-4 shrink-0" />
+                          <span>Đang nghe... (Bấm để dừng)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4 shrink-0" />
+                          <span>Nói để nhập mô tả</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Hiển thị câu đang nói theo thời gian thực */}
+                  {isListening && (
+                    <div className="bg-rose-50 border border-rose-200 text-rose-900 px-3 py-2 rounded-[5px] text-xs flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping shrink-0" />
+                      <span className="font-semibold">
+                        {interimText
+                          ? `Đang nhận diện: "${interimText}"`
+                          : 'Hãy nói rõ ràng tình trạng sự cố vào micro...'}
+                      </span>
+                    </div>
+                  )}
+
+                  {voiceError && (
+                    <div className="bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded-[5px] text-xs font-semibold">
+                      {voiceError}
+                    </div>
+                  )}
+
                   <textarea
-                    rows={3}
+                    rows={elderlyMode ? 4 : 3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Mô tả cụ thể vị trí cột điện số mấy, kích thước hố sụt hoặc thời điểm ngập nước..."
+                    placeholder="Mô tả cụ thể vị trí cột điện số mấy, kích thước hố sụt... hoặc bấm nút 'Nói để nhập mô tả' ở trên"
                     className="w-full p-3 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
                     required
                   />

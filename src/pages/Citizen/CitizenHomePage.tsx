@@ -78,84 +78,131 @@ export const CitizenHomePage: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* 1. HERO BANNER CHÀO MỪNG VỚI ẢNH NỀN VĂN MIẾU TRẤN BIÊN */}
-      <section className="relative bg-blue-950 text-white rounded-[5px] p-5 sm:p-8 lg:p-10 shadow-sm overflow-hidden border border-blue-950">
-        {/* Ảnh nền Văn Miếu Trấn Biên */}
-        <img
-          src="/images/tran-bien-banner.jpg"
-          alt="Văn Miếu Trấn Biên - Biên Hòa, Đồng Nai"
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-65"
-        />
-        {/* Lớp phủ gradient giúp chữ luôn sắc nét mà vẫn nhìn rõ cảnh Văn Miếu Trấn Biên */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/75 to-blue-900/30" />
-
-        <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-[5px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-white/25">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span>Hệ thống tiếp nhận 24/7 • Phường Trấn Biên</span>
+      {/* CHẾ ĐỘ TỐI GIẢN & TƯƠNG PHẢN CAO KHI BẬT "NGƯỜI CAO TUỔI" */}
+      {elderlyMode ? (
+        <section className="bg-white border-2 border-slate-900 rounded-[5px] p-5 sm:p-7 shadow-md space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-slate-200 pb-3">
+            <div>
+              <span className="inline-block bg-amber-400 text-slate-950 font-black text-xs px-3 py-1 rounded-[5px] border-2 border-slate-900 uppercase">
+                Chế độ Người cao tuổi • Dễ nhìn & Dễ bấm
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-950 mt-2">
+                Phường Trấn Biên hỗ trợ cô bác 24/7
+              </h1>
+            </div>
           </div>
 
-          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug drop-shadow-sm">
-            Chung tay xây dựng Đô thị Trấn Biên Văn minh - An toàn
-          </h1>
-
-          <p className="text-xs sm:text-sm text-blue-50 font-medium leading-relaxed drop-shadow-sm">
-            Phát hiện đèn đường hỏng, ngập nước, bãi rác tự phát hay ổ gà nguy hiểm? Chụp ảnh và gửi ngay để UBND Phường tiếp nhận xử lý đúng thời hạn cam kết.
+          <p className="text-base text-slate-900 font-semibold leading-relaxed">
+            Thấy đèn đường tắt, đường ngập nước, bãi rác hay ổ gà? Cô bác chỉ cần bấm nút lớn màu vàng bên dưới để chụp ảnh hoặc nói mô tả sự cố.
           </p>
 
-          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={() => navigate('/citizen/submit')}
-              className={`flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-[5px] shadow-md transition active:scale-[0.99] border border-amber-500 uppercase tracking-wide ${
-                elderlyMode ? 'px-6 py-4 text-base' : 'px-5 py-3 text-xs sm:text-sm'
-              }`}
+              className="w-full py-5 px-6 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-[5px] border-2 border-slate-950 shadow-md flex items-center justify-center gap-3 text-lg uppercase"
             >
-              <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-slate-900 shrink-0" />
-              <span>Gửi phản ánh mới (2 bước)</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
+              <Camera className="w-7 h-7 shrink-0" />
+              <span>Gửi phản ánh mới</span>
+              <ArrowRight className="w-6 h-6 shrink-0" />
             </button>
 
             <button
               onClick={() => navigate('/citizen/reports')}
-              className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold px-5 py-3 rounded-[5px] border border-white/30 transition text-xs sm:text-sm"
+              className="w-full py-5 px-6 bg-blue-800 hover:bg-blue-900 text-white font-black rounded-[5px] border-2 border-slate-950 shadow-md flex items-center justify-center gap-3 text-lg uppercase"
             >
-              <ClipboardList className="w-4 h-4 shrink-0" />
-              <span>Xem danh sách phản ánh</span>
+              <ClipboardList className="w-7 h-7 shrink-0" />
+              <span>Xem phản ánh đã gửi</span>
             </button>
           </div>
-        </div>
-      </section>
 
-      {/* 2. THỐNG KÊ NHANH (DỮ LIỆU THỰC TẾ PHƯỜNG TRẤN BIÊN - THÁNG 11/2026) */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-blue-700 shadow-sm">
-          <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Thời gian xử lý trung bình</div>
-          <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1">{avgDaysFormatted} ngày</div>
-          <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">● Phường Trấn Biên (11/2026)</div>
-        </div>
+          <a
+            href="tel:1022"
+            className="w-full py-4 px-5 bg-rose-50 hover:bg-rose-100 text-rose-900 font-black rounded-[5px] border-2 border-rose-700 flex items-center justify-center gap-2.5 text-base"
+          >
+            <Phone className="w-6 h-6 text-rose-700 shrink-0" />
+            <span>Cần cán bộ hướng dẫn? Bấm gọi tổng đài 1022</span>
+          </a>
+        </section>
+      ) : (
+        <>
+          {/* 1. HERO BANNER CHÀO MỪNG VỚI ẢNH NỀN VĂN MIẾU TRẤN BIÊN */}
+          <section className="relative bg-blue-950 text-white rounded-[5px] p-5 sm:p-8 lg:p-10 shadow-sm overflow-hidden border border-blue-950">
+            {/* Ảnh nền Văn Miếu Trấn Biên */}
+            <img
+              src="/images/tran-bien-banner.jpg"
+              alt="Văn Miếu Trấn Biên - Biên Hòa, Đồng Nai"
+              className="absolute inset-0 w-full h-full object-cover object-center opacity-65"
+            />
+            {/* Lớp phủ gradient giúp chữ luôn sắc nét mà vẫn nhìn rõ cảnh Văn Miếu Trấn Biên */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/75 to-blue-900/30" />
 
-        <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-emerald-600 shadow-sm">
-          <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đã khắc phục hoàn thành</div>
-          <div className="text-lg sm:text-2xl font-black text-emerald-600 mt-1">
-            {resolvedCount} / {incidents.length}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-            Đạt {resolvedRate}% • Có ảnh nghiệm thu
-          </div>
-        </div>
+            <div className="relative z-10 max-w-2xl space-y-3">
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-[5px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-white/25">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span>Hệ thống tiếp nhận 24/7 • Phường Trấn Biên</span>
+              </div>
 
-        <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-amber-500 shadow-sm">
-          <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đang khẩn trương xử lý</div>
-          <div className="text-lg sm:text-2xl font-black text-amber-600 mt-1">{pendingCount} sự cố</div>
-          <div className="text-[11px] text-blue-600 font-medium mt-0.5">Đúng hạn cam kết SLA</div>
-        </div>
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug drop-shadow-sm">
+                Chung tay xây dựng Đô thị Trấn Biên Văn minh - An toàn
+              </h1>
 
-        <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-indigo-600 shadow-sm">
-          <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Mức độ hài lòng của dân</div>
-          <div className="text-lg sm:text-2xl font-black text-blue-700 mt-1">96,8%</div>
-          <div className="text-[11px] text-amber-500 font-bold mt-0.5">★★★★★ (4.9/5)</div>
-        </div>
-      </section>
+              <p className="text-xs sm:text-sm text-blue-50 font-medium leading-relaxed drop-shadow-sm">
+                Phát hiện đèn đường hỏng, ngập nước, bãi rác tự phát hay ổ gà nguy hiểm? Chụp ảnh và gửi ngay để UBND Phường tiếp nhận xử lý đúng thời hạn cam kết.
+              </p>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+                <button
+                  onClick={() => navigate('/citizen/submit')}
+                  className="flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-[5px] shadow-md transition active:scale-[0.99] border border-amber-500 uppercase tracking-wide px-5 py-3 text-xs sm:text-sm"
+                >
+                  <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-slate-900 shrink-0" />
+                  <span>Gửi phản ánh mới (2 bước)</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
+
+                <button
+                  onClick={() => navigate('/citizen/reports')}
+                  className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold px-5 py-3 rounded-[5px] border border-white/30 transition text-xs sm:text-sm"
+                >
+                  <ClipboardList className="w-4 h-4 shrink-0" />
+                  <span>Xem danh sách phản ánh</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* 2. THỐNG KÊ NHANH (Ẩn bớt khi bật chế độ Người cao tuổi để đỡ rối mắt) */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-blue-700 shadow-sm">
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Thời gian xử lý trung bình</div>
+              <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1">{avgDaysFormatted} ngày</div>
+              <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">● Phường Trấn Biên (11/2026)</div>
+            </div>
+
+            <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-emerald-600 shadow-sm">
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đã khắc phục hoàn thành</div>
+              <div className="text-lg sm:text-2xl font-black text-emerald-600 mt-1">
+                {resolvedCount} / {incidents.length}
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                Đạt {resolvedRate}% • Có ảnh nghiệm thu
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-amber-500 shadow-sm">
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đang khẩn trương xử lý</div>
+              <div className="text-lg sm:text-2xl font-black text-amber-600 mt-1">{pendingCount} sự cố</div>
+              <div className="text-[11px] text-blue-600 font-medium mt-0.5">Đúng hạn cam kết SLA</div>
+            </div>
+
+            <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-indigo-600 shadow-sm">
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Mức độ hài lòng của dân</div>
+              <div className="text-lg sm:text-2xl font-black text-blue-700 mt-1">96,8%</div>
+              <div className="text-[11px] text-amber-500 font-bold mt-0.5">★★★★★ (4.9/5)</div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* 3. THÔNG BÁO KHẨN TỪ UBND PHƯỜNG */}
       <section className="bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-[5px] p-4 sm:p-5 shadow-sm">
