@@ -6,7 +6,9 @@ import { CitizenLayout } from './layouts/CitizenLayout';
 import { IocDashboardPage } from './pages/Dashboard/IocDashboardPage';
 import { AdminMapPage } from './pages/Dashboard/AdminMapPage';
 import { StatisticsPage } from './pages/Dashboard/StatisticsPage';
+import { AdminSettingsPage } from './pages/Dashboard/AdminSettingsPage';
 import { useIncidentStore } from './store/useIncidentStore';
+import { useAuthStore } from './store/useAuthStore';
 import { OfficerInboxPage } from './pages/Officer/OfficerInboxPage';
 import { DispatchDetailPage } from './pages/Officer/DispatchDetailPage';
 import { NearbyIncidentsMapPage } from './modules/map/NearbyIncidentsMapPage';
@@ -17,8 +19,17 @@ import { FieldTasksPage } from './modules/field/FieldTasksPage';
 import { CitizenHomePage } from './pages/Citizen/CitizenHomePage';
 import { CitizenHelpPage } from './pages/Citizen/CitizenHelpPage';
 
+const RequireAuth: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
 export const App: React.FC = () => {
   const { storageError, resetToDefaultData } = useIncidentStore();
+  const { isAuthenticated, currentUser } = useAuthStore();
 
   return (
     <BrowserRouter>
@@ -42,13 +53,20 @@ export const App: React.FC = () => {
       )}
 
       <Routes>
-        {/* Trang đăng nhập */}
+        {/* Trang đăng nhập là trang chính khi chưa đăng nhập */}
         <Route path="/login" element={<LoginPage />} />
 
         {/* ========================================================
-            1. PHÂN HỆ CÔNG DÂN (Citizen Portal - Nhánh A / main)
+            1. PHÂN HỆ CÔNG DÂN (Citizen Portal)
             ======================================================== */}
-        <Route path="/citizen" element={<CitizenLayout />}>
+        <Route
+          path="/citizen"
+          element={
+            <RequireAuth>
+              <CitizenLayout />
+            </RequireAuth>
+          }
+        >
           <Route index element={<CitizenHomePage />} />
           <Route path="home" element={<CitizenHomePage />} />
           <Route path="reports" element={<MyReportsPage />} />
@@ -60,30 +78,43 @@ export const App: React.FC = () => {
         </Route>
 
         {/* ========================================================
-            2. PHÂN HỆ ADMIN & CÁN BỘ (Officer Portal - Tích hợp từ hoanglong-admin)
+            2. PHÂN HỆ ADMIN & CÁN BỘ (Officer Portal)
             ======================================================== */}
-        <Route path="/" element={<DashboardLayout />}>
-          <Route index element={<Navigate to="/map" replace />} />
-          <Route path="map" element={<AdminMapPage />} />
-          <Route path="admin/map" element={<AdminMapPage />} />
-
+        <Route
+          path="/"
+          element={
+            !isAuthenticated ? (
+              <Navigate to="/login" replace />
+            ) : currentUser.role === 'citizen' ? (
+              <Navigate to="/citizen/home" replace />
+            ) : (
+              <DashboardLayout />
+            )
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<IocDashboardPage />} />
           <Route path="admin" element={<IocDashboardPage />} />
           <Route path="admin/dashboard" element={<IocDashboardPage />} />
+
+          <Route path="map" element={<AdminMapPage />} />
+          <Route path="admin/map" element={<AdminMapPage />} />
+
           <Route path="inbox" element={<OfficerInboxPage />} />
           <Route path="admin/inbox" element={<OfficerInboxPage />} />
 
           <Route path="dispatch/:id" element={<DispatchDetailPage />} />
           <Route path="admin/dispatch/:id" element={<DispatchDetailPage />} />
 
-          <Route path="statistics" element={<StatisticsPage />} />
-
           <Route path="field/tasks" element={<FieldTasksPage />} />
           <Route path="admin/verify" element={<FieldTasksPage />} />
+
+          <Route path="statistics" element={<StatisticsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   );

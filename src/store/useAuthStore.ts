@@ -14,7 +14,7 @@ export const PRESET_ACCOUNTS: Record<string, UserProfile> = {
   officer: {
     id: "u-long",
     name: "Nguyễn Thành Long",
-    title: "Cán bộ Tiếp nhận & Phân loại",
+    title: "Cán bộ Quản trị & Điều phối",
     role: "officer",
     department: "UBND Phường Trấn Biên",
     phone: "0912.888.999",
@@ -50,41 +50,38 @@ export const PRESET_ACCOUNTS: Record<string, UserProfile> = {
 };
 
 interface AuthState {
+  isAuthenticated: boolean;
   currentUser: UserProfile;
   loginAs: (role: keyof typeof PRESET_ACCOUNTS) => void;
   logout: () => void;
 }
 
-const routeRole = location.pathname.startsWith("/citizen")
-  ? "citizen"
-  : location.pathname.includes("/field")
-    ? "volunteer"
-    : "officer";
-let savedRole: string = routeRole;
+const SESSION_KEY = "ctix_auth_role_v1";
+
+let initialRole: string | null = null;
 try {
-  const saved = sessionStorage.getItem("ctix_demo_role");
-  if (saved && Object.hasOwn(PRESET_ACCOUNTS, saved)) savedRole = saved;
+  const saved = sessionStorage.getItem(SESSION_KEY);
+  if (saved && Object.hasOwn(PRESET_ACCOUNTS, saved)) {
+    initialRole = saved;
+  }
 } catch {
-  /* Vai trò vẫn dùng được khi bộ nhớ phiên bị chặn. */
+  initialRole = null;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  currentUser: PRESET_ACCOUNTS[savedRole],
+  isAuthenticated: initialRole !== null,
+  currentUser: initialRole ? PRESET_ACCOUNTS[initialRole] : PRESET_ACCOUNTS.citizen,
   loginAs: (role) => {
     if (!Object.hasOwn(PRESET_ACCOUNTS, role)) return;
     try {
-      sessionStorage.setItem("ctix_demo_role", role);
-    } catch {
-      /* Không chặn luồng demo. */
-    }
-    set({ currentUser: PRESET_ACCOUNTS[role] });
+      sessionStorage.setItem(SESSION_KEY, role);
+    } catch {}
+    set({ isAuthenticated: true, currentUser: PRESET_ACCOUNTS[role] });
   },
   logout: () => {
     try {
-      sessionStorage.removeItem("ctix_demo_role");
-    } catch {
-      /* Không chặn đăng xuất. */
-    }
-    set({ currentUser: PRESET_ACCOUNTS.citizen });
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {}
+    set({ isAuthenticated: false, currentUser: PRESET_ACCOUNTS.citizen });
   },
 }));

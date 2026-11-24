@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore, PRESET_ACCOUNTS } from '../../store/useAuthStore';
-import { Shield, Lock, User, ArrowRight } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { Lock, User, ArrowRight, ShieldCheck, Users } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,135 +12,130 @@ export const LoginPage: React.FC = () => {
 
   const handleFormLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    loginAs('officer');
-    navigate('/map');
+    const isCitizenEmail = username.toLowerCase().includes('dan') || username.toLowerCase().includes('bachai');
+    if (isCitizenEmail) {
+      loginAs('citizen');
+      navigate('/citizen/home', { replace: true });
+    } else {
+      loginAs('officer');
+      navigate('/dashboard', { replace: true });
+    }
   };
 
-  const handleQuickLogin = (role: keyof typeof PRESET_ACCOUNTS) => {
-    loginAs(role);
-    if (role === 'leader' || role === 'officer') navigate('/map');
-    else if (role === 'volunteer') navigate('/field/tasks');
-    else navigate('/citizen/home');
+  const handleQuickCitizen = () => {
+    loginAs('citizen');
+    navigate('/citizen/home', { replace: true });
+  };
+
+  const handleQuickAdmin = () => {
+    loginAs('officer');
+    navigate('/dashboard', { replace: true });
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1329] bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-        {/* Header Quốc huy / Biểu tượng tinh tế */}
-        <div className="bg-[#0f172a] text-white p-6 text-center border-b border-slate-800">
-          <div className="w-13 h-13 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <Shield className="w-7 h-7 text-blue-400" />
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-blue-950 overflow-hidden">
+      {/* Ảnh nền Văn Miếu Trấn Biên đồng nhất với Cổng Công Dân */}
+      <img
+        src="/images/tran-bien-banner.jpg"
+        alt="Văn Miếu Trấn Biên"
+        className="absolute inset-0 w-full h-full object-cover object-center opacity-35"
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-950/90 via-slate-950/85 to-blue-900/80" />
+
+      <div className="relative z-10 max-w-md w-full bg-white rounded-[5px] shadow-2xl border border-slate-200 overflow-hidden">
+        {/* Header thương hiệu CTIX */}
+        <div className="bg-blue-950 text-white px-6 py-6 text-center border-b border-blue-900">
+          <div className="w-14 h-14 rounded-[5px] overflow-hidden bg-white border-2 border-white/20 flex items-center justify-center mx-auto mb-3 shadow-md">
+            <img
+              src="/images/ctix-logo.jpg"
+              alt="CTIX Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-900/50 px-2.5 py-0.5 rounded-full inline-block">
-            CỔNG DỊCH VỤ CÔNG TRỰC TUYẾN
+          <span className="text-[10px] font-black uppercase tracking-widest text-amber-300 bg-white/10 px-2.5 py-0.5 rounded-[5px] border border-white/15 inline-block">
+            Trấn Biên SmartCity • CTIX
           </span>
-          <h1 className="text-base sm:text-lg font-extrabold mt-1 text-white">
-            UBND Phường Trấn Biên
+          <h1 className="text-lg sm:text-xl font-black mt-2 text-white tracking-tight">
+            Đăng Nhập Hệ Thống
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Hệ Thống Giám Sát, Tiếp Nhận & Điều Phối Phản Ánh Hiện Trường
+          <p className="text-xs text-blue-200 mt-1">
+            Cổng Tiếp Nhận & Điều Phối Phản Ánh Hiện Trường Phường Trấn Biên
           </p>
         </div>
 
-        {/* Form Đăng Nhập Tiêu Chuẩn */}
-        <form onSubmit={handleFormLogin} className="p-6 space-y-4 bg-white">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-              Tài khoản công vụ / CCCD / Email:
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                required
-              />
+        {/* Form đăng nhập + 2 nút đăng nhập nhanh */}
+        <div className="p-6 space-y-5 bg-white">
+          <form onSubmit={handleFormLogin} className="space-y-3.5">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Tài khoản / Số điện thoại / Email:
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Nhập tài khoản hoặc số điện thoại..."
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-              Mật khẩu truy cập:
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                required
-              />
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Mật khẩu:
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu..."
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-[#0f3b7d] hover:bg-blue-800 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5"
-          >
-            <span>Đăng nhập hệ thống</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs sm:text-sm font-black shadow-sm transition flex items-center justify-center gap-2 uppercase tracking-wide"
+            >
+              <span>Đăng nhập</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
 
-          {/* Chọn Đăng Nhập Nhanh Cho Buổi Báo Cáo / Hackathon Demo */}
-          <div className="pt-3 border-t border-slate-100">
-            <span className="block text-[11px] font-bold text-slate-400 uppercase text-center mb-2">
-              Hoặc chọn nhanh vai trò để trải nghiệm:
+          {/* 2 Nút đăng nhập nhanh: Công dân & Admin */}
+          <div className="pt-4 border-t border-slate-200 space-y-2.5">
+            <span className="block text-[11px] font-bold text-slate-500 uppercase text-center tracking-wider">
+              Đăng nhập nhanh theo vai trò
             </span>
 
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => handleQuickLogin('officer')}
-                className="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50/70 hover:border-blue-200 text-slate-800 text-xs font-bold flex items-center justify-between transition text-left group"
+                onClick={handleQuickCitizen}
+                className="py-3 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 border border-amber-500 rounded-[5px] font-black text-xs sm:text-sm transition shadow-sm flex items-center justify-center gap-2 active:scale-[0.99]"
               >
-                <div>
-                  <div className="group-hover:text-blue-700">🏛️ Cán bộ Tiếp nhận & Phân loại</div>
-                  <div className="text-[10px] text-slate-400 font-normal">Nguyễn Thành Long • Bản đồ phản ánh & Tiếp nhận</div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
+                <Users className="w-4 h-4 shrink-0" />
+                <span>Công dân</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin('leader')}
-                className="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-purple-50/70 hover:border-purple-200 text-slate-800 text-xs font-bold flex items-center justify-between transition text-left group"
+                onClick={handleQuickAdmin}
+                className="py-3 px-4 bg-blue-950 hover:bg-blue-900 text-white border border-blue-950 rounded-[5px] font-black text-xs sm:text-sm transition shadow-sm flex items-center justify-center gap-2 active:scale-[0.99]"
               >
-                <div>
-                  <div className="group-hover:text-purple-700">📊 Cán bộ Điều hành Chủ Trì (IOC)</div>
-                  <div className="text-[10px] text-slate-400 font-normal">Trần Văn Minh • Bản đồ phản ánh & Thống kê</div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('volunteer')}
-                className="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50/70 hover:border-emerald-200 text-slate-800 text-xs font-bold flex items-center justify-between transition text-left group"
-              >
-                <div>
-                  <div className="group-hover:text-emerald-700">🤝 Đội Thanh niên Tình nguyện</div>
-                  <div className="text-[10px] text-slate-400 font-normal">Lê Hoàng Nam • Xác minh tại chỗ & Nghiệm thu</div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('citizen')}
-                className="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-amber-50/70 hover:border-amber-200 text-slate-800 text-xs font-bold flex items-center justify-between transition text-left group"
-              >
-                <div>
-                  <div className="group-hover:text-amber-700">👤 Người dân Phường Trấn Biên</div>
-                  <div className="text-[10px] text-slate-400 font-normal">Bác Hai Trấn Biên • Gửi 3 bước & Đánh giá</div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600" />
+                <ShieldCheck className="w-4 h-4 text-cyan-300 shrink-0" />
+                <span>Admin</span>
               </button>
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

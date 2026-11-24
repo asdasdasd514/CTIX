@@ -1,65 +1,71 @@
-import { useEffect, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
-import {
-  Menu,
-  X,
-  Eye,
-  RotateCcw,
-  ExternalLink,
-  RefreshCw,
-} from "lucide-react";
-import { Sidebar } from "../components/Sidebar/Sidebar";
-import { useIncidentStore } from "../store/useIncidentStore";
-import { useAuthStore, PRESET_ACCOUNTS } from "../store/useAuthStore";
-import { formatDate } from "../lib/incidents";
+import { useEffect, useRef, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, ChevronDown, LogOut, User } from 'lucide-react';
+import { Sidebar } from '../components/Sidebar/Sidebar';
+import { useAuthStore } from '../store/useAuthStore';
 
 export function DashboardLayout() {
-  const { elderlyMode, toggleElderlyMode, resetToDefaultData, lastSyncedAt } =
-    useIncidentStore();
-  const { currentUser, loginAs } = useAuthStore();
+  const { currentUser, logout } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const { pathname } = useLocation();
-  const title = pathname.includes("statistics")
-    ? "Thống kê phản ánh"
-    : pathname.includes("field") || pathname.includes("verify")
-      ? "Nhiệm vụ hiện trường"
-      : pathname.includes("dispatch")
-        ? "Chi tiết & phân công"
-        : pathname.includes("map")
-          ? "Bản đồ phản ánh"
-          : "Tiếp nhận & phân công";
+  const navigate = useNavigate();
+
+  const title = pathname.includes('statistics')
+    ? 'Thống kê'
+    : pathname.includes('field') || pathname.includes('verify')
+      ? 'Nhiệm vụ hiện trường'
+      : pathname.includes('dispatch')
+        ? 'Chi tiết & phân công'
+        : pathname.includes('inbox')
+          ? 'Tiếp nhận'
+          : pathname.includes('settings')
+            ? 'Cài đặt'
+            : pathname.includes('map')
+              ? 'Bản đồ'
+              : 'Dashboard';
 
   useEffect(() => {
-    if (!menuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuOpen(false);
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        setUserDropdownOpen(false);
+      }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [menuOpen]);
+    const onClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('mousedown', onClickOutside);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('mousedown', onClickOutside);
+    };
+  }, []);
 
-  const handleResetDemo = () => {
-    if (
-      confirm(
-        "Khôi phục 64 hồ sơ mẫu? Các phản ánh và thay đổi demo trên máy này sẽ bị thay thế.",
-      )
-    ) {
-      resetToDefaultData();
-      setMenuOpen(false);
-    }
+  const handleLogout = () => {
+    setUserDropdownOpen(false);
+    logout();
+    navigate('/login', { replace: true });
   };
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell bg-slate-50">
+      {/* Sidebar Desktop */}
       <div className="admin-desktop-sidebar">
         <Sidebar />
       </div>
+
+      {/* Sidebar Mobile Drawer */}
       {menuOpen && (
         <div
           className="admin-mobile-drawer"
           role="dialog"
           aria-modal="true"
-          aria-label="Điều hướng cán bộ"
+          aria-label="Điều hướng quản trị"
         >
           <button
             type="button"
@@ -68,31 +74,7 @@ export function DashboardLayout() {
             onClick={() => setMenuOpen(false)}
           />
           <div className="drawer-content">
-            <Sidebar
-              onCloseMobile={() => setMenuOpen(false)}
-              mobileFooter={
-                <div className="sidebar-mobile-controls">
-                  <label className="sidebar-role-field">
-                    <span>Vai trò demo</span>
-                    <select
-                      aria-label="Vai trò demo trong menu"
-                      value={currentUser.role}
-                      onChange={(e) => loginAs(e.target.value)}
-                    >
-                      {Object.entries(PRESET_ACCOUNTS).map(([key, value]) => (
-                        <option key={key} value={key}>
-                          {value.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="button" onClick={handleResetDemo}>
-                    <RotateCcw size={18} />
-                    <span>Khôi phục dữ liệu mẫu</span>
-                  </button>
-                </div>
-              }
-            />
+            <Sidebar onCloseMobile={() => setMenuOpen(false)} />
             <button
               type="button"
               className="drawer-close"
@@ -104,9 +86,12 @@ export function DashboardLayout() {
           </div>
         </div>
       )}
-      <div className="admin-content">
-        <header className="admin-header">
-          <div className="admin-title">
+
+      {/* Vùng nội dung chính căn đều chuẩn như trang Công dân */}
+      <div className="admin-content min-w-0 flex-1 flex flex-col bg-slate-50">
+        {/* Header trên cùng: Trái là Tiêu đề | Phải chỉ có Tên & Dropdown Đăng xuất */}
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               className="work-icon-button mobile-menu"
@@ -114,74 +99,67 @@ export function DashboardLayout() {
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
             >
-              <Menu size={22} />
+              <Menu size={20} />
             </button>
-            <div className="admin-title-text">
-              <h1>{title}</h1>
-              <p>UBND Phường Trấn Biên</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight truncate leading-tight">
+                {title}
+              </h1>
+              <p className="text-[11px] text-slate-500 font-medium truncate">
+                UBND Phường Trấn Biên • TP. Biên Hòa
+              </p>
             </div>
           </div>
-          <div className="admin-header-actions">
+
+          {/* Góc phải: Tên tài khoản + Menu Dropdown Đăng xuất */}
+          <div className="relative shrink-0" ref={dropdownRef}>
             <button
               type="button"
-              className={`work-icon-button ${elderlyMode ? "is-active" : ""}`}
-              aria-label="Bật hoặc tắt chữ lớn"
-              aria-pressed={elderlyMode}
-              title={elderlyMode ? "Tắt chữ lớn" : "Bật chữ lớn"}
-              onClick={toggleElderlyMode}
+              onClick={() => setUserDropdownOpen((prev) => !prev)}
+              aria-expanded={userDropdownOpen}
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-[5px] bg-slate-50 hover:bg-slate-100 border border-slate-200 transition"
             >
-              <Eye size={19} />
-            </button>
-            <button
-              type="button"
-              className="work-icon-button desktop-only-action"
-              aria-label="Khôi phục dữ liệu mẫu"
-              title="Khôi phục 64 hồ sơ mẫu"
-              onClick={handleResetDemo}
-            >
-              <RotateCcw size={18} />
-            </button>
-            <label className="admin-account desktop-only-action">
-              <span className="admin-avatar" aria-hidden="true">
+              <div className="w-8 h-8 rounded-[5px] bg-blue-700 text-white flex items-center justify-center font-black text-xs shrink-0">
                 {currentUser.name.charAt(0)}
-              </span>
-              <span className="sr-only">Vai trò demo</span>
-              <select
-                aria-label="Vai trò demo"
-                value={currentUser.role}
-                onChange={(e) => loginAs(e.target.value)}
-              >
-                {Object.entries(PRESET_ACCOUNTS).map(([key, value]) => (
-                  <option key={key} value={key}>
-                    {value.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+              </div>
+              <div className="hidden sm:block text-left">
+                <div className="text-xs font-extrabold text-slate-900 leading-none">
+                  {currentUser.name}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5 font-medium">
+                  Quản trị viên
+                </div>
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 text-slate-500 transition-transform ${
+                  userDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {userDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-[5px] border border-slate-200 shadow-lg py-1.5 z-50">
+                <div className="px-3.5 py-2 border-b border-slate-100 sm:hidden">
+                  <div className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-blue-700" />
+                    <span className="truncate">{currentUser.name}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition"
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            )}
           </div>
         </header>
-        <div className="admin-demo-bar">
-          <span className="demo-status">
-            <RefreshCw size={14} aria-hidden="true" />
-            <span>Demo đồng bộ trên máy này</span>
-            <span className="demo-update">
-              · Cập nhật {formatDate(lastSyncedAt)}
-            </span>
-          </span>
-          <div className="demo-links">
-            <Link
-              to="/citizen/home"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Tab người dân <ExternalLink size={14} aria-hidden="true" />
-            </Link>
-            <Link to="/field/tasks" target="_blank" rel="noopener noreferrer">
-              Tab hiện trường <ExternalLink size={14} aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-        <main className="admin-main">
+
+        {/* Nội dung chính căn giữa max-w-7xl đồng nhất với trang Công dân */}
+        <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0">
           <Outlet />
         </main>
       </div>

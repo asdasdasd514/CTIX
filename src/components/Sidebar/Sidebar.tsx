@@ -1,91 +1,90 @@
-import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink } from 'react-router-dom';
 import {
-  Shield,
   PanelLeftClose,
   PanelLeftOpen,
   LayoutDashboard,
   MapPin,
+  Inbox,
   ClipboardList,
   ChartNoAxesCombined,
-  LogOut,
-} from "lucide-react";
-import { useIncidentStore } from "../../store/useIncidentStore";
+  Settings,
+} from 'lucide-react';
+import { useIncidentStore } from '../../store/useIncidentStore';
+
 export function Sidebar({
   onCloseMobile,
-  mobileFooter,
 }: {
   onCloseMobile?: () => void;
-  mobileFooter?: ReactNode;
 }) {
   const { sidebarCollapsed, toggleSidebar, incidents } = useIncidentStore();
   const collapsed = sidebarCollapsed && !onCloseMobile;
-  const pending = incidents.filter((i) => i.status === "pending").length;
-  const items = [
-    { path: "/map", label: "Bản đồ phản ánh", icon: MapPin },
-    { path: "/dashboard", label: "Tiếp nhận & phân công", icon: LayoutDashboard },
-    {
-      path: "/field/tasks",
-      label: "Nhiệm vụ hiện trường",
-      icon: ClipboardList,
-    },
-    { path: "/statistics", label: "Thống kê", icon: ChartNoAxesCombined },
+  const pending = incidents.filter((i) => i.status === 'pending').length;
+
+  const mainItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/map', label: 'Bản đồ', icon: MapPin },
+    { path: '/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
+    { path: '/field/tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
+    { path: '/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
   ];
+
   return (
-    <aside className={`officer-sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside className={`officer-sidebar ${collapsed ? 'collapsed' : ''}`}>
+      {/* Brand Header đồng nhất logo CTIX */}
       <div className="sidebar-brand">
         <img
           src="/images/ctix-logo.jpg"
           alt="CTIX Logo"
-          className="w-8 h-8 rounded-[5px] object-cover bg-white shrink-0"
+          className="w-9 h-9 rounded-[5px] object-cover bg-white shrink-0 border border-white/20"
         />
         {!collapsed && (
-          <div>
-            <strong>CTIX</strong>
-            <span>Phản ánh hiện trường</span>
+          <div className="min-w-0">
+            <strong className="tracking-tight">Trấn Biên SmartCity</strong>
+            <span>Cổng Quản Trị CTIX</span>
           </div>
         )}
       </div>
-      <div className="sidebar-locality">
-        {!collapsed && (
-          <>
-            <span>ĐỊA BÀN PHỤ TRÁCH</span>
-            <strong>Phường Trấn Biên</strong>
-          </>
-        )}
-      </div>
-      <nav aria-label="Điều hướng cán bộ">
-        {items.map(({ path, label, icon: Icon }) => (
+
+      {/* Menu chính (Dashboard / Bản đồ / Tiếp nhận / Nhiệm vụ hiện trường / Thống kê) */}
+      <nav aria-label="Điều hướng quản trị" className="mt-2">
+        {mainItems.map(({ path, label, icon: Icon, badge }) => (
           <NavLink
             key={path}
             to={path}
             onClick={onCloseMobile}
             title={collapsed ? label : undefined}
           >
-            <Icon size={20} />
+            <Icon size={19} className="shrink-0" />
             {!collapsed && (
               <>
-                <span>{label}</span>
-                {path === "/dashboard" && pending > 0 && <b>{pending}</b>}
+                <span className="truncate">{label}</span>
+                {badge !== undefined && badge > 0 && <b>{badge}</b>}
               </>
             )}
           </NavLink>
         ))}
-      </nav>
-      <div className="sidebar-bottom">
-        {onCloseMobile && mobileFooter}
-        {!collapsed && <p>Dữ liệu demo · Tháng 11/2026</p>}
-        <NavLink to="/login" onClick={onCloseMobile}>
-          <LogOut size={19} />
-          {!collapsed && <span>Đổi tài khoản</span>}
+
+        {/* Ngăn cách nhẹ trước Cài đặt */}
+        <div className="my-2 border-t border-white/10" />
+
+        <NavLink
+          to="/settings"
+          onClick={onCloseMobile}
+          title={collapsed ? 'Cài đặt' : undefined}
+        >
+          <Settings size={19} className="shrink-0" />
+          {!collapsed && <span className="truncate">Cài đặt</span>}
         </NavLink>
-        {!onCloseMobile && (
+      </nav>
+
+      {/* Nút thu gọn Sidebar trên PC */}
+      {!onCloseMobile && (
+        <div className="sidebar-bottom">
           <button
+            type="button"
             onClick={toggleSidebar}
             aria-label={
-              collapsed
-                ? "Mở rộng thanh điều hướng"
-                : "Thu gọn thanh điều hướng"
+              collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'
             }
           >
             {collapsed ? (
@@ -97,9 +96,10 @@ export function Sidebar({
               </>
             )}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </aside>
   );
 }
+
 export default Sidebar;
