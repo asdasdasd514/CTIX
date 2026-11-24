@@ -327,10 +327,23 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         ? 'Xem chi tiết phản ánh →'
         : 'Xem hồ sơ & Phân công →';
 
+      const categoryDisplayName =
+        item.category === 'street_light'
+          ? 'Đèn đường'
+          : item.category === 'flooding'
+          ? 'Ngập úng'
+          : item.category === 'waste'
+          ? 'Rác thải'
+          : item.category === 'road_damage'
+          ? 'Ổ gà'
+          : 'Sự cố khác';
+
+      const popupHeaderLeft = isCitizenMode ? categoryDisplayName : item.code;
+
       const popupHtml = `
         <div class="p-3 max-w-[240px] text-xs font-sans text-slate-800">
           <div class="flex items-center justify-between border-b pb-1 mb-1.5">
-            <span class="font-extrabold text-blue-700">${item.code}</span>
+            <span class="font-extrabold text-blue-700">${popupHeaderLeft}</span>
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${
               isResolved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
             }">${statusLabel}</span>

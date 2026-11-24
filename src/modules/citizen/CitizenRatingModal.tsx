@@ -53,7 +53,7 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
               Đánh giá mức độ hài lòng
             </span>
             <h3 className="text-base sm:text-lg font-bold mt-1 truncate">Đánh Giá Kết Quả Xử Lý</h3>
-            <p className="text-xs text-blue-100">Hồ sơ số: {incident.code}</p>
+            <p className="text-xs text-blue-100 truncate">Phường Trấn Biên • TP. Biên Hòa</p>
           </div>
           <button
             type="button"

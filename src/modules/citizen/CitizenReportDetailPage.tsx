@@ -115,11 +115,26 @@ export const CitizenReportDetailPage: React.FC = () => {
   // 3. Hủy yêu cầu phản ánh này
   const handleCancelReport = () => {
     const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn hủy yêu cầu phản ánh ${incident.code} không? Thao tác này không thể hoàn tác.`
+      'Bạn có chắc chắn muốn hủy yêu cầu phản ánh này không? Thao tác này không thể hoàn tác.'
     );
     if (confirmed) {
       deleteIncident(incident.id);
       navigate('/citizen/reports');
+    }
+  };
+
+  const getCategoryLabel = (cat: Incident['category']) => {
+    switch (cat) {
+      case 'street_light':
+        return 'Đèn đường chiếu sáng';
+      case 'flooding':
+        return 'Ngập nước sau mưa';
+      case 'waste':
+        return 'Rác thải tự phát';
+      case 'road_damage':
+        return 'Mặt đường & Ổ gà';
+      case 'other':
+        return 'Sự cố khác';
     }
   };
 
@@ -198,8 +213,8 @@ export const CitizenReportDetailPage: React.FC = () => {
           <div className="bg-white rounded-[5px] border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs sm:text-sm font-black text-blue-700 bg-blue-50 px-2.5 py-1 rounded-[5px] border border-blue-200">
-                  {incident.code}
+                <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2.5 py-1 rounded-[5px] border border-blue-200">
+                  {getCategoryLabel(incident.category)}
                 </span>
                 {getStatusBadge(incident.status)}
               </div>

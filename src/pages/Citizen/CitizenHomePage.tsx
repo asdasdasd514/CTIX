@@ -41,6 +41,21 @@ export const CitizenHomePage: React.FC = () => {
     return true;
   });
 
+  const getCategoryText = (cat: IncidentCategory) => {
+    switch (cat) {
+      case 'street_light':
+        return 'Đèn đường';
+      case 'flooding':
+        return 'Ngập úng';
+      case 'waste':
+        return 'Rác thải';
+      case 'road_damage':
+        return 'Ổ gà';
+      case 'other':
+        return 'Sự cố khác';
+    }
+  };
+
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* 1. HERO BANNER CHÀO MỪNG VỚI ẢNH NỀN VĂN MIẾU TRẤN BIÊN */}
@@ -318,8 +333,8 @@ export const CitizenHomePage: React.FC = () => {
               <>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                    <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
-                      {selectedMapIncident.code}
+                    <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
+                      {getCategoryText(selectedMapIncident.category)}
                     </span>
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded-[5px] border whitespace-nowrap ${selectedMapIncident.status === 'resolved' || selectedMapIncident.status === 'closed'
@@ -409,8 +424,8 @@ export const CitizenHomePage: React.FC = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-[11px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-[5px] border border-blue-200">
-                        {item.code}
+                      <span className="text-[11px] font-bold text-blue-800 bg-blue-50 px-1.5 py-0.5 rounded-[5px] border border-blue-200">
+                        {getCategoryText(item.category)}
                       </span>
                       <span
                         className={`sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] border ${item.status === 'resolved' || item.status === 'closed'
