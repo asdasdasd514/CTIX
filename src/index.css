@@ -1,0 +1,73 @@
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Chế độ Chữ Lớn / Trợ Năng cho Người Cao Tuổi */
+body.elderly-mode {
+  font-size: 1.15rem;
+  line-height: 1.75;
+}
+
+body.elderly-mode button,
+body.elderly-mode input,
+body.elderly-mode select,
+body.elderly-mode textarea {
+  font-size: 1.1rem;
+  min-height: 48px;
+}
+
+body.elderly-mode h1 {
+  font-size: 2rem !important;
+}
+
+body.elderly-mode h2 {
+  font-size: 1.65rem !important;
+}
+
+body.elderly-mode h3 {
+  font-size: 1.35rem !important;
+}
+
+body.elderly-mode .elderly-highlight {
+  font-weight: 700 !important;
+}
+
+
+/* ==========================================================================
+   Compass Spin Animation (Y chang hệ thống IRS)
+   ========================================================================== */
+@keyframes compass-needle-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-compass-spin {
+  animation: compass-needle-spin 3s linear infinite !important;
+  transform-origin: 50% 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Leaflet Custom Marker & Popup Styles */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.smartcity-osm-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.smartcity-osm-popup .leaflet-popup-content {
+  margin: 0;
+  line-height: 1.4;
+}
