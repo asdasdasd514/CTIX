@@ -20,7 +20,6 @@ import {
   RotateCcw,
   AlertTriangle,
   Maximize2,
-  Minimize2,
   X,
   Search,
 } from "lucide-react";
@@ -41,6 +40,7 @@ interface OpenStreetMapProps {
   onMarkerClick?: (incident: Incident) => void;
   onOpenDetail?: (incident: Incident) => void;
   onMapClick?: (lat: number, lng: number) => void;
+  onViewChange?: (center: [number, number], zoom: number) => void;
   singlePin?: { lat: number; lng: number; label?: string };
   showLayerToggle?: boolean;
   showLocateButton?: boolean;
@@ -74,6 +74,7 @@ export function OpenStreetMap({
   onMarkerClick,
   onOpenDetail,
   onMapClick,
+  onViewChange,
   singlePin,
   showLayerToggle = true,
   showLocateButton = true,
@@ -108,6 +109,10 @@ export function OpenStreetMap({
   useEffect(() => {
     openDetailRef.current = onOpenDetail;
   }, [onOpenDetail]);
+  const viewChangeRef = useRef(onViewChange);
+  useEffect(() => {
+    viewChangeRef.current = onViewChange;
+  }, [onViewChange]);
 
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -201,10 +206,12 @@ export function OpenStreetMap({
     const map = L.map(container.current, {
       center: DEFAULT_CENTER,
       zoom: 14,
+      zoomControl: false,
       zoomAnimation: false,
       markerZoomAnimation: false,
       fadeAnimation: false,
     });
+    L.control.zoom({ position: "bottomleft" }).addTo(map);
     const markers = markersRef.current;
     const markerData = markerDataRef.current;
     const appearances = markerAppearanceRef.current;
@@ -212,6 +219,12 @@ export function OpenStreetMap({
     map.on("click", (event: L.LeafletMouseEvent) =>
       clickRef.current?.(event.latlng.lat, event.latlng.lng),
     );
+    map.on("moveend", () => {
+      const el = container.current;
+      if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
+      const c = map.getCenter();
+      viewChangeRef.current?.([c.lat, c.lng], map.getZoom());
+    });
     const observer = new ResizeObserver(() => {
       const el = container.current;
       if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
@@ -466,7 +479,7 @@ export function OpenStreetMap({
       };
       popup.append(button);
       if (marker.getPopup()) marker.setPopupContent(popup);
-      else marker.bindPopup(popup, { maxWidth: 280, autoPan: false });
+      else marker.bindPopup(popup, { maxWidth: 250, autoPan: false });
     }
   }, [incidents, navigate, now, publicMap]);
 
@@ -483,7 +496,12 @@ export function OpenStreetMap({
         container.current.clientWidth > 0 &&
         map.getBounds().contains(marker.getLatLng())
       ) {
-        marker.openPopup();
+        const pt = map.latLngToContainerPoint(marker.getLatLng());
+        const size = map.getSize();
+        // Chỉ tự mở popup khi đủ khoảng trống hiển thị trọn vẹn, tránh bị cắt ở mép bản đồ.
+        if (pt.y >= 190 && pt.x >= 135 && pt.x <= size.x - 135) {
+          marker.openPopup();
+        }
       }
       if (id !== selectedId && marker.isPopupOpen()) marker.closePopup();
     });
@@ -588,10 +606,11 @@ export function OpenStreetMap({
                 ref={closeButtonRef}
                 type="button"
                 className="map-btn map-btn-primary"
+                aria-label="Đóng bản đồ toàn màn hình"
                 onClick={() => closeExpanded()}
               >
-                <Minimize2 size={16} aria-hidden="true" />
-                <span>Thu nhỏ</span>
+                <X size={16} aria-hidden="true" />
+                <span>Đóng bản đồ</span>
               </button>
             ) : (
               <button
@@ -638,16 +657,6 @@ export function OpenStreetMap({
             >
               <Locate size={16} aria-hidden="true" />
               <span>{locating ? "Đang định vị…" : "Vị trí của tôi"}</span>
-            </button>
-          )}
-          {expanded && (
-            <button
-              type="button"
-              className="map-btn map-btn-close"
-              aria-label="Đóng bản đồ toàn màn hình"
-              onClick={() => closeExpanded()}
-            >
-              <X size={18} aria-hidden="true" />
             </button>
           )}
         </div>

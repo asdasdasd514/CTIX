@@ -24,10 +24,10 @@ export function DashboardLayout() {
     : pathname.includes("field") || pathname.includes("verify")
       ? "Nhiệm vụ hiện trường"
       : pathname.includes("dispatch")
-        ? "Chi tiết phản ánh"
+        ? "Chi tiết & phân công"
         : pathname.includes("map")
           ? "Bản đồ phản ánh"
-          : "Bàn làm việc cán bộ";
+          : "Tiếp nhận & phân công";
 
   useEffect(() => {
     if (!menuOpen) return;

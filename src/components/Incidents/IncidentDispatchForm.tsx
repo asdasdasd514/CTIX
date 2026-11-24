@@ -10,10 +10,15 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   UNITS,
+  UNASSIGNED_STAFF_LABEL,
   deadlineLabel,
   formatDate,
+  getAllKnownUnits,
+  getAssigneeLabel,
   getIncidentMapVisual,
+  getUnitStaff,
   isOverdue,
+  isStaffInUnit,
   validateDispatchInput,
 } from "../../lib/incidents";
 import { useIncidentStore } from "../../store/useIncidentStore";
@@ -24,6 +29,8 @@ import {
   MapPin,
   Send,
   AlertTriangle,
+  History,
+  Pencil,
 } from "lucide-react";
 
 function localDateTime(date: Date) {
@@ -123,18 +130,66 @@ export function IncidentOverview({
       </div>
 
       {incident.verificationNotes && (
-        <p className="work-help">Ghi chú xác minh: {incident.verificationNotes}</p>
+        <p className="work-help">
+          Ghi chú xác minh: {incident.verificationNotes}
+        </p>
       )}
       {incident.assignedTo && (
         <div className="work-assignment">
-          <span className="assignment-eyebrow">Đơn vị được giao</span>
-          <strong>{incident.assignedTo.unitName}</strong>
-          <span className={overdue ? "overdue-text" : ""}>
-            Hạn hoàn thành: {formatDate(incident.assignedTo.deadline)} ·{" "}
-            {deadlineLabel(incident, referenceNow)}
-          </span>
-          {incident.assignedTo.notes && <p>Ghi chú: {incident.assignedTo.notes}</p>}
+          <span className="assignment-eyebrow">Thông tin phân công</span>
+          <dl className="assignment-meta">
+            <div>
+              <dt>Đơn vị nhận nhiệm vụ</dt>
+              <dd>{incident.assignedTo.unitName}</dd>
+            </div>
+            <div>
+              <dt>Người phụ trách</dt>
+              <dd>{getAssigneeLabel(incident.assignedTo)}</dd>
+            </div>
+            <div>
+              <dt>Người phân công</dt>
+              <dd>{incident.assignedTo.officerName || "Cán bộ tiếp nhận"}</dd>
+            </div>
+            <div>
+              <dt>Hạn hoàn thành</dt>
+              <dd className={overdue ? "overdue-text" : ""}>
+                {formatDate(incident.assignedTo.deadline)} ·{" "}
+                {deadlineLabel(incident, referenceNow)}
+              </dd>
+            </div>
+          </dl>
+          {incident.assignedTo.notes && (
+            <p>Ghi chú giao việc: {incident.assignedTo.notes}</p>
+          )}
         </div>
+      )}
+      {incident.assignmentHistory && incident.assignmentHistory.length > 0 && (
+        <details className="assignment-history">
+          <summary>
+            <History size={15} aria-hidden="true" />
+            Lịch sử điều chỉnh phân công ({incident.assignmentHistory.length})
+          </summary>
+          <ul>
+            {incident.assignmentHistory.map((entry, idx) => (
+              <li key={`${entry.changedAt}-${idx}`}>
+                <strong>
+                  {entry.changedBy} · {formatDate(entry.changedAt)}
+                </strong>
+                <p>Lý do: {entry.reason}</p>
+                <span>
+                  Trước: {entry.before.unitName} (
+                  {entry.before.assigneeName || UNASSIGNED_STAFF_LABEL}) · Hạn{" "}
+                  {formatDate(entry.before.deadline)}
+                </span>
+                <span>
+                  Sau: {entry.after.unitName} (
+                  {entry.after.assigneeName || UNASSIGNED_STAFF_LABEL}) · Hạn{" "}
+                  {formatDate(entry.after.deadline)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
       {incident.resolution && (
         <p className="work-success">Kết quả xử lý: {incident.resolution.notes}</p>
@@ -149,97 +204,199 @@ export function IncidentOverview({
   );
 }
 
+export interface DispatchReceipt {
+  id: string;
+  code: string;
+  unitName: string;
+  assigneeName: string;
+  officerName: string;
+  deadline: string;
+  notes: string;
+  isReassignment?: boolean;
+}
+
 export function IncidentDispatchForm({
   incident,
   onDone,
 }: {
   incident: Incident;
-  onDone?: (assigned: {
-    id: string;
-    code: string;
-    unitName: string;
-    deadline: string;
-    notes: string;
-  }) => void;
+  onDone?: (assigned: DispatchReceipt) => void;
 }) {
+  const incidents = useIncidentStore((s) => s.incidents);
   const assignIncident = useIncidentStore((s) => s.assignIncident);
+  const reassignIncident = useIncidentStore((s) => s.reassignIncident);
   const currentUser = useAuthStore((s) => s.currentUser);
+  const isReassignable =
+    incident.status === "assigned" || incident.status === "in_progress";
+
+  const [editingAssignment, setEditingAssignment] = useState(false);
   const [category, setCategory] = useState(incident.category);
-  const [unit, setUnit] = useState(UNITS[incident.category]);
-  const [unitManuallyChosen, setUnitManuallyChosen] = useState(false);
+  const [unit, setUnit] = useState(
+    incident.assignedTo?.unitName || UNITS[incident.category],
+  );
+  const [unitManuallyChosen, setUnitManuallyChosen] = useState(
+    !!incident.assignedTo,
+  );
+  const [assignee, setAssignee] = useState(
+    incident.assignedTo?.assigneeName || "",
+  );
+  const [unitChangeNotice, setUnitChangeNotice] = useState("");
   const [priority, setPriority] = useState(incident.priority);
   const [deadline, setDeadline] = useState(() =>
-    localDateTime(new Date(Date.now() + 3 * 86400000)),
+    localDateTime(
+      incident.assignedTo
+        ? new Date(
+            Math.max(
+              Date.parse(incident.assignedTo.deadline),
+              Date.now() + 86400000,
+            ),
+          )
+        : new Date(Date.now() + 3 * 86400000),
+    ),
   );
   const [minimumDeadline] = useState(() => localDateTime(new Date()));
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(incident.assignedTo?.notes || "");
+  const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [version, setVersion] = useState(incident.updatedAt);
-  const [dispatchedHere, setDispatchedHere] = useState(false);
+  const [receipt, setReceipt] = useState<DispatchReceipt | null>(null);
   const submittingRef = useRef(false);
 
+  const unitOptions = getAllKnownUnits(incidents);
+  const staffOptions = getUnitStaff(unit);
   const suggestedUnit = UNITS[category];
   const hasExternalUpdate = version !== incident.updatedAt;
+  const fieldTaskLink = `/field/tasks?id=${encodeURIComponent(incident.id)}`;
 
-  if (incident.status !== "pending") {
-    if (dispatchedHere && incident.assignedTo) {
-      return (
-        <div className="dispatch-receipt work-success" role="status">
-          <div className="dispatch-receipt-head">
-            <CheckCircle2 size={18} aria-hidden="true" />
-            <strong>Đã lưu phân công xử lý</strong>
-          </div>
-          <p>
-            Đơn vị: <strong>{incident.assignedTo.unitName}</strong>
-          </p>
-          <p>
-            Hạn hoàn thành: <strong>{formatDate(incident.assignedTo.deadline)}</strong>
-          </p>
-          {incident.assignedTo.notes && (
-            <p>Ghi chú đã lưu: {incident.assignedTo.notes}</p>
-          )}
-          <Link className="work-secondary dispatch-field-link" to="/field/tasks">
-            Mở nhiệm vụ hiện trường <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
+  const handleUnitChange = (nextUnit: string, manual: boolean) => {
+    setUnit(nextUnit);
+    if (manual) setUnitManuallyChosen(true);
+    setUnitChangeNotice("");
+    if (assignee && !isStaffInUnit(nextUnit, assignee)) {
+      setAssignee("");
+      setUnitChangeNotice(
+        `Đã bỏ chọn “${assignee}” vì không thuộc ${nextUnit}. Hãy chọn cán bộ mới hoặc để đơn vị tự phân công.`,
       );
     }
+  };
 
-    if (hasExternalUpdate) {
-      return (
-        <div className="work-warning dispatch-conflict" role="alert">
-          <div className="dispatch-receipt-head">
-            <AlertTriangle size={18} aria-hidden="true" />
-            <strong>
-              Hồ sơ vừa chuyển sang “{STATUS_LABELS[incident.status]}” ở tab khác
-            </strong>
-          </div>
-          <p>
-            Vui lòng xem lại thông tin mới phía trên. Thao tác phân công đã được
-            tắt để tránh ghi đè.
-          </p>
-          {notes.trim() && (
-            <p className="work-help">Ghi chú bạn đã soạn: {notes.trim()}</p>
-          )}
-          <Link className="work-secondary dispatch-field-link" to="/field/tasks">
-            Mở nhiệm vụ hiện trường <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-      );
-    }
-
+  if (incident.status !== "pending" && !editingAssignment) {
     return (
       <div className="dispatch-status-box">
-        <p className="work-help">
-          Hồ sơ đang ở trạng thái <strong>{STATUS_LABELS[incident.status]}</strong>.
-        </p>
-        <Link className="work-secondary dispatch-field-link" to="/field/tasks">
-          Mở nhiệm vụ hiện trường <ArrowUpRight size={16} aria-hidden="true" />
-        </Link>
+        {receipt && incident.assignedTo ? (
+          <div className="dispatch-receipt work-success" role="status">
+            <div className="dispatch-receipt-head">
+              <CheckCircle2 size={18} aria-hidden="true" />
+              <strong>
+                {receipt.isReassignment
+                  ? "Đã lưu điều chỉnh phân công"
+                  : "Đã lưu phân công xử lý"}
+              </strong>
+            </div>
+            <p>
+              Đơn vị nhận nhiệm vụ: <strong>{receipt.unitName}</strong>
+            </p>
+            <p>
+              Người phụ trách: <strong>{receipt.assigneeName}</strong>
+            </p>
+            <p>
+              Người phân công: <strong>{receipt.officerName}</strong>
+            </p>
+            <p>
+              Hạn hoàn thành: <strong>{formatDate(receipt.deadline)}</strong>
+            </p>
+            {receipt.notes && <p>Ghi chú đã lưu: {receipt.notes}</p>}
+            <Link
+              className="work-secondary dispatch-field-link"
+              to={fieldTaskLink}
+            >
+              Mở nhiệm vụ hiện trường{" "}
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
+        ) : hasExternalUpdate ? (
+          <div className="work-warning dispatch-conflict" role="alert">
+            <div className="dispatch-receipt-head">
+              <AlertTriangle size={18} aria-hidden="true" />
+              <strong>
+                Hồ sơ vừa chuyển sang “{STATUS_LABELS[incident.status]}” ở tab
+                khác
+              </strong>
+            </div>
+            <p>
+              Vui lòng xem lại thông tin mới phía trên. Thao tác phân công đã
+              được tắt để tránh ghi đè.
+            </p>
+            {notes.trim() && (
+              <p className="work-help">Ghi chú bạn đã soạn: {notes.trim()}</p>
+            )}
+            <Link
+              className="work-secondary dispatch-field-link"
+              to={fieldTaskLink}
+            >
+              Mở nhiệm vụ hiện trường{" "}
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
+        ) : (
+          <div className="dispatch-status-actions">
+            <p className="work-help">
+              Hồ sơ đang ở trạng thái{" "}
+              <strong>{STATUS_LABELS[incident.status]}</strong>.
+            </p>
+            <div className="dispatch-action-row">
+              <Link
+                className="work-secondary dispatch-field-link"
+                to={fieldTaskLink}
+              >
+                Mở nhiệm vụ hiện trường{" "}
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </Link>
+              {isReassignable && (
+                <button
+                  type="button"
+                  className="work-secondary"
+                  onClick={() => {
+                    setCategory(incident.category);
+                    setPriority(incident.priority);
+                    setUnit(
+                      incident.assignedTo?.unitName || UNITS[incident.category],
+                    );
+                    setUnitManuallyChosen(true);
+                    setAssignee(incident.assignedTo?.assigneeName || "");
+                    setNotes(incident.assignedTo?.notes || "");
+                    setDeadline(
+                      localDateTime(
+                        incident.assignedTo
+                          ? new Date(
+                              Math.max(
+                                Date.parse(incident.assignedTo.deadline),
+                                Date.now() + 3600000,
+                              ),
+                            )
+                          : new Date(Date.now() + 3 * 86400000),
+                      ),
+                    );
+                    setReason("");
+                    setError("");
+                    setUnitChangeNotice("");
+                    setVersion(incident.updatedAt);
+                    setEditingAssignment(true);
+                  }}
+                >
+                  <Pencil size={15} aria-hidden="true" />
+                  Điều chỉnh phân công
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
+
+  const isReassignMode = editingAssignment && isReassignable;
 
   return (
     <form
@@ -251,8 +408,11 @@ export function IncidentDispatchForm({
         setError("");
         const check = validateDispatchInput({
           unitName: unit,
+          assigneeName: assignee,
           deadline,
           notes,
+          reason,
+          requireReason: isReassignMode,
         });
         if (!check.ok) {
           setError(check.error);
@@ -261,21 +421,47 @@ export function IncidentDispatchForm({
         submittingRef.current = true;
         setSaving(true);
         try {
-          assignIncident(incident.id, check.trimmedUnit, 3, currentUser.name, {
-            category,
-            priority,
-            deadline: check.deadlineIso,
-            notes: check.trimmedNotes,
-            expectedUpdatedAt: version,
-          });
-          setDispatchedHere(true);
-          onDone?.({
+          if (isReassignMode) {
+            reassignIncident(incident.id, {
+              unitName: check.trimmedUnit,
+              assigneeName: check.trimmedAssignee || undefined,
+              category,
+              priority,
+              deadline: check.deadlineIso,
+              notes: check.trimmedNotes,
+              reason: check.trimmedReason,
+              changedBy: currentUser.name,
+              expectedUpdatedAt: version,
+            });
+          } else {
+            assignIncident(
+              incident.id,
+              check.trimmedUnit,
+              3,
+              currentUser.name,
+              {
+                category,
+                priority,
+                assigneeName: check.trimmedAssignee || undefined,
+                deadline: check.deadlineIso,
+                notes: check.trimmedNotes,
+                expectedUpdatedAt: version,
+              },
+            );
+          }
+          const savedReceipt: DispatchReceipt = {
             id: incident.id,
             code: incident.code,
             unitName: check.trimmedUnit,
+            assigneeName: check.trimmedAssignee || UNASSIGNED_STAFF_LABEL,
+            officerName: currentUser.name,
             deadline: check.deadlineIso,
             notes: check.trimmedNotes,
-          });
+            isReassignment: isReassignMode,
+          };
+          setReceipt(savedReceipt);
+          setEditingAssignment(false);
+          onDone?.(savedReceipt);
         } catch (err) {
           setError(
             err instanceof Error ? err.message : "Chưa lưu được phân công.",
@@ -286,7 +472,21 @@ export function IncidentDispatchForm({
         }
       }}
     >
-      <h3>Giao xử lý</h3>
+      <div className="dispatch-form-header">
+        <h3>{isReassignMode ? "Điều chỉnh phân công" : "Giao xử lý"}</h3>
+        {isReassignMode && (
+          <button
+            type="button"
+            className="work-text-link"
+            onClick={() => {
+              setEditingAssignment(false);
+              setError("");
+            }}
+          >
+            Hủy điều chỉnh
+          </button>
+        )}
+      </div>
       <div className="work-form-grid">
         <label>
           Loại sự cố
@@ -295,7 +495,7 @@ export function IncidentDispatchForm({
             onChange={(event) => {
               const value = event.target.value as IncidentCategory;
               setCategory(value);
-              if (!unitManuallyChosen) setUnit(UNITS[value]);
+              if (!unitManuallyChosen) handleUnitChange(UNITS[value], false);
             }}
           >
             {Object.entries(CATEGORIES).map(([id, label]) => (
@@ -321,15 +521,33 @@ export function IncidentDispatchForm({
         <label>
           Đơn vị phụ trách
           <select
+            aria-label="Đơn vị phụ trách"
             value={unit}
-            onChange={(event) => {
-              setUnit(event.target.value);
-              setUnitManuallyChosen(true);
-            }}
+            onChange={(event) => handleUnitChange(event.target.value, true)}
           >
-            {Object.values(UNITS).map((name) => (
+            {unitOptions.map((name) => (
               <option key={name} value={name}>
                 {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Cán bộ phụ trách trong đơn vị
+          <select
+            aria-label="Cán bộ phụ trách trong đơn vị"
+            value={assignee}
+            onChange={(event) => {
+              setAssignee(event.target.value);
+              setUnitChangeNotice("");
+            }}
+          >
+            <option value="">
+              {UNASSIGNED_STAFF_LABEL} (giao cho đơn vị trước)
+            </option>
+            {staffOptions.map((member) => (
+              <option key={member.id} value={member.name}>
+                {member.name} — {member.role}
               </option>
             ))}
           </select>
@@ -351,15 +569,15 @@ export function IncidentDispatchForm({
       </div>
       <div className="unit-suggestion-row">
         <p className="work-help">
-          Gợi ý theo loại sự cố: <strong>{suggestedUnit}</strong> (cán bộ có thể
-          đổi đơn vị và thời hạn).
+          Gợi ý theo loại sự cố: <strong>{suggestedUnit}</strong>. Có thể giao
+          cho đơn vị trước khi chưa chỉ định cá nhân.
         </p>
         {unit !== suggestedUnit && (
           <button
             type="button"
             className="work-text-link"
             onClick={() => {
-              setUnit(suggestedUnit);
+              handleUnitChange(suggestedUnit, false);
               setUnitManuallyChosen(false);
             }}
           >
@@ -367,6 +585,28 @@ export function IncidentDispatchForm({
           </button>
         )}
       </div>
+      {unitChangeNotice && (
+        <p className="work-warning" role="status">
+          {unitChangeNotice}
+        </p>
+      )}
+      {isReassignMode && (
+        <label>
+          Lý do điều chỉnh phân công (bắt buộc)
+          <input
+            aria-label="Lý do điều chỉnh phân công"
+            type="text"
+            required
+            maxLength={500}
+            placeholder="Ví dụ: Đổi tổ chuyên trách, gia hạn do mưa lớn…"
+            value={reason}
+            onChange={(event) => {
+              setReason(event.target.value);
+              if (error) setError("");
+            }}
+          />
+        </label>
+      )}
       <label>
         Ghi chú giao việc
         <textarea
@@ -381,7 +621,7 @@ export function IncidentDispatchForm({
         <div className="work-warning dispatch-conflict" role="alert">
           <p>
             Hồ sơ vừa thay đổi ở tab khác. Vui lòng xem lại thông tin mới phía
-            trên trước khi giao.
+            trên trước khi lưu.
           </p>
           <button
             type="button"
@@ -407,7 +647,11 @@ export function IncidentDispatchForm({
           disabled={saving || hasExternalUpdate}
         >
           <Send size={16} aria-hidden="true" />
-          {saving ? "Đang lưu…" : "Xác nhận giao xử lý"}
+          {saving
+            ? "Đang lưu…"
+            : isReassignMode
+              ? "Lưu điều chỉnh phân công"
+              : "Xác nhận giao xử lý"}
         </button>
       </div>
     </form>

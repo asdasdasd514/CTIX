@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Search,
   MapPin,
-  List,
   Map,
   ArrowUpRight,
   ArrowLeft,
@@ -12,59 +11,97 @@ import {
   CheckCircle2,
   AlertTriangle,
   ClipboardList,
-  ChevronRight,
+  Send,
 } from "lucide-react";
 import { useIncidentStore } from "../../store/useIncidentStore";
 import { OpenStreetMap } from "../../components/Map/OpenStreetMap";
 import {
   IncidentDispatchForm,
   IncidentOverview,
+  type DispatchReceipt,
 } from "../../components/Incidents/IncidentDispatchForm";
 import {
   CATEGORIES,
+  PRIORITY_LABELS,
   STATUS_LABELS,
+  UNASSIGNED_UNIT_FILTER,
+  compareDispatchPriority,
   deadlineLabel,
   formatDate,
+  getAllKnownUnits,
+  getAssigneeLabel,
   getIncidentMapVisual,
+  incidentMonthKey,
   incidentStats,
   isComplete,
   isOverdue,
 } from "../../lib/incidents";
-import type { IncidentCategory } from "../../types/incident";
+import type {
+  IncidentCategory,
+  IncidentPriority,
+} from "../../types/incident";
 
 type WorkFilter =
   | "open"
   | "all"
   | "pending"
-  | "active"
+  | "assigned"
+  | "in_progress"
   | "overdue"
   | "completed";
 
-export function OfficerWorkbench({
-  initialView = "list",
-}: {
-  initialView?: "list" | "map";
-}) {
+const VALID_FILTERS: WorkFilter[] = [
+  "open",
+  "all",
+  "pending",
+  "assigned",
+  "in_progress",
+  "overdue",
+  "completed",
+];
+
+export function OfficerWorkbench() {
   const { incidents, syncNotice, selectedIncidentId, setSelectedIncidentId } =
     useIncidentStore();
-  const [filter, setFilter] = useState<WorkFilter>("open");
-  const [category, setCategory] = useState<IncidentCategory | "all">("all");
-  const [query, setQuery] = useState("");
-  const [urgentOnly, setUrgentOnly] = useState(false);
-  const [viewState, setViewState] = useState({
-    base: initialView,
-    current: initialView,
-  });
-  const view = viewState.base === initialView ? viewState.current : initialView;
-  const setView = (next: "list" | "map") =>
-    setViewState({ base: initialView, current: next });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialStatus = searchParams.get("status");
+  const initialCategory = searchParams.get("category");
+  const initialPriority = searchParams.get("priority");
+
+  const [filter, setFilter] = useState<WorkFilter>(
+    initialStatus && VALID_FILTERS.includes(initialStatus as WorkFilter)
+      ? (initialStatus as WorkFilter)
+      : "open",
+  );
+  const [category, setCategory] = useState<IncidentCategory | "all">(
+    initialCategory && Object.hasOwn(CATEGORIES, initialCategory)
+      ? (initialCategory as IncidentCategory)
+      : "all",
+  );
+  const [priorityFilter, setPriorityFilter] = useState<
+    IncidentPriority | "all"
+  >(
+    initialPriority && ["normal", "high", "urgent"].includes(initialPriority)
+      ? (initialPriority as IncidentPriority)
+      : searchParams.get("urgent") === "1"
+        ? "urgent"
+        : "all",
+  );
+  const [unitFilter, setUnitFilter] = useState(
+    searchParams.get("unit") || "all",
+  );
+  const [monthFilter, setMonthFilter] = useState(
+    searchParams.get("month") || "",
+  );
+  const [assigneeFilter, setAssigneeFilter] = useState(
+    searchParams.get("assignee") || "all",
+  );
+  const [query, setQuery] = useState(searchParams.get("q") || "");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
-  const [justDispatched, setJustDispatched] = useState<{
-    id: string;
-    code: string;
-    unitName: string;
-    deadline: string;
-  } | null>(null);
+  const [justDispatched, setJustDispatched] = useState<DispatchReceipt | null>(
+    null,
+  );
   const [now, setNow] = useState(() => Date.now());
   const detailSectionRef = useRef<HTMLDivElement>(null);
 
@@ -73,23 +110,44 @@ export function OfficerWorkbench({
     return () => clearInterval(timer);
   }, []);
 
-  const stats = incidentStats(incidents, now);
+  const unitOptions = useMemo(() => getAllKnownUnits(incidents), [incidents]);
+  const scopedByMonth = useMemo(
+    () =>
+      monthFilter
+        ? incidents.filter(
+            (item) => incidentMonthKey(item.createdAt) === monthFilter,
+          )
+        : incidents,
+    [incidents, monthFilter],
+  );
+  const stats = incidentStats(scopedByMonth, now);
+
   const filtered = useMemo(
     () =>
-      incidents
+      scopedByMonth
         .filter((item) => {
           if (filter === "open" && isComplete(item)) return false;
           if (filter === "pending" && item.status !== "pending") return false;
-          if (
-            filter === "active" &&
-            item.status !== "assigned" &&
-            item.status !== "in_progress"
-          )
+          if (filter === "assigned" && item.status !== "assigned") return false;
+          if (filter === "in_progress" && item.status !== "in_progress")
             return false;
           if (filter === "overdue" && !isOverdue(item, now)) return false;
           if (filter === "completed" && !isComplete(item)) return false;
           if (category !== "all" && item.category !== category) return false;
-          if (urgentOnly && (isComplete(item) || item.priority !== "urgent"))
+          if (priorityFilter !== "all" && item.priority !== priorityFilter)
+            return false;
+          if (unitFilter === UNASSIGNED_UNIT_FILTER && item.assignedTo)
+            return false;
+          if (
+            unitFilter !== "all" &&
+            unitFilter !== UNASSIGNED_UNIT_FILTER &&
+            item.assignedTo?.unitName !== unitFilter
+          )
+            return false;
+          if (
+            assigneeFilter !== "all" &&
+            (item.assignedTo?.assigneeName || "") !== assigneeFilter
+          )
             return false;
           const text =
             `${item.code} ${item.title} ${item.location.address}`.toLocaleLowerCase(
@@ -97,16 +155,20 @@ export function OfficerWorkbench({
             );
           return text.includes(query.trim().toLocaleLowerCase("vi"));
         })
-        .sort(
-          (a, b) =>
-            Number(isOverdue(b, now)) - Number(isOverdue(a, now)) ||
-            Number(b.priority === "urgent") - Number(a.priority === "urgent") ||
-            Date.parse(b.createdAt) - Date.parse(a.createdAt),
-        ),
-    [incidents, filter, category, query, urgentOnly, now],
+        .sort((a, b) => compareDispatchPriority(a, b, now)),
+    [
+      scopedByMonth,
+      filter,
+      category,
+      priorityFilter,
+      unitFilter,
+      assigneeFilter,
+      query,
+      now,
+    ],
   );
 
-  // Giữ hồ sơ vừa phân công hiển thị kết quả lưu kể cả khi đang lọc "Chờ phân công".
+  // Giữ hồ sơ vừa phân công hiển thị biên nhận kể cả khi rời nhóm "Chờ phân công".
   const selectedInFilter = filtered.find(
     (item) => item.id === selectedIncidentId,
   );
@@ -119,12 +181,17 @@ export function OfficerWorkbench({
   const clearFilters = () => {
     setFilter("all");
     setCategory("all");
+    setPriorityFilter("all");
+    setUnitFilter("all");
+    setMonthFilter("");
+    setAssigneeFilter("all");
     setQuery("");
-    setUrgentOnly(false);
     setJustDispatched(null);
+    setSearchParams({}, { replace: true });
   };
 
-  const scrollDetailIntoView = () => {
+  const scrollDetailIntoView = (force = false) => {
+    if (!force && window.innerWidth > 820) return;
     window.requestAnimationFrame(() => {
       detailSectionRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -132,6 +199,15 @@ export function OfficerWorkbench({
       });
     });
   };
+
+  const mapParams = new URLSearchParams();
+  mapParams.set("status", filter);
+  if (category !== "all") mapParams.set("category", category);
+  if (unitFilter !== "all") mapParams.set("unit", unitFilter);
+  if (monthFilter) mapParams.set("month", monthFilter);
+  if (priorityFilter === "urgent") mapParams.set("urgent", "1");
+  if (query.trim()) mapParams.set("q", query.trim());
+  const mapUrl = `/map?${mapParams.toString()}`;
 
   const metrics = [
     {
@@ -142,9 +218,16 @@ export function OfficerWorkbench({
       color: "amber",
     },
     {
-      id: "active",
+      id: "assigned",
+      label: "Đã giao",
+      value: stats.assigned,
+      icon: Send,
+      color: "blue",
+    },
+    {
+      id: "in_progress",
       label: "Đang xử lý",
-      value: stats.active,
+      value: stats.inProgress,
       icon: Clock,
       color: "blue",
     },
@@ -164,20 +247,33 @@ export function OfficerWorkbench({
     },
   ] as const;
 
-  const isMobileListDetail = view === "list" && mobileDetailOpen && !!selected;
+  const isMobileDetail = mobileDetailOpen && !!selected;
 
   return (
     <div className="officer-workbench">
       <div className="work-heading">
         <div>
-          <h2>Việc cần xử lý</h2>
-          <p>Phường Trấn Biên · {stats.total} phản ánh trong dữ liệu demo</p>
+          <h2>Tiếp nhận & phân công</h2>
+          <p>
+            Phường Trấn Biên · {stats.total} hồ sơ
+            {monthFilter ? ` (tháng ${monthFilter})` : " trong dữ liệu demo"}
+          </p>
         </div>
-        <Link className="work-text-link" to="/statistics">
-          Xem thống kê <ArrowUpRight size={16} aria-hidden="true" />
-        </Link>
+        <div className="work-heading-links">
+          <Link className="work-secondary" to={mapUrl}>
+            <Map size={16} aria-hidden="true" />
+            Xem trên bản đồ
+          </Link>
+          <Link className="work-text-link" to="/statistics">
+            Xem thống kê <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
-      <div className="work-metrics" aria-label="Lọc theo tình trạng hồ sơ">
+
+      <div
+        className="work-metrics work-metrics-5"
+        aria-label="Lọc theo nhóm trạng thái"
+      >
         {metrics.map(({ id, label, value, icon: Icon, color }) => (
           <button
             type="button"
@@ -190,19 +286,19 @@ export function OfficerWorkbench({
             }}
           >
             <span className={`metric-symbol ${color}`}>
-              <Icon size={19} aria-hidden="true" />
+              <Icon size={18} aria-hidden="true" />
             </span>
             <span>
               <span className="metric-label">{label}</span>
               <strong>{value}</strong>
             </span>
-            <ChevronRight size={16} aria-hidden="true" />
           </button>
         ))}
       </div>
+
       {syncNotice && (
         <div className="work-notice" role="status">
-          <span>{syncNotice} Bản đồ và danh sách đã đồng bộ.</span>
+          <span>{syncNotice} Danh sách điều phối đã đồng bộ.</span>
           <button
             type="button"
             onClick={() => {
@@ -214,29 +310,38 @@ export function OfficerWorkbench({
           </button>
         </div>
       )}
+
       {justDispatched && (
         <div className="work-success work-dispatch-banner" role="status">
           <span>
-            Đã giao <strong>{justDispatched.code}</strong> cho{" "}
-            <strong>{justDispatched.unitName}</strong> (hạn{" "}
+            {justDispatched.isReassignment
+              ? "Đã điều chỉnh phân công"
+              : "Đã giao"}{" "}
+            <strong>{justDispatched.code}</strong> →{" "}
+            <strong>{justDispatched.unitName}</strong> (
+            {justDispatched.assigneeName} · hạn{" "}
             {formatDate(justDispatched.deadline)}).
           </span>
-          <Link className="work-text-link" to="/field/tasks">
+          <Link
+            className="work-text-link"
+            to={`/field/tasks?id=${encodeURIComponent(justDispatched.id)}`}
+          >
             Mở nhiệm vụ hiện trường{" "}
             <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
         </div>
       )}
+
       <section
         className="work-surface"
-        aria-label="Tiếp nhận và điều phối phản ánh"
+        aria-label="Danh sách tiếp nhận và điều phối"
       >
         <div className="work-toolbar">
           <label className="work-search">
             <Search size={18} aria-hidden="true" />
             <input
-              aria-label="Tìm phản ánh"
-              placeholder="Tìm mã phản ánh, tên đường…"
+              aria-label="Tìm mã hoặc địa chỉ phản ánh"
+              placeholder="Tìm mã hồ sơ, tên đường…"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -244,11 +349,9 @@ export function OfficerWorkbench({
               }}
             />
           </label>
-          <label className="sr-only" htmlFor="work-category">
-            Loại sự cố
-          </label>
           <select
             id="work-category"
+            aria-label="Lọc loại sự cố"
             value={category}
             onChange={(e) => {
               setCategory(e.target.value as IncidentCategory | "all");
@@ -262,18 +365,55 @@ export function OfficerWorkbench({
               </option>
             ))}
           </select>
-          <label className="urgent-filter">
-            <input
-              type="checkbox"
-              checked={urgentOnly}
-              onChange={(e) => {
-                setUrgentOnly(e.target.checked);
-                setJustDispatched(null);
-              }}
-            />
-            Chỉ khẩn cấp
-          </label>
+          <select
+            aria-label="Lọc mức độ"
+            value={priorityFilter}
+            onChange={(e) => {
+              setPriorityFilter(e.target.value as IncidentPriority | "all");
+              setJustDispatched(null);
+            }}
+          >
+            <option value="all">Tất cả mức độ</option>
+            <option value="urgent">Khẩn cấp</option>
+            <option value="high">Ưu tiên cao</option>
+            <option value="normal">Bình thường</option>
+          </select>
+          <select
+            aria-label="Lọc đơn vị phụ trách"
+            value={unitFilter}
+            onChange={(e) => {
+              setUnitFilter(e.target.value);
+              setJustDispatched(null);
+            }}
+          >
+            <option value="all">Tất cả đơn vị</option>
+            <option value={UNASSIGNED_UNIT_FILTER}>Chưa giao đơn vị</option>
+            {unitOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          {monthFilter && (
+            <button
+              type="button"
+              className="work-secondary"
+              onClick={() => setMonthFilter("")}
+            >
+              Tháng {monthFilter} <X size={15} aria-hidden="true" />
+            </button>
+          )}
+          {assigneeFilter !== "all" && (
+            <button
+              type="button"
+              className="work-secondary"
+              onClick={() => setAssigneeFilter("all")}
+            >
+              Phụ trách: {assigneeFilter} <X size={15} aria-hidden="true" />
+            </button>
+          )}
         </div>
+
         <div className="work-list-toolbar">
           <div className="work-tabs">
             <button
@@ -306,39 +446,12 @@ export function OfficerWorkbench({
             {filtered.length}/{stats.total} hồ sơ
           </span>
         </div>
-        <div
-          className="work-mobile-view"
-          role="group"
-          aria-label="Chuyển chế độ xem danh sách hoặc bản đồ"
-        >
-          <button
-            type="button"
-            aria-pressed={view === "list"}
-            onClick={() => {
-              setView("list");
-              setMobileDetailOpen(false);
-            }}
-          >
-            <List size={18} aria-hidden="true" />
-            Danh sách ({filtered.length})
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === "map"}
-            onClick={() => {
-              setView("map");
-              setMobileDetailOpen(false);
-            }}
-          >
-            <Map size={18} aria-hidden="true" />
-            Bản đồ
-          </button>
-        </div>
-        <div className="work-split">
+
+        <div className="dispatch-split">
           <div
-            className={`work-list ${view !== "list" || isMobileListDetail ? "mobile-hidden" : ""}`}
+            className={`work-list ${isMobileDetail ? "mobile-hidden" : ""}`}
           >
-            {selected && !isMobileListDetail && (
+            {selected && !isMobileDetail && (
               <div className="mobile-selected-strip">
                 <span>
                   Đang chọn: <strong>{selected.code}</strong>
@@ -355,7 +468,10 @@ export function OfficerWorkbench({
                 </button>
               </div>
             )}
-            <p className="work-list-hint">Ưu tiên quá hạn và khẩn cấp trước</p>
+            <p className="work-list-hint">
+              Sắp xếp: Quá hạn trước → Khẩn cấp → Ưu tiên cao → Tiếp nhận mới
+              nhất
+            </p>
             {filtered.length ? (
               filtered.map((item) => {
                 const visual = getIncidentMapVisual(item, now);
@@ -375,7 +491,15 @@ export function OfficerWorkbench({
                     <span className="work-incident-top">
                       <span className="work-code">{item.code}</span>
                       <span
-                        className={`work-badge ${isComplete(item) ? "green" : item.status === "pending" ? "amber" : "blue"}`}
+                        className={`work-badge ${
+                          visual.key === "completed"
+                            ? "green"
+                            : visual.key === "urgent_overdue"
+                              ? "rose"
+                              : visual.key === "pending"
+                                ? "amber"
+                                : "blue"
+                        }`}
                       >
                         <span aria-hidden="true">{visual.symbol}</span>{" "}
                         {STATUS_LABELS[item.status]}
@@ -386,6 +510,11 @@ export function OfficerWorkbench({
                       <MapPin size={15} aria-hidden="true" />
                       <span>{item.location.address}</span>
                     </span>
+                    <span className="work-dispatch-row-meta">
+                      {item.assignedTo
+                        ? `${item.assignedTo.unitName} · ${getAssigneeLabel(item.assignedTo)}`
+                        : "Chưa giao đơn vị"}
+                    </span>
                     <span className="work-incident-bottom">
                       <span
                         className={isOverdue(item, now) ? "overdue-text" : ""}
@@ -393,11 +522,14 @@ export function OfficerWorkbench({
                         <Clock size={14} aria-hidden="true" />
                         {deadlineLabel(item, now)}
                       </span>
-                      {item.priority === "urgent" ? (
-                        <span className="overdue-text">! Khẩn cấp</span>
-                      ) : (
-                        <span>{CATEGORIES[item.category]}</span>
-                      )}
+                      <span
+                        className={
+                          item.priority === "urgent" ? "overdue-text" : ""
+                        }
+                      >
+                        {CATEGORIES[item.category]} ·{" "}
+                        {PRIORITY_LABELS[item.priority]}
+                      </span>
                     </span>
                   </button>
                 );
@@ -419,63 +551,24 @@ export function OfficerWorkbench({
           </div>
 
           <div
-            className={`work-map-panel ${view !== "map" ? "mobile-hidden" : ""}`}
-          >
-            <OpenStreetMap
-              title={`Bản đồ hiện trường · ${filtered.length} vị trí`}
-              incidents={filtered}
-              height="360px"
-              now={now}
-              expandable
-              showLegend
-              selectedId={selectedInFilter?.id}
-              emptyMessage="Thử từ khóa khác hoặc xóa bộ lọc để xem các vị trí phản ánh."
-              onClearFilters={clearFilters}
-              onMarkerClick={(item) => {
-                setSelectedIncidentId(item.id);
-                setJustDispatched(null);
-              }}
-              onOpenDetail={(item) => {
-                setSelectedIncidentId(item.id);
-                setJustDispatched(null);
-                setMobileDetailOpen(true);
-                scrollDetailIntoView();
-              }}
-            />
-          </div>
-
-          <div
             ref={detailSectionRef}
-            className={`work-detail-panel ${
-              view === "list" && !isMobileListDetail ? "mobile-hidden" : ""
-            }`}
+            className={`work-detail-panel ${!isMobileDetail ? "mobile-hidden" : ""}`}
           >
             {selected ? (
               <section className="work-detail" aria-label="Chi tiết phản ánh">
                 <div className="work-detail-mobile-bar">
-                  {view === "list" && (
-                    <button
-                      type="button"
-                      className="work-secondary"
-                      onClick={() => setMobileDetailOpen(false)}
-                    >
-                      <ArrowLeft size={16} aria-hidden="true" />
-                      Quay lại danh sách
-                    </button>
-                  )}
-                  {view === "list" && (
-                    <button
-                      type="button"
-                      className="work-secondary"
-                      onClick={() => {
-                        setView("map");
-                        setMobileDetailOpen(false);
-                      }}
-                    >
-                      <Map size={16} aria-hidden="true" />
-                      Xem bản đồ
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="work-secondary"
+                    onClick={() => setMobileDetailOpen(false)}
+                  >
+                    <ArrowLeft size={16} aria-hidden="true" />
+                    Quay lại danh sách
+                  </button>
+                  <Link className="work-secondary" to="/map">
+                    <Map size={16} aria-hidden="true" />
+                    Bản đồ phản ánh
+                  </Link>
                 </div>
                 <div className="work-detail-heading">
                   <div>
@@ -485,7 +578,7 @@ export function OfficerWorkbench({
                   <div className="work-detail-actions">
                     <Link
                       className="work-icon-button"
-                      to={`/dispatch/${encodeURIComponent(selected.id)}`}
+                      to={`/dispatch/${encodeURIComponent(selected.id)}?from=dashboard`}
                       aria-label="Mở trang chi tiết hồ sơ"
                       title="Mở trang chi tiết hồ sơ"
                     >
@@ -511,14 +604,29 @@ export function OfficerWorkbench({
                   incident={selected}
                   onDone={(assigned) => setJustDispatched(assigned)}
                 />
+                <div className="supporting-location-map">
+                  <OpenStreetMap
+                    title="Vị trí hồ sơ đang xem"
+                    center={[selected.location.lat, selected.location.lng]}
+                    zoom={16}
+                    singlePin={{
+                      ...selected.location,
+                      label: selected.location.address,
+                    }}
+                    height="220px"
+                    expandable
+                    showLocateButton={false}
+                  />
+                </div>
               </section>
             ) : (
               <div className="work-select-hint">
                 <ClipboardList size={24} aria-hidden="true" />
                 <div>
-                  <h3>Chọn hồ sơ để xem và giao xử lý</h3>
+                  <h3>Chọn hồ sơ để xem chi tiết và phân công</h3>
                   <p>
-                    Bấm một dòng trong danh sách hoặc chạm một ghim trên bản đồ.
+                    Bấm một hồ sơ trong danh sách bên trái để xem ảnh, vị trí,
+                    đơn vị phụ trách và thực hiện điều phối.
                   </p>
                 </div>
               </div>
@@ -527,8 +635,8 @@ export function OfficerWorkbench({
         </div>
       </section>
       <p className="work-footer-note">
-        Dữ liệu giả lập phục vụ bài thi · Các đơn vị xử lý là nhóm minh họa ·
-        Đồng bộ giữa các tab cùng trình duyệt trên máy này.
+        Dữ liệu giả lập phục vụ bài thi · Danh sách đơn vị/cán bộ là dữ liệu
+        minh họa · Đồng bộ giữa các tab cùng trình duyệt trên máy này.
       </p>
     </div>
   );

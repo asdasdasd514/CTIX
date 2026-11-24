@@ -3,10 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./pages/Auth/LoginPage";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { CitizenLayout } from "./layouts/CitizenLayout";
-import { OfficerWorkbench } from "./pages/Dashboard/IocDashboardPage";
+import { IocDashboardPage } from "./pages/Dashboard/IocDashboardPage";
+import { AdminMapPage } from "./pages/Dashboard/AdminMapPage";
 import { StatisticsPage } from "./pages/Dashboard/StatisticsPage";
 import { useIncidentStore } from "./store/useIncidentStore";
-import { IocDashboardPage } from "./pages/Dashboard/IocDashboardPage";
 import { OfficerInboxPage } from "./pages/Officer/OfficerInboxPage";
 import { DispatchDetailPage } from "./pages/Officer/DispatchDetailPage";
 import { NearbyIncidentsMapPage } from "./modules/map/NearbyIncidentsMapPage";
@@ -64,29 +64,26 @@ export const App: React.FC = () => {
             Sidebar dọc chuẩn IRS màu Dark Navy #0b132b, la bàn xoay
             ======================================================== */}
         <Route path="/" element={<DashboardLayout />}>
-          {/* Màn hình 1 trong ảnh: Bảng Điều Hành Tổng Thể & Giám Sát Phản Ánh Đô Thị */}
-          <Route index element={<IocDashboardPage />} />
+          {/* Mặc định mở Bản đồ phản ánh cho cán bộ */}
+          <Route index element={<Navigate to="/map" replace />} />
+          <Route path="map" element={<AdminMapPage />} />
+          <Route path="admin/map" element={<AdminMapPage />} />
+
+          {/* Tiếp nhận & phân công (giữ đầy đủ đường dẫn cũ) */}
           <Route path="dashboard" element={<IocDashboardPage />} />
           <Route path="admin" element={<IocDashboardPage />} />
           <Route path="admin/dashboard" element={<IocDashboardPage />} />
-
-          {/* Màn hình 2 trong ảnh: 04 - Tiếp nhận & Phân công phản ánh (Desktop Cán Bộ) */}
           <Route path="inbox" element={<OfficerInboxPage />} />
           <Route path="admin/inbox" element={<OfficerInboxPage />} />
 
-          {/* Màn hình 3 trong ảnh: 05 - Phân công & Điều phối xử lý sự cố (Chi tiết 2 cột) */}
+          {/* Chi tiết & phân công hồ sơ */}
           <Route path="dispatch/:id" element={<DispatchDetailPage />} />
           <Route path="admin/dispatch/:id" element={<DispatchDetailPage />} />
 
-          {/* Bản đồ số không gian đô thị */}
-          <Route path="map" element={<OfficerWorkbench initialView="map" />} />
-          <Route
-            path="admin/map"
-            element={<OfficerWorkbench initialView="map" />}
-          />
+          {/* Thống kê */}
           <Route path="statistics" element={<StatisticsPage />} />
 
-          {/* Đội thanh niên tình nguyện: Xác minh tại chỗ & Nghiệm thu Trước/Sau */}
+          {/* Nhiệm vụ hiện trường */}
           <Route path="field/tasks" element={<FieldTasksPage />} />
           <Route path="admin/verify" element={<FieldTasksPage />} />
         </Route>

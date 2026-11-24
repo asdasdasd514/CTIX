@@ -29,10 +29,31 @@ export interface IncidentSender {
 
 export interface IncidentAssignment {
   unitName: string;
+  /** Người phân công (cán bộ tiếp nhận/điều phối) */
   officerName?: string;
+  /** Cán bộ phụ trách thực hiện trong đơn vị (tùy chọn) */
+  assigneeId?: string;
+  assigneeName?: string;
   assignedAt: string;
   deadline: string;
   notes?: string;
+}
+
+export interface AssignmentSnapshot {
+  unitName: string;
+  assigneeName?: string;
+  deadline: string;
+  notes?: string;
+  category: IncidentCategory;
+  priority: IncidentPriority;
+}
+
+export interface AssignmentChangeRecord {
+  changedAt: string;
+  changedBy: string;
+  reason: string;
+  before: AssignmentSnapshot;
+  after: AssignmentSnapshot;
 }
 
 export interface IncidentResolution {
@@ -61,6 +82,7 @@ export interface Incident {
   photosBefore: string[];
   photosAfter?: string[];
   assignedTo?: IncidentAssignment;
+  assignmentHistory?: AssignmentChangeRecord[];
   resolution?: IncidentResolution;
   rating?: IncidentRating;
   sameReportsCount: number; // Điểm cộng: số người cùng phản ánh (Upvote)

@@ -8,8 +8,12 @@ import {
   distanceMeters,
   deadlineLabel,
   getIncidentMapVisual,
+  getAssigneeLabel,
+  isStaffInUnit,
   MAP_STATUS_ORDER,
   MAP_STATUS_VISUALS,
+  UNASSIGNED_STAFF_LABEL,
+  UNITS,
   validateDispatchInput,
 } from "../src/lib/incidents.ts";
 
@@ -309,4 +313,97 @@ test("cross-tab conflict refreshes store for review without triggering storageEr
     store().incidents.find((i) => i.id === added.id).assignedTo.unitName,
     "Tổ vệ sinh môi trường",
   );
+});
+
+test("legacy assignment without assignee displays unassigned label; unit-staff check and reassignment history work", () => {
+  store().resetToDefaultData();
+  const legacy = store().incidents.find((i) => i.assignedTo);
+  assert.equal(legacy.assignedTo.assigneeName, undefined);
+  assert.equal(getAssigneeLabel(legacy.assignedTo), UNASSIGNED_STAFF_LABEL);
+  assert.ok(legacy.assignedTo.officerName);
+
+  const added = store().addIncident(input).incident;
+  const future1 = new Date(Date.now() + 2 * 86400000).toISOString();
+  const future2 = new Date(Date.now() + 4 * 86400000).toISOString();
+
+  // Cán bộ không thuộc đơn vị phải bị chặn
+  assert.equal(isStaffInUnit(UNITS.waste, "Nguyễn Văn Hùng"), false);
+  assert.throws(
+    () =>
+      store().assignIncident(added.id, UNITS.waste, 3, "Nguyễn Thành Long", {
+        assigneeName: "Nguyễn Văn Hùng",
+        deadline: future1,
+      }),
+    /không thuộc đơn vị/,
+  );
+
+  // Giao cho đơn vị trước (không tự gán ngẫu nhiên cá nhân)
+  store().assignIncident(added.id, UNITS.waste, 3, "Nguyễn Thành Long", {
+    deadline: future1,
+    notes: "Giao đơn vị trước",
+  });
+  const firstAssigned = store().incidents.find((i) => i.id === added.id);
+  assert.equal(firstAssigned.assignedTo.officerName, "Nguyễn Thành Long");
+  assert.equal(firstAssigned.assignedTo.assigneeName, undefined);
+  assert.equal(
+    getAssigneeLabel(firstAssigned.assignedTo),
+    UNASSIGNED_STAFF_LABEL,
+  );
+
+  // Điều chỉnh phân công bắt buộc có lý do và lưu lịch sử trước/sau
+  assert.throws(
+    () =>
+      store().reassignIncident(added.id, {
+        unitName: UNITS.flooding,
+        assigneeName: "Phạm Minh Tuấn",
+        deadline: future2,
+        reason: "",
+        changedBy: "Trần Văn Minh",
+        expectedUpdatedAt: firstAssigned.updatedAt,
+      }),
+    /lý do/,
+  );
+  store().reassignIncident(added.id, {
+    unitName: UNITS.flooding,
+    assigneeName: "Phạm Minh Tuấn",
+    deadline: future2,
+    notes: "Phối hợp khơi thông cống",
+    reason: "Hiện trường có ngập kèm rác",
+    changedBy: "Trần Văn Minh",
+    expectedUpdatedAt: firstAssigned.updatedAt,
+  });
+  const reassigned = store().incidents.find((i) => i.id === added.id);
+  assert.equal(reassigned.assignedTo.unitName, UNITS.flooding);
+  assert.equal(reassigned.assignedTo.assigneeName, "Phạm Minh Tuấn");
+  assert.equal(reassigned.assignedTo.officerName, "Trần Văn Minh");
+  assert.equal(reassigned.assignmentHistory.length, 1);
+  assert.equal(reassigned.assignmentHistory[0].reason, "Hiện trường có ngập kèm rác");
+  assert.equal(reassigned.assignmentHistory[0].before.unitName, UNITS.waste);
+  assert.equal(reassigned.assignmentHistory[0].after.unitName, UNITS.flooding);
+  assert.equal(reassigned.assignmentHistory[0].after.assigneeName, "Phạm Minh Tuấn");
+
+  // Không cho điều chỉnh hồ sơ đã hoàn tất
+  store().startIncident(added.id);
+  store().resolveIncident(added.id, "Đã xử lý xong", [
+    "https://example.com/after.jpg",
+  ]);
+  assert.throws(
+    () =>
+      store().reassignIncident(added.id, {
+        unitName: UNITS.waste,
+        deadline: future2,
+        reason: "Thử sửa sau khi xong",
+      }),
+    /đã giao hoặc đang xử lý/,
+  );
+});
+
+test("statistics totals match source records without double-counting overlapping groups", () => {
+  const seed = generateMockIncidents();
+  const s = incidentStats(seed);
+  assert.equal(s.pending + s.assigned + s.inProgress + s.completed, s.total);
+  assert.equal(s.assigned + s.inProgress, s.active);
+  assert.ok(s.totalReportsCount > s.total);
+  assert.equal(s.onTimeTotal, 47);
+  assert.equal(s.onTimeCount, 47);
 });

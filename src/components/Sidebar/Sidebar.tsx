@@ -22,8 +22,8 @@ export function Sidebar({
   const collapsed = sidebarCollapsed && !onCloseMobile;
   const pending = incidents.filter((i) => i.status === "pending").length;
   const items = [
-    { path: "/dashboard", label: "Bàn làm việc", icon: LayoutDashboard },
     { path: "/map", label: "Bản đồ phản ánh", icon: MapPin },
+    { path: "/dashboard", label: "Tiếp nhận & phân công", icon: LayoutDashboard },
     {
       path: "/field/tasks",
       label: "Nhiệm vụ hiện trường",

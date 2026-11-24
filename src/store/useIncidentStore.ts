@@ -11,7 +11,9 @@ import { generateMockIncidents } from "../data/mockIncidents.ts";
 import {
   CATEGORIES,
   distanceMeters,
+  findUnitStaffMember,
   isComplete,
+  isStaffInUnit,
   safeImageUrl,
   validCoordinates,
 } from "../lib/incidents.ts";
@@ -52,8 +54,25 @@ export function parseIncidents(raw: string): Incident[] {
         dateValid(i.updatedAt) &&
         (!i.assignedTo ||
           (typeof i.assignedTo.unitName === "string" &&
+            (i.assignedTo.assigneeId === undefined ||
+              typeof i.assignedTo.assigneeId === "string") &&
+            (i.assignedTo.assigneeName === undefined ||
+              typeof i.assignedTo.assigneeName === "string") &&
             dateValid(i.assignedTo.assignedAt) &&
             dateValid(i.assignedTo.deadline))) &&
+        (!i.assignmentHistory ||
+          (Array.isArray(i.assignmentHistory) &&
+            i.assignmentHistory.every(
+              (h: any) =>
+                h &&
+                dateValid(h.changedAt) &&
+                typeof h.changedBy === "string" &&
+                typeof h.reason === "string" &&
+                h.before &&
+                typeof h.before.unitName === "string" &&
+                h.after &&
+                typeof h.after.unitName === "string",
+            ))) &&
         (!i.resolution ||
           (typeof i.resolution.notes === "string" &&
             dateValid(i.resolution.resolvedAt))) &&
@@ -84,13 +103,42 @@ export function parseIncidents(raw: string): Incident[] {
   return data;
 }
 
+export type AdminMapFilter =
+  | "open"
+  | "all"
+  | "pending"
+  | "assigned"
+  | "in_progress"
+  | "overdue"
+  | "completed";
+
+export interface MapScreenState {
+  filter: AdminMapFilter;
+  category: IncidentCategory | "all";
+  query: string;
+  urgentOnly: boolean;
+  unit: string;
+  month: string;
+  center: [number, number] | null;
+  zoom: number | null;
+}
+
 interface DispatchOptions {
   expectedUpdatedAt?: string;
   category?: IncidentCategory;
   priority?: IncidentPriority;
+  assigneeId?: string;
+  assigneeName?: string;
   notes?: string;
   deadline?: string;
 }
+
+interface ReassignOptions extends DispatchOptions {
+  unitName: string;
+  reason: string;
+  changedBy?: string;
+}
+
 interface IncidentStore {
   incidents: Incident[];
   storageError: string | null;
@@ -99,6 +147,8 @@ interface IncidentStore {
   currentRole: UserRole;
   elderlyMode: boolean;
   selectedIncidentId: string | null;
+  mapScreenState: MapScreenState;
+  setMapScreenState: (patch: Partial<MapScreenState>) => void;
   activeCitizenTab: "submit" | "my-reports" | "map";
   searchQuery: string;
   categoryFilter: IncidentCategory | "all";
@@ -125,6 +175,7 @@ interface IncidentStore {
     officer?: string,
     options?: DispatchOptions,
   ) => void;
+  reassignIncident: (id: string, options: ReassignOptions) => void;
   startIncident: (id: string) => void;
   verifyIncident: (id: string, notes?: string) => void;
   resolveIncident: (
@@ -222,6 +273,18 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
   currentRole: "citizen",
   elderlyMode: false,
   selectedIncidentId: null,
+  mapScreenState: {
+    filter: "open",
+    category: "all",
+    query: "",
+    urgentOnly: false,
+    unit: "all",
+    month: "",
+    center: null,
+    zoom: null,
+  },
+  setMapScreenState: (patch) =>
+    set((s) => ({ mapScreenState: { ...s.mapScreenState, ...patch } })),
   activeCitizenTab: "my-reports",
   searchQuery: "",
   categoryFilter: "all",
@@ -328,6 +391,14 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
   ) => {
     const trimmedUnit = unitName.trim();
     const trimmedNotes = options.notes?.trim();
+    const rawAssignee = options.assigneeName?.trim() || options.assigneeId?.trim() || "";
+    if (rawAssignee && !isStaffInUnit(trimmedUnit, rawAssignee))
+      throw new Error(
+        "Cán bộ phụ trách không thuộc đơn vị đã chọn. Vui lòng kiểm tra lại.",
+      );
+    const staffMember = rawAssignee
+      ? findUnitStaffMember(trimmedUnit, rawAssignee)
+      : undefined;
     if (trimmedNotes && trimmedNotes.length > 1500)
       throw new Error("Ghi chú giao việc tối đa 1500 ký tự.");
     const deadline =
@@ -367,10 +438,109 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         assignedTo: {
           unitName: trimmedUnit,
           officerName,
+          assigneeId: staffMember?.id,
+          assigneeName: staffMember?.name,
           assignedAt: new Date().toISOString(),
           deadline,
           notes: trimmedNotes,
         },
+      };
+    });
+  },
+  reassignIncident: (id, options) => {
+    const trimmedUnit = options.unitName.trim();
+    const trimmedReason = options.reason.trim();
+    const trimmedNotes = options.notes?.trim();
+    const rawAssignee =
+      options.assigneeName?.trim() || options.assigneeId?.trim() || "";
+    if (trimmedReason.length < 3 || trimmedReason.length > 500)
+      throw new Error("Nhập lý do điều chỉnh phân công (3–500 ký tự).");
+    if (rawAssignee && !isStaffInUnit(trimmedUnit, rawAssignee))
+      throw new Error(
+        "Cán bộ phụ trách không thuộc đơn vị đã chọn. Vui lòng kiểm tra lại.",
+      );
+    const staffMember = rawAssignee
+      ? findUnitStaffMember(trimmedUnit, rawAssignee)
+      : undefined;
+    if (trimmedNotes && trimmedNotes.length > 1500)
+      throw new Error("Ghi chú giao việc tối đa 1500 ký tự.");
+    const deadline = options.deadline || "";
+    if (
+      !trimmedUnit ||
+      !dateValid(deadline) ||
+      Date.parse(deadline) <= Date.now()
+    )
+      throw new Error("Chọn đơn vị và hạn xử lý sau thời điểm hiện tại.");
+    if (options.category && !Object.hasOwn(CATEGORIES, options.category))
+      throw new Error("Loại sự cố không hợp lệ.");
+    if (
+      options.priority &&
+      !["normal", "high", "urgent"].includes(options.priority)
+    )
+      throw new Error("Mức độ không hợp lệ.");
+    changeIncident(id, (item) => {
+      if (
+        options.expectedUpdatedAt &&
+        item.updatedAt !== options.expectedUpdatedAt
+      )
+        throw new Error(
+          "Hồ sơ vừa thay đổi ở tab khác. Hãy xem lại thông tin mới trước khi điều chỉnh.",
+        );
+      if (
+        (item.status !== "assigned" && item.status !== "in_progress") ||
+        !item.assignedTo
+      )
+        throw new Error(
+          "Chỉ được điều chỉnh phân công cho hồ sơ đã giao hoặc đang xử lý.",
+        );
+      const nextCategory = options.category || item.category;
+      const nextPriority = options.priority || item.priority;
+      const before = {
+        unitName: item.assignedTo.unitName,
+        assigneeName: item.assignedTo.assigneeName,
+        deadline: item.assignedTo.deadline,
+        notes: item.assignedTo.notes,
+        category: item.category,
+        priority: item.priority,
+      };
+      const after = {
+        unitName: trimmedUnit,
+        assigneeName: staffMember?.name,
+        deadline,
+        notes: trimmedNotes,
+        category: nextCategory,
+        priority: nextPriority,
+      };
+      const changed =
+        before.unitName !== after.unitName ||
+        (before.assigneeName || "") !== (after.assigneeName || "") ||
+        before.deadline !== after.deadline ||
+        (before.notes || "") !== (after.notes || "") ||
+        before.category !== after.category ||
+        before.priority !== after.priority;
+      if (!changed)
+        throw new Error("Chưa có thay đổi nào so với phân công hiện tại.");
+      const record = {
+        changedAt: new Date().toISOString(),
+        changedBy: options.changedBy?.trim() || "Cán bộ điều phối",
+        reason: trimmedReason,
+        before,
+        after,
+      };
+      return {
+        ...item,
+        category: nextCategory,
+        priority: nextPriority,
+        assignedTo: {
+          ...item.assignedTo,
+          unitName: trimmedUnit,
+          officerName: options.changedBy?.trim() || item.assignedTo.officerName,
+          assigneeId: staffMember?.id,
+          assigneeName: staffMember?.name,
+          deadline,
+          notes: trimmedNotes,
+        },
+        assignmentHistory: [record, ...(item.assignmentHistory || [])],
       };
     });
   },

@@ -36,6 +36,115 @@ export const UNITS: Record<IncidentCategory, string> = {
   road_damage: "Tổ bảo trì đường bộ",
 };
 
+export interface UnitStaffMember {
+  id: string;
+  name: string;
+  role: string;
+}
+export interface DemoUnit {
+  id: string;
+  name: string;
+  category: IncidentCategory;
+  staff: UnitStaffMember[];
+}
+export const DEMO_UNITS: DemoUnit[] = [
+  {
+    id: "unit-light",
+    name: UNITS.street_light,
+    category: "street_light",
+    staff: [
+      { id: "staff-hung", name: "Nguyễn Văn Hùng", role: "Kỹ thuật chiếu sáng" },
+      { id: "staff-bao", name: "Trần Quốc Bảo", role: "Tổ viên chiếu sáng" },
+    ],
+  },
+  {
+    id: "unit-flood",
+    name: UNITS.flooding,
+    category: "flooding",
+    staff: [
+      { id: "staff-tuan", name: "Phạm Minh Tuấn", role: "Tổ trưởng thoát nước" },
+      { id: "staff-son", name: "Lê Văn Sơn", role: "Kỹ thuật thoát nước" },
+    ],
+  },
+  {
+    id: "unit-waste",
+    name: UNITS.waste,
+    category: "waste",
+    staff: [
+      { id: "staff-lan", name: "Đỗ Thị Lan", role: "Tổ trưởng vệ sinh" },
+      { id: "staff-phuc", name: "Võ Hoàng Phúc", role: "Nhân viên môi trường" },
+    ],
+  },
+  {
+    id: "unit-road",
+    name: UNITS.road_damage,
+    category: "road_damage",
+    staff: [
+      { id: "staff-danh", name: "Huỳnh Công Danh", role: "Kỹ thuật đường bộ" },
+      { id: "staff-thang", name: "Bùi Đức Thắng", role: "Tổ viên duy tu" },
+    ],
+  },
+];
+
+export const UNASSIGNED_STAFF_LABEL = "Chưa chỉ định cán bộ";
+export const UNASSIGNED_UNIT_FILTER = "__unassigned__";
+
+export function getUnitStaff(unitName: string): UnitStaffMember[] {
+  return DEMO_UNITS.find((u) => u.name === unitName)?.staff ?? [];
+}
+export function findUnitStaffMember(
+  unitName: string,
+  assigneeIdOrName?: string,
+): UnitStaffMember | undefined {
+  const key = assigneeIdOrName?.trim();
+  if (!key) return undefined;
+  return getUnitStaff(unitName).find((s) => s.id === key || s.name === key);
+}
+export function isStaffInUnit(unitName: string, assigneeName?: string): boolean {
+  const key = assigneeName?.trim();
+  if (!key) return true;
+  return getUnitStaff(unitName).some((s) => s.name === key || s.id === key);
+}
+export function getAssigneeLabel(
+  assignedTo?: Incident["assignedTo"],
+): string {
+  return assignedTo?.assigneeName?.trim() || UNASSIGNED_STAFF_LABEL;
+}
+export function getAllKnownUnits(items: Incident[]): string[] {
+  const names = new Set<string>(DEMO_UNITS.map((u) => u.name));
+  for (const item of items) {
+    if (item.assignedTo?.unitName) names.add(item.assignedTo.unitName);
+  }
+  return Array.from(names);
+}
+export function getAllKnownAssignees(items: Incident[]): string[] {
+  const names = new Set<string>();
+  for (const item of items) {
+    const name = item.assignedTo?.assigneeName?.trim();
+    if (name) names.add(name);
+  }
+  return Array.from(names);
+}
+export function incidentMonthKey(createdAt: string): string {
+  return new Date(createdAt)
+    .toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })
+    .slice(0, 7);
+}
+export function priorityRank(priority: IncidentPriority): number {
+  return priority === "urgent" ? 2 : priority === "high" ? 1 : 0;
+}
+export function compareDispatchPriority(
+  a: Incident,
+  b: Incident,
+  now = Date.now(),
+): number {
+  return (
+    Number(isOverdue(b, now)) - Number(isOverdue(a, now)) ||
+    priorityRank(b.priority) - priorityRank(a.priority) ||
+    Date.parse(b.createdAt) - Date.parse(a.createdAt)
+  );
+}
+
 export type MapStatusKey = "pending" | "active" | "urgent_overdue" | "completed";
 export interface MapStatusVisual {
   key: MapStatusKey;
@@ -93,33 +202,70 @@ export function getIncidentMapVisual(
 
 export function validateDispatchInput({
   unitName,
+  assigneeName = "",
   deadline,
   notes = "",
+  reason,
+  requireReason = false,
   now = Date.now(),
 }: {
   unitName: string;
+  assigneeName?: string;
   deadline: string;
   notes?: string;
+  reason?: string;
+  requireReason?: boolean;
   now?: number;
-}): { ok: true; deadlineIso: string; trimmedUnit: string; trimmedNotes: string } | { ok: false; error: string } {
+}):
+  | {
+      ok: true;
+      deadlineIso: string;
+      trimmedUnit: string;
+      trimmedAssignee: string;
+      trimmedNotes: string;
+      trimmedReason: string;
+    }
+  | { ok: false; error: string } {
   const trimmedUnit = unitName.trim();
   if (!trimmedUnit)
     return { ok: false, error: "Vui lòng chọn đơn vị phụ trách." };
+  const trimmedAssignee = assigneeName.trim();
+  if (trimmedAssignee && !isStaffInUnit(trimmedUnit, trimmedAssignee))
+    return {
+      ok: false,
+      error: "Cán bộ phụ trách không thuộc đơn vị đã chọn. Vui lòng chọn lại.",
+    };
   if (!deadline.trim())
     return { ok: false, error: "Vui lòng nhập hạn hoàn thành cụ thể." };
   const parsed = Date.parse(deadline);
   if (!Number.isFinite(parsed))
-    return { ok: false, error: "Hạn hoàn thành không đúng định dạng ngày giờ." };
+    return {
+      ok: false,
+      error: "Hạn hoàn thành không đúng định dạng ngày giờ.",
+    };
   if (parsed <= now)
-    return { ok: false, error: "Hạn hoàn thành phải sau thời điểm hiện tại." };
+    return {
+      ok: false,
+      error: "Hạn hoàn thành phải sau thời điểm hiện tại.",
+    };
   const trimmedNotes = notes.trim();
   if (trimmedNotes.length > 1500)
     return { ok: false, error: "Ghi chú giao việc tối đa 1500 ký tự." };
+  const trimmedReason = reason?.trim() || "";
+  if (requireReason && trimmedReason.length < 3)
+    return {
+      ok: false,
+      error: "Vui lòng nhập lý do điều chỉnh phân công (tối thiểu 3 ký tự).",
+    };
+  if (trimmedReason.length > 500)
+    return { ok: false, error: "Lý do điều chỉnh tối đa 500 ký tự." };
   return {
     ok: true,
     deadlineIso: new Date(parsed).toISOString(),
     trimmedUnit,
+    trimmedAssignee,
     trimmedNotes,
+    trimmedReason,
   };
 }
 export const isComplete = (item: Incident) =>
@@ -161,9 +307,17 @@ export function incidentStats(items: Incident[], now = Date.now()) {
   );
   const rated = completed.filter((i) => i.rating);
   const withDeadline = completed.filter((i) => i.assignedTo && i.resolution);
+  const onTimeCount = withDeadline.filter(
+    (i) =>
+      Date.parse(i.resolution!.resolvedAt) <=
+      Date.parse(i.assignedTo!.deadline),
+  ).length;
   return {
     total: items.length,
+    totalReportsCount: items.reduce((sum, i) => sum + i.sameReportsCount, 0),
     pending: items.filter((i) => i.status === "pending").length,
+    assigned: items.filter((i) => i.status === "assigned").length,
+    inProgress: items.filter((i) => i.status === "in_progress").length,
     active: items.filter(
       (i) => i.status === "assigned" || i.status === "in_progress",
     ).length,
@@ -178,19 +332,16 @@ export function incidentStats(items: Incident[], now = Date.now()) {
           0,
         ) / durations.length
       : null,
+    averageDaysCount: durations.length,
     averageRating: rated.length
       ? rated.reduce((sum, i) => sum + i.rating!.stars, 0) / rated.length
       : null,
     rated: rated.length,
     onTime: withDeadline.length
-      ? (withDeadline.filter(
-          (i) =>
-            Date.parse(i.resolution!.resolvedAt) <=
-            Date.parse(i.assignedTo!.deadline),
-        ).length /
-          withDeadline.length) *
-        100
+      ? (onTimeCount / withDeadline.length) * 100
       : null,
+    onTimeCount,
+    onTimeTotal: withDeadline.length,
   };
 }
 export function validCoordinates(lat: number, lng: number) {

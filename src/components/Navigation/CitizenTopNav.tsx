@@ -84,7 +84,7 @@ export const CitizenTopNav: React.FC = () => {
                 navigate('/dashboard');
               }}
               className="flex items-center gap-1.5 text-white hover:text-cyan-200 bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-lg transition border border-white/20 shadow-2xs group whitespace-nowrap"
-              title="Chuyển sang Bàn làm việc Cán bộ / IOC"
+              title="Chuyển sang Tiếp nhận & phân công"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-cyan-300 group-hover:scale-110 transition shrink-0" />
               <span>Bàn Cán Bộ / Admin</span>
