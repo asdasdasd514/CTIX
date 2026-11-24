@@ -9,11 +9,11 @@ export const CitizenLayout: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-800 flex flex-col font-sans ${
+      className={`min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-800 flex flex-col font-sans pb-[76px] md:pb-0 ${
         elderlyMode ? 'elderly-mode' : ''
       }`}
     >
-      {/* 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVIGATION) CHO CÔNG DÂN */}
+      {/* 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (PC) & THANH MENU DƯỚI CÙNG (MOBILE) */}
       <CitizenTopNav />
 
       {/* 2. NỘI DUNG CHÍNH CĂN ĐỀU CHUẨN PC & ĐIỆN THOẠI */}
@@ -21,11 +21,11 @@ export const CitizenLayout: React.FC = () => {
         <Outlet />
       </main>
 
-      {/* 3. FOOTER DÂN SINH MINH BẠCH (GÓC VUÔNG, CHỐNG TRÀN MOBILE) */}
+      {/* 3. FOOTER DÂN SINH MINH BẠCH */}
       <footer className="bg-white border-t border-slate-200 mt-auto py-5 sm:py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-[5px] bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-4 h-4 text-blue-700" />
             </div>
             <div className="min-w-0">

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { Incident } from '../../types/incident';
@@ -54,34 +54,34 @@ export const MyReportsPage: React.FC = () => {
     switch (status) {
       case 'pending':
         return (
-          <span className="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-none border border-amber-300 inline-flex items-center gap-1 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 rounded-none bg-amber-500 animate-pulse" />
+          <span className="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-amber-300 inline-flex items-center gap-1 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-[5px] bg-amber-500 animate-pulse" />
             Chờ tiếp nhận
           </span>
         );
       case 'assigned':
         return (
-          <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-none border border-blue-300 whitespace-nowrap">
+          <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-blue-300 whitespace-nowrap">
             Đã giao đơn vị
           </span>
         );
       case 'in_progress':
         return (
-          <span className="bg-indigo-100 text-indigo-800 text-[11px] font-bold px-2 py-0.5 rounded-none border border-indigo-300 inline-flex items-center gap-1 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 rounded-none bg-indigo-500 animate-pulse" />
+          <span className="bg-indigo-100 text-indigo-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-indigo-300 inline-flex items-center gap-1 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-[5px] bg-indigo-500 animate-pulse" />
             Đang khắc phục
           </span>
         );
       case 'resolved':
         return (
-          <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-none border border-emerald-300 inline-flex items-center gap-1 whitespace-nowrap">
+          <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-emerald-300 inline-flex items-center gap-1 whitespace-nowrap">
             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
             Đã hoàn thành
           </span>
         );
       case 'closed':
         return (
-          <span className="bg-slate-100 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-none border border-slate-300 whitespace-nowrap">
+          <span className="bg-slate-100 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-slate-300 whitespace-nowrap">
             Đã nghiệm thu
           </span>
         );
@@ -97,7 +97,7 @@ export const MyReportsPage: React.FC = () => {
             <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
               Danh Sách Phản Ánh Hiện Trường
             </h1>
-            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-blue-200">
+            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-blue-200">
               Công Dân
             </span>
           </div>
@@ -108,7 +108,7 @@ export const MyReportsPage: React.FC = () => {
 
         <button
           onClick={() => navigate('/citizen/submit')}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-none shadow-sm transition active:scale-[0.99] text-xs sm:text-sm uppercase tracking-wider border border-blue-900 shrink-0"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-[5px] shadow-sm transition active:scale-[0.99] text-xs sm:text-sm uppercase tracking-wider border border-blue-900 shrink-0"
         >
           <PlusCircle className="w-4 h-4 text-white shrink-0" />
           <span>+ Thêm phản ánh</span>
@@ -116,12 +116,12 @@ export const MyReportsPage: React.FC = () => {
       </div>
 
       {/* 2. THANH CÔNG CỤ: BỘ LỌC & TÌM KIẾM (CHỐNG TRÀN TRÊN MOBILE) */}
-      <div className="bg-white p-3 sm:p-4 rounded-none border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white p-3 sm:p-4 rounded-[5px] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Bộ lọc trạng thái */}
-        <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-none border border-slate-200 w-full md:w-auto">
+        <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200 w-full md:w-auto">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-none text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-[5px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
               statusFilter === 'all'
                 ? 'bg-blue-700 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -131,7 +131,7 @@ export const MyReportsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-none text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-[5px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
               statusFilter === 'pending'
                 ? 'bg-blue-700 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -141,7 +141,7 @@ export const MyReportsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('resolved')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-none text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-[5px] text-[11px] sm:text-xs font-bold transition text-center whitespace-nowrap ${
               statusFilter === 'resolved'
                 ? 'bg-blue-700 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -159,7 +159,7 @@ export const MyReportsPage: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm mã PA-001, tên đường, loại sự cố..."
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-none text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-[5px] text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition"
           />
         </div>
       </div>
@@ -169,7 +169,7 @@ export const MyReportsPage: React.FC = () => {
         {/* CỘT TRÁI (7 / 12 CỘT): DANH SÁCH THẺ HỒ SƠ */}
         <div className="lg:col-span-7 space-y-3 min-w-0">
           {filteredList.length === 0 ? (
-            <div className="bg-white rounded-none border border-slate-200 p-10 text-center text-slate-400 text-xs">
+            <div className="bg-white rounded-[5px] border border-slate-200 p-10 text-center text-slate-400 text-xs">
               Không tìm thấy phản ánh nào phù hợp với bộ lọc
             </div>
           ) : (
@@ -181,7 +181,7 @@ export const MyReportsPage: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => handleSelectIncident(item)}
-                  className={`bg-white rounded-none border p-3.5 sm:p-5 transition cursor-pointer shadow-sm ${
+                  className={`bg-white rounded-[5px] border p-3.5 sm:p-5 transition cursor-pointer shadow-sm ${
                     isSelected
                       ? 'border-blue-700 bg-blue-50/20 ring-1 ring-blue-700'
                       : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50/40'
@@ -190,12 +190,12 @@ export const MyReportsPage: React.FC = () => {
                   {/* Header thẻ: flex-wrap chống tràn trên mobile */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                      <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-none border border-blue-200">
+                      <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
                         {item.code}
                       </span>
                       {getStatusBadge(item.status)}
                       {item.sameReportsCount > 1 && (
-                        <span className="bg-rose-50 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-none border border-rose-200 whitespace-nowrap">
+                        <span className="bg-rose-50 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-[5px] border border-rose-200 whitespace-nowrap">
                           🔥 {item.sameReportsCount} người báo
                         </span>
                       )}
@@ -207,7 +207,7 @@ export const MyReportsPage: React.FC = () => {
 
                   {/* Nội dung thẻ */}
                   <div className="flex items-start gap-3 sm:gap-4 mt-3">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-none overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[5px] overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                       <img
                         src={item.photosBefore[0]}
                         alt=""
@@ -252,11 +252,11 @@ export const MyReportsPage: React.FC = () => {
         {/* CỘT PHẢI (5 / 12 CỘT): PANEL CHI TIẾT & ĐÁNH GIÁ 5 SAO */}
         <div ref={detailPanelRef} className="lg:col-span-5 lg:sticky lg:top-24 space-y-4 min-w-0 scroll-mt-24">
           {selectedIncident ? (
-            <div className="bg-white rounded-none border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-6 space-y-5">
+            <div className="bg-white rounded-[5px] border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-6 space-y-5">
               {/* Header Hồ Sơ */}
               <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
                 <div className="min-w-0 flex-1">
-                  <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-none border border-blue-200">
+                  <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
                     {selectedIncident.code}
                   </span>
                   <h2 className="text-base sm:text-lg font-black text-slate-900 mt-1.5 leading-snug break-words">
@@ -276,7 +276,7 @@ export const MyReportsPage: React.FC = () => {
                     <span className="text-[11px] font-bold text-rose-700 block truncate">
                       ● Lúc báo cáo:
                     </span>
-                    <div className="aspect-video rounded-none overflow-hidden bg-slate-100 border border-slate-200">
+                    <div className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200">
                       <img
                         src={selectedIncident.photosBefore[0]}
                         alt="Trước"
@@ -289,7 +289,7 @@ export const MyReportsPage: React.FC = () => {
                     <span className="text-[11px] font-bold text-emerald-700 block truncate">
                       ● Sau hoàn tất:
                     </span>
-                    <div className="aspect-video rounded-none overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+                    <div className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
                       {selectedIncident.photosAfter && selectedIncident.photosAfter[0] ? (
                         <img
                           src={selectedIncident.photosAfter[0]}
@@ -308,14 +308,14 @@ export const MyReportsPage: React.FC = () => {
               </div>
 
               {/* Timeline Tiến Trình 4 Bước */}
-              <div className="bg-slate-50 p-3.5 sm:p-4 rounded-none border border-slate-200 space-y-3">
+              <div className="bg-slate-50 p-3.5 sm:p-4 rounded-[5px] border border-slate-200 space-y-3">
                 <span className="text-xs font-extrabold text-slate-800 uppercase block">
                   Tiến trình giải quyết của UBND Phường:
                 </span>
 
                 <div className="space-y-3 text-xs">
                   <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-none bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-[5px] bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                       ✓
                     </div>
                     <div className="min-w-0">
@@ -328,7 +328,7 @@ export const MyReportsPage: React.FC = () => {
 
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-5 h-5 rounded-none flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                      className={`w-5 h-5 rounded-[5px] flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
                         selectedIncident.assignedTo
                           ? 'bg-emerald-600 text-white'
                           : 'bg-slate-300 text-slate-600'
@@ -348,13 +348,13 @@ export const MyReportsPage: React.FC = () => {
 
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-5 h-5 rounded-none flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                      className={`w-5 h-5 rounded-[5px] flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
                         selectedIncident.status === 'resolved' || selectedIncident.status === 'closed'
                           ? 'bg-emerald-600 text-white'
                           : selectedIncident.status === 'in_progress'
                           ? 'bg-blue-600 text-white animate-pulse'
                           : 'bg-slate-300 text-slate-600'
-                      }`}
+                        }`}
                     >
                       {selectedIncident.status === 'resolved' || selectedIncident.status === 'closed'
                         ? '✓'
@@ -372,13 +372,13 @@ export const MyReportsPage: React.FC = () => {
 
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-5 h-5 rounded-none flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                      className={`w-5 h-5 rounded-[5px] flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
                         selectedIncident.rating
                           ? 'bg-emerald-600 text-white'
                           : selectedIncident.status === 'resolved'
                           ? 'bg-amber-500 text-white'
                           : 'bg-slate-300 text-slate-600'
-                      }`}
+                        }`}
                     >
                       {selectedIncident.rating ? '✓' : '4'}
                     </div>
@@ -398,7 +398,7 @@ export const MyReportsPage: React.FC = () => {
               {(selectedIncident.status === 'resolved' || selectedIncident.status === 'closed') && (
                 <div className="pt-1">
                   {selectedIncident.rating ? (
-                    <div className="bg-amber-50 border border-amber-300 p-4 rounded-none text-center space-y-1">
+                    <div className="bg-amber-50 border border-amber-300 p-4 rounded-[5px] text-center space-y-1">
                       <div className="flex items-center justify-center gap-1 text-amber-500">
                         {Array.from({ length: selectedIncident.rating.stars }).map((_, i) => (
                           <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
@@ -416,7 +416,7 @@ export const MyReportsPage: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => setRatingTarget(selectedIncident)}
-                      className="w-full py-3 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-none font-black shadow-sm transition flex items-center justify-center gap-2 active:scale-[0.99] text-xs sm:text-sm border border-amber-600 uppercase tracking-wide"
+                      className="w-full py-3 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-[5px] font-black shadow-sm transition flex items-center justify-center gap-2 active:scale-[0.99] text-xs sm:text-sm border border-amber-600 uppercase tracking-wide"
                     >
                       <Star className="w-4 h-4 fill-slate-900 shrink-0" />
                       <span>Đánh giá mức độ hài lòng (5 sao)</span>
@@ -426,7 +426,7 @@ export const MyReportsPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-none border border-slate-200 p-8 text-center text-slate-400 text-xs">
+            <div className="bg-white rounded-[5px] border border-slate-200 p-8 text-center text-slate-400 text-xs">
               Chọn một phản ánh để xem tiến độ chi tiết
             </div>
           )}

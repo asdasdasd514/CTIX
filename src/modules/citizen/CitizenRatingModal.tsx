@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Incident } from '../../types/incident';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { Star, CheckCircle2, X } from 'lucide-react';
@@ -45,11 +45,11 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-none shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-400">
+      <div className="bg-white rounded-[5px] shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-400">
         {/* Header */}
         <div className="bg-blue-900 text-white p-4 flex items-center justify-between gap-2 shrink-0">
           <div className="min-w-0">
-            <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-none font-semibold uppercase tracking-wider">
+            <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-[5px] font-semibold uppercase tracking-wider">
               Đánh giá mức độ hài lòng
             </span>
             <h3 className="text-base sm:text-lg font-bold mt-1 truncate">Đánh Giá Kết Quả Xử Lý</h3>
@@ -59,14 +59,14 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="p-1.5 rounded-none hover:bg-white/10 text-white shrink-0"
+            className="p-1.5 rounded-[5px] hover:bg-white/10 text-white shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto">
-          <div className="bg-slate-50 p-3 rounded-none border border-slate-200 text-xs">
+          <div className="bg-slate-50 p-3 rounded-[5px] border border-slate-200 text-xs">
             <div className="font-semibold text-slate-800 line-clamp-1">{incident.title}</div>
             <div className="text-slate-500 mt-0.5 break-words">{incident.location.address}</div>
           </div>
@@ -114,7 +114,7 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
                     type="button"
                     key={item}
                     onClick={() => toggleCriteria(item)}
-                    className={`w-full text-left p-2.5 rounded-none border text-xs sm:text-sm font-medium transition flex items-center justify-between gap-2 ${
+                    className={`w-full text-left p-2.5 rounded-[5px] border text-xs sm:text-sm font-medium transition flex items-center justify-between gap-2 ${
                       isChecked
                         ? 'border-blue-700 bg-blue-50 text-blue-900 font-bold'
                         : 'border-slate-300 hover:bg-slate-50 text-slate-700'
@@ -137,7 +137,7 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
               rows={2}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-none text-xs sm:text-sm focus:ring-1 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm focus:ring-1 focus:ring-blue-600 focus:outline-none"
               placeholder="Nhập nhận xét hoặc lời nhắn gửi..."
             />
           </div>
@@ -147,13 +147,13 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="sm:flex-1 py-2.5 border border-slate-300 rounded-none text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="sm:flex-1 py-2.5 border border-slate-300 rounded-[5px] text-xs font-semibold text-slate-700 hover:bg-slate-50"
             >
               Để sau
             </button>
             <button
               type="submit"
-              className={`sm:flex-1 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-none font-bold shadow-sm transition flex items-center justify-center gap-1.5 ${
+              className={`sm:flex-1 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-[5px] font-bold shadow-sm transition flex items-center justify-center gap-1.5 ${
                 elderlyMode ? 'text-base py-3' : 'text-xs sm:text-sm'
               }`}
             >

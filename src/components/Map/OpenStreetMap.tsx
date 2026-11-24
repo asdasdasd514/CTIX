@@ -295,18 +295,18 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
   }, [incidents, selectedId, singlePin, onMarkerClick, navigate]);
 
   return (
-    <div className={`relative z-10 w-full rounded-none overflow-hidden ${className}`}>
+    <div className={`relative z-10 w-full rounded-[5px] overflow-hidden ${className}`}>
       {/* Khung chứa Leaflet Map */}
       <div ref={mapContainerRef} style={{ height, width: '100%' }} />
 
       {/* Cụm công cụ nổi trên bản đồ (Gọn gàng trên cả mobile và PC) */}
       <div className="absolute top-2.5 right-2.5 z-[500] flex items-center gap-1.5">
         {showLayerToggle && (
-          <div className="bg-white/95 backdrop-blur-sm p-0.5 rounded-none shadow-md border border-slate-300 flex items-center text-[11px] sm:text-xs font-bold">
+          <div className="bg-white/95 backdrop-blur-sm p-0.5 rounded-[5px] shadow-md border border-slate-300 flex items-center text-[11px] sm:text-xs font-bold">
             <button
               type="button"
               onClick={() => switchLayer('streets')}
-              className={`px-2 sm:px-2.5 py-1 rounded-none transition ${
+              className={`px-2 sm:px-2.5 py-1 rounded-[4px] transition ${
                 activeLayer === 'streets'
                   ? 'bg-blue-700 text-white'
                   : 'text-slate-600 hover:text-slate-900'
@@ -317,7 +317,7 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
             <button
               type="button"
               onClick={() => switchLayer('satellite')}
-              className={`px-2 sm:px-2.5 py-1 rounded-none transition ${
+              className={`px-2 sm:px-2.5 py-1 rounded-[4px] transition ${
                 activeLayer === 'satellite'
                   ? 'bg-blue-700 text-white'
                   : 'text-slate-600 hover:text-slate-900'
@@ -333,7 +333,7 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
             type="button"
             onClick={handleGetLocation}
             disabled={isLocating}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-none bg-white/95 hover:bg-white text-blue-700 shadow-md border border-slate-300 transition active:scale-95 font-bold flex items-center gap-1 text-xs"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-[5px] bg-white/95 hover:bg-white text-blue-700 shadow-md border border-slate-300 transition active:scale-95 font-bold flex items-center gap-1 text-xs"
             title="Lấy vị trí GPS hiện tại của tôi"
           >
             <Locate className={`w-4 h-4 shrink-0 ${isLocating ? 'animate-spin text-amber-500' : 'text-blue-600'}`} />

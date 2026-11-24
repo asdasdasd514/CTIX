@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HelpCircle,
@@ -58,7 +58,7 @@ export const CitizenHelpPage: React.FC = () => {
             <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
               Trung Tâm Hỗ Trợ & Hướng Dẫn
             </h1>
-            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-blue-200">
+            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-blue-200">
               Trợ Giúp
             </span>
           </div>
@@ -69,7 +69,7 @@ export const CitizenHelpPage: React.FC = () => {
 
         <button
           onClick={() => navigate('/citizen/submit')}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-none shadow-sm transition shrink-0 active:scale-[0.99] text-xs sm:text-sm border border-blue-900 uppercase tracking-wider"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-[5px] shadow-sm transition shrink-0 active:scale-[0.99] text-xs sm:text-sm border border-blue-900 uppercase tracking-wider"
         >
           <Camera className="w-4 h-4 text-white shrink-0" />
           <span>+ Gửi phản ánh ngay</span>
@@ -77,14 +77,14 @@ export const CitizenHelpPage: React.FC = () => {
       </div>
 
       {/* 2. QUY TRÌNH 4 BƯỚC MINH BẠCH */}
-      <div className="bg-white rounded-none border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+      <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
         <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
           Quy trình giải quyết phản ánh hiện trường 04 bước
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 rounded-none border border-slate-200 border-t-2 border-t-blue-600 bg-slate-50/50 space-y-2">
-            <div className="w-9 h-9 rounded-none bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm border border-blue-200">
+          <div className="p-4 rounded-[5px] border border-slate-200 border-t-2 border-t-blue-600 bg-slate-50/50 space-y-2">
+            <div className="w-9 h-9 rounded-[5px] bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm border border-blue-200">
               01
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Người dân gửi phản ánh</h3>
@@ -93,8 +93,8 @@ export const CitizenHelpPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-none border border-slate-200 border-t-2 border-t-indigo-600 bg-slate-50/50 space-y-2">
-            <div className="w-9 h-9 rounded-none bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm border border-indigo-200">
+          <div className="p-4 rounded-[5px] border border-slate-200 border-t-2 border-t-indigo-600 bg-slate-50/50 space-y-2">
+            <div className="w-9 h-9 rounded-[5px] bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm border border-indigo-200">
               02
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Tiếp nhận & phân công</h3>
@@ -103,8 +103,8 @@ export const CitizenHelpPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-none border border-slate-200 border-t-2 border-t-amber-500 bg-slate-50/50 space-y-2">
-            <div className="w-9 h-9 rounded-none bg-amber-100 text-amber-700 flex items-center justify-center font-black text-sm border border-amber-200">
+          <div className="p-4 rounded-[5px] border border-slate-200 border-t-2 border-t-amber-500 bg-slate-50/50 space-y-2">
+            <div className="w-9 h-9 rounded-[5px] bg-amber-100 text-amber-700 flex items-center justify-center font-black text-sm border border-amber-200">
               03
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Khắc phục tại hiện trường</h3>
@@ -113,8 +113,8 @@ export const CitizenHelpPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-none border border-slate-200 border-t-2 border-t-emerald-600 bg-slate-50/50 space-y-2">
-            <div className="w-9 h-9 rounded-none bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm border border-emerald-200">
+          <div className="p-4 rounded-[5px] border border-slate-200 border-t-2 border-t-emerald-600 bg-slate-50/50 space-y-2">
+            <div className="w-9 h-9 rounded-[5px] bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm border border-emerald-200">
               04
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Nghiệm thu & Đánh giá</h3>
@@ -128,7 +128,7 @@ export const CitizenHelpPage: React.FC = () => {
       {/* 3. CÂU HỎI THƯỜNG GẶP & ĐƯỜNG DÂY NÓNG */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* CỘT TRÁI (7/12): FAQ */}
-        <div className="lg:col-span-7 bg-white rounded-none border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4 min-w-0">
+        <div className="lg:col-span-7 bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4 min-w-0">
           <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-blue-600 shrink-0" />
             <span>Câu hỏi thường gặp của công dân (FAQ)</span>
@@ -140,7 +140,7 @@ export const CitizenHelpPage: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="rounded-none border border-slate-200 overflow-hidden transition"
+                  className="rounded-[5px] border border-slate-200 overflow-hidden transition"
                 >
                   <button
                     type="button"
@@ -149,9 +149,8 @@ export const CitizenHelpPage: React.FC = () => {
                   >
                     <span className="leading-snug">{faq.q}</span>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${
-                        isOpen ? 'rotate-180 text-blue-600' : ''
-                      }`}
+                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180 text-blue-600' : ''
+                        }`}
                     />
                   </button>
 
@@ -168,14 +167,14 @@ export const CitizenHelpPage: React.FC = () => {
 
         {/* CỘT PHẢI (5/12): ĐƯỜNG DÂY NÓNG & FORM GÓP Ý */}
         <div className="lg:col-span-5 space-y-4 min-w-0">
-          <div className="bg-white rounded-none border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+          <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
             <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
               <Phone className="w-4 h-4 text-rose-600 shrink-0" />
               <span>Đường dây nóng hỗ trợ 24/7</span>
             </h3>
 
             <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-bold text-slate-800 truncate">Tổng đài dịch vụ công tỉnh</div>
                   <div className="text-[11px] text-slate-500 truncate">Tiếp nhận phản ánh đô thị</div>
@@ -185,7 +184,7 @@ export const CitizenHelpPage: React.FC = () => {
                 </a>
               </div>
 
-              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-bold text-slate-800 truncate">Trực ban Công an Phường</div>
                   <div className="text-[11px] text-slate-500 truncate">An ninh trật tự & Giao thông</div>
@@ -195,7 +194,7 @@ export const CitizenHelpPage: React.FC = () => {
                 </a>
               </div>
 
-              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-bold text-slate-800 truncate">Sự cố Điện lực Biên Hòa</div>
                   <div className="text-[11px] text-slate-500 truncate">Đứt cáp, chập điện, mất điện</div>
@@ -205,7 +204,7 @@ export const CitizenHelpPage: React.FC = () => {
                 </a>
               </div>
 
-              <div className="p-3 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-bold text-slate-800 truncate">Cấp nước & Thoát nước</div>
                   <div className="text-[11px] text-slate-500 truncate">Vỡ đường ống nước, ngập sâu</div>
@@ -217,7 +216,7 @@ export const CitizenHelpPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-none border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+          <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
               <span>Gửi câu hỏi / Góp ý cho UBND Phường</span>
@@ -229,13 +228,13 @@ export const CitizenHelpPage: React.FC = () => {
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Bạn có thắc mắc hoặc góp ý gì để cải thiện ứng dụng..."
-                className="w-full p-3 border border-slate-300 rounded-none text-xs focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                className="w-full p-3 border border-slate-300 rounded-[5px] text-xs focus:ring-1 focus:ring-blue-600 focus:outline-none"
                 required
               />
               <button
                 type="submit"
                 disabled={feedbackSent}
-                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-none text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm border border-blue-900"
+                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm border border-blue-900"
               >
                 <Send className="w-3.5 h-3.5 shrink-0" />
                 <span>{feedbackSent ? 'Đang gửi...' : 'Gửi ý kiến đóng góp'}</span>
