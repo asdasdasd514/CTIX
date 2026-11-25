@@ -33,6 +33,9 @@ import {
   Plus,
   X,
   RotateCcw,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 export const DispatchDetailPage: React.FC = () => {
@@ -102,8 +105,21 @@ export const DispatchDetailPage: React.FC = () => {
       : [...DEFAULT_WORKFLOW_TEMPLATES.other]
   );
   const [newStepText, setNewStepText] = useState<string>('');
+  const [draggedStepIdx, setDraggedStepIdx] = useState<number | null>(null);
+  const [dragOverStepIdx, setDragOverStepIdx] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const moveWorkflowStep = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return;
+    setWorkflowDraft((prev) => {
+      if (fromIdx >= prev.length || toIdx >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  };
 
   // Danh sách toàn bộ nhân sự kèm đơn vị & số việc đang xử lý (đồng bộ từ useTeamStore)
   const staffCandidates = useMemo(() => {
@@ -930,33 +946,100 @@ export const DispatchDetailPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  {workflowDraft.map((stepText, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-[4px] bg-blue-100 text-blue-800 text-[10px] font-bold flex items-center justify-center shrink-0">
-                        {idx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        value={stepText}
-                        onChange={(e) => {
-                          const next = [...workflowDraft];
-                          next[idx] = e.target.value;
-                          setWorkflowDraft(next);
+                  {workflowDraft.map((stepText, idx) => {
+                    const isDraggingRow = draggedStepIdx === idx;
+                    const isDropTarget =
+                      dragOverStepIdx === idx && draggedStepIdx !== null && draggedStepIdx !== idx;
+                    return (
+                      <div
+                        key={idx}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedStepIdx(idx);
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', String(idx));
                         }}
-                        className="flex-1 h-8 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setWorkflowDraft((prev) => prev.filter((_, i) => i !== idx))
-                        }
-                        title="Xóa bước này"
-                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverStepIdx !== idx) setDragOverStepIdx(idx);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const fromIdx =
+                            draggedStepIdx !== null
+                              ? draggedStepIdx
+                              : Number(e.dataTransfer.getData('text/plain'));
+                          if (Number.isInteger(fromIdx)) {
+                            moveWorkflowStep(fromIdx, idx);
+                          }
+                          setDraggedStepIdx(null);
+                          setDragOverStepIdx(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedStepIdx(null);
+                          setDragOverStepIdx(null);
+                        }}
+                        className={`flex items-center gap-1.5 p-1 rounded-[5px] transition ${
+                          isDraggingRow
+                            ? 'opacity-50 bg-blue-50'
+                            : isDropTarget
+                            ? 'bg-blue-50 ring-2 ring-blue-500'
+                            : ''
+                        }`}
                       >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                        <span
+                          title="Kéo thả để đổi thứ tự bước"
+                          className="text-slate-400 hover:text-blue-700 cursor-grab active:cursor-grabbing shrink-0 px-0.5"
+                        >
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </span>
+                        <span className="w-5 h-5 rounded-[4px] bg-blue-100 text-blue-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={stepText}
+                          onChange={(e) => {
+                            const next = [...workflowDraft];
+                            next[idx] = e.target.value;
+                            setWorkflowDraft(next);
+                          }}
+                          className="flex-1 h-8 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        />
+                        <div className="flex items-center shrink-0">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => moveWorkflowStep(idx, idx - 1)}
+                            title="Di chuyển lên"
+                            className="p-1 rounded text-slate-400 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-30 disabled:pointer-events-none transition"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === workflowDraft.length - 1}
+                            onClick={() => moveWorkflowStep(idx, idx + 1)}
+                            title="Di chuyển xuống"
+                            className="p-1 rounded text-slate-400 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-30 disabled:pointer-events-none transition"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setWorkflowDraft((prev) => prev.filter((_, i) => i !== idx))
+                            }
+                            title="Xóa bước này"
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="flex items-center gap-1.5 pt-1">
