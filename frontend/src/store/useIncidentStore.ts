@@ -222,8 +222,10 @@ interface IncidentStore {
   updateIncident: (
     id: string,
     patch: Partial<Pick<Incident, "title" | "description" | "category" | "location" | "photosBefore">>,
+    requesterPhone?: string,
   ) => void;
-  deleteIncident: (id: string) => void;
+  deleteIncident: (id: string, requesterPhone?: string) => void;
+  refreshIncidents: () => Promise<void>;
   resetToDefaultData: () => void;
 }
 let initial: Incident[] = [];
@@ -243,9 +245,22 @@ function save(items: Incident[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch {
-    throw new StorageFailureError(
-      "Chưa lưu được: bộ nhớ trình duyệt đầy hoặc bị chặn. Giữ lại nội dung và thử ảnh nhỏ hơn.",
-    );
+    // Nếu localStorage đầy do cache ảnh base64 lớn -> lược bớt data URL trong cache local (dữ liệu thật đã nằm trên Cloudinary + MongoDB)
+    try {
+      const compact = items.map((item) => ({
+        ...item,
+        photosBefore: (item.photosBefore || []).filter((p) => !p.startsWith("data:")),
+        photosAfter: item.photosAfter
+          ? item.photosAfter.filter((p) => !p.startsWith("data:"))
+          : undefined,
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(compact));
+      return;
+    } catch {
+      throw new StorageFailureError(
+        "Chưa lưu được: bộ nhớ trình duyệt đầy hoặc bị chặn. Giữ lại nội dung và thử ảnh nhỏ hơn.",
+      );
+    }
   }
 }
 // shortcut: localStorage không có giao dịch; chuyển sang backend trước khi dùng nhiều thiết bị hoặc ghi đồng thời.
@@ -843,15 +858,21 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
     }));
     if (isBrowserEnv()) incidentsApi.update(id, { description, ...(title ? { title } : {}) }).catch(() => {});
   },
-  updateIncident: (id, patch) => {
+  updateIncident: (id, patch, requesterPhone) => {
+    const existing = get().incidents.find((item) => item.id === id);
     changeIncident(id, (item) => ({
       ...item,
       ...patch,
     }));
-    if (isBrowserEnv()) incidentsApi.update(id, patch).catch(() => {});
+    if (isBrowserEnv()) {
+      incidentsApi
+        .update(id, patch, requesterPhone || existing?.sender?.phone)
+        .catch(() => {});
+    }
   },
-  deleteIncident: (id) => {
+  deleteIncident: (id, requesterPhone) => {
     try {
+      const existing = get().incidents.find((item) => item.id === id);
       const updated = get().incidents.filter((item) => item.id !== id);
       save(updated);
       set({
@@ -861,9 +882,32 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         lastSyncedAt: new Date().toISOString(),
         syncNotice: "Đã hủy một hồ sơ phản ánh.",
       });
-      if (isBrowserEnv()) incidentsApi.remove(id).catch(() => {});
+      if (isBrowserEnv()) {
+        incidentsApi
+          .remove(id, requesterPhone || existing?.sender?.phone)
+          .catch(() => {});
+      }
     } catch (error) {
       set({ storageError: (error as Error).message });
+    }
+  },
+  refreshIncidents: async () => {
+    if (!isBrowserEnv()) return;
+    try {
+      const res = await incidentsApi.list();
+      if (Array.isArray(res?.incidents)) {
+        try {
+          save(res.incidents);
+        } catch {}
+        set({
+          incidents: res.incidents,
+          storageError: null,
+          lastSyncedAt: new Date().toISOString(),
+          syncNotice: "Đã đồng bộ dữ liệu từ MongoDB Atlas.",
+        });
+      }
+    } catch {
+      // Giữ cache hiện có khi mất mạng
     }
   },
   resetToDefaultData: () => {

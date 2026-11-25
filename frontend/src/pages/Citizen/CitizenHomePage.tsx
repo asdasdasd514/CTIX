@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { Incident, IncidentCategory } from '../../types/incident';
+import { isPublicIncident } from '../../lib/incidents';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   Camera,
@@ -20,12 +21,14 @@ import {
 
 export const CitizenHomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { incidents, elderlyMode, upvoteIncident } = useIncidentStore();
+  const { incidents, elderlyMode, upvoteIncident, refreshIncidents } = useIncidentStore();
 
-  // Chỉ tính các hồ sơ đã được duyệt tiếp nhận (ẩn Chờ duyệt & Từ chối khỏi trang công khai)
-  const publicIncidents = incidents.filter(
-    (i) => i.status !== 'pending_review' && i.status !== 'rejected'
-  );
+  useEffect(() => {
+    void refreshIncidents();
+  }, [refreshIncidents]);
+
+  // Đồng nhất 100% với Danh sách phản ánh: chỉ hiển thị hồ sơ công khai đã được duyệt
+  const publicIncidents = incidents.filter(isPublicIncident);
 
   // Chỉ hiển thị trên bản đồ các sự cố ĐÃ DUYỆT và CHƯA xử lý xong
   const activeIncidents = publicIncidents.filter(
@@ -54,12 +57,12 @@ export const CitizenHomePage: React.FC = () => {
       : 3.2;
   const avgDaysFormatted = avgDaysNumber.toFixed(1).replace('.', ',');
 
-  const streetLightCount = incidents.filter((i) => i.category === 'street_light').length;
-  const floodingCount = incidents.filter((i) => i.category === 'flooding').length;
-  const wasteCount = incidents.filter((i) => i.category === 'waste').length;
-  const roadDamageCount = incidents.filter((i) => i.category === 'road_damage').length;
+  const streetLightCount = publicIncidents.filter((i) => i.category === 'street_light').length;
+  const floodingCount = publicIncidents.filter((i) => i.category === 'flooding').length;
+  const wasteCount = publicIncidents.filter((i) => i.category === 'waste').length;
+  const roadDamageCount = publicIncidents.filter((i) => i.category === 'road_damage').length;
 
-  const myRecentReports = incidents.slice(0, 3);
+  const myRecentReports = publicIncidents.slice(0, 3);
 
   const filteredMapIncidents = activeIncidents.filter((item) => {
     if (mapCategory !== 'all' && item.category !== mapCategory) return false;

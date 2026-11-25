@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useTeamStore } from '../../store/useTeamStore';
 import { incidentsApi, type DuplicateCandidate } from '../../services/api';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
+import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
 import {
   CATEGORIES,
   DEFAULT_WORKFLOW_TEMPLATES,
@@ -1129,18 +1130,25 @@ export const DispatchDetailPage: React.FC = () => {
                 )}
 
                 {incident.photosAfter && incident.photosAfter.length > 0 && (
-                  <div className="space-y-1.5">
-                    <span className="text-[11px] font-bold text-emerald-700 uppercase block">
-                      Ảnh sau khi xử lý:
-                    </span>
-                    <div className="aspect-video rounded-[5px] overflow-hidden border border-slate-200">
-                      <img
-                        src={incident.photosAfter[0]}
-                        alt="Sau xử lý"
-                        className="w-full h-full object-cover"
-                      />
+                  incident.photosBefore.length > 0 ? (
+                    <BeforeAfterSlider
+                      photosBefore={incident.photosBefore}
+                      photosAfter={incident.photosAfter}
+                    />
+                  ) : (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-emerald-700 uppercase block">
+                        Ảnh sau khi xử lý:
+                      </span>
+                      <div className="aspect-video rounded-[5px] overflow-hidden border border-slate-200">
+                        <img
+                          src={incident.photosAfter[0]}
+                          alt="Sau xử lý"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
               </div>
 

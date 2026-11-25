@@ -2,6 +2,29 @@ import type { Request, Response } from 'express';
 import { IncidentModel, serializeIncident } from '../models/Incident';
 import type { IncidentCategoryType } from '../models/Unit';
 import { analyzeDuplicatesWithAI, distanceMeters } from '../services/aiDuplicateService';
+import { deleteCloudinaryUrls } from '../config/cloudinary';
+import type { AuthRequest } from '../middlewares/auth';
+
+function normalizePhone(phone?: string): string {
+  return String(phone || '').replace(/\D/g, '').trim();
+}
+
+function canMutateIncident(req: AuthRequest, docSenderPhone?: string): boolean {
+  if (req.user && req.user.role !== 'citizen') {
+    return true;
+  }
+  const ownerPhone = normalizePhone(docSenderPhone);
+  if (!ownerPhone) return false;
+  const authPhone = normalizePhone(req.user?.phone);
+  if (authPhone && authPhone === ownerPhone) return true;
+
+  const headerPhone = normalizePhone(
+    (req.headers['x-requester-phone'] as string | undefined) ||
+      (req.body?.requesterPhone as string | undefined) ||
+      (req.query?.requesterPhone as string | undefined)
+  );
+  return Boolean(headerPhone && headerPhone === ownerPhone);
+}
 
 const CATEGORY_TITLES: Record<IncidentCategoryType, string> = {
   street_light: 'Sự cố đèn chiếu sáng đô thị',
@@ -81,8 +104,17 @@ export async function createIncident(req: Request, res: Response) {
     }
 
     const nowIso = new Date().toISOString();
-    const count = await IncidentModel.countDocuments();
-    const nextNum = count + 1;
+    // Tính số lớn nhất hiện có để tránh lỗi E11000 duplicate code khi từng có hồ sơ bị xóa/gộp
+    const existingCodes = await IncidentModel.find({}, { code: 1 }).lean();
+    let maxNum = 0;
+    for (const item of existingCodes) {
+      const m = String(item.code || '').match(/(\d+)$/);
+      if (m) {
+        const n = Number(m[1]);
+        if (Number.isFinite(n) && n > maxNum) maxNum = n;
+      }
+    }
+    const nextNum = maxNum + 1;
     const code = `TB-2026-${String(nextNum).padStart(3, '0')}`;
     const incidentId = `inc-${Date.now().toString(36)}-${nextNum}`;
 
@@ -127,18 +159,25 @@ export async function createIncident(req: Request, res: Response) {
   }
 }
 
-// PATCH /api/incidents/:id (MOD-01: Công dân chỉnh sửa hồ sơ chưa xong)
-export async function updateIncident(req: Request, res: Response) {
+// PATCH /api/incidents/:id (MOD-01: Công dân chỉnh sửa hồ sơ chính chủ khi đang Chờ duyệt)
+export async function updateIncident(req: AuthRequest, res: Response) {
   try {
     const doc = await IncidentModel.findOne({ incidentId: req.params.id });
     if (!doc) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ phản ánh.' });
+    }
+    if (!canMutateIncident(req, doc.sender?.phone)) {
+      return res.status(403).json({
+        message: 'Bạn không có quyền chỉnh sửa phản ánh của người khác.',
+      });
     }
     if (doc.status !== 'pending_review') {
       return res.status(400).json({ message: 'Hồ sơ đã được duyệt tiếp nhận hoặc xử lý, không thể chỉnh sửa.' });
     }
 
     const { title, description, category, location, photosBefore } = req.body;
+    const oldPhotos = Array.isArray(doc.photosBefore) ? [...doc.photosBefore] : [];
+
     if (title !== undefined) doc.title = String(title).trim();
     if (description !== undefined) doc.description = String(description).trim();
     if (category !== undefined) doc.category = category;
@@ -161,6 +200,14 @@ export async function updateIncident(req: Request, res: Response) {
     doc.updatedAtIso = new Date().toISOString();
     await doc.save();
 
+    // Dọn ảnh đã bị người dùng gỡ khỏi hồ sơ trên Cloudinary
+    if (Array.isArray(photosBefore)) {
+      const removedUrls = oldPhotos.filter((u) => !photosBefore.includes(u));
+      if (removedUrls.length > 0) {
+        void deleteCloudinaryUrls(removedUrls);
+      }
+    }
+
     return res.json({ incident: serializeIncident(doc) });
   } catch (err) {
     console.error('[Incidents] update error:', err);
@@ -168,17 +215,34 @@ export async function updateIncident(req: Request, res: Response) {
   }
 }
 
-// DELETE /api/incidents/:id (MOD-01: Công dân hủy phản ánh)
-export async function deleteIncident(req: Request, res: Response) {
+// DELETE /api/incidents/:id (MOD-01: Công dân hủy phản ánh chính chủ khi đang Chờ duyệt)
+export async function deleteIncident(req: AuthRequest, res: Response) {
   try {
     const doc = await IncidentModel.findOne({ incidentId: req.params.id });
     if (!doc) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ phản ánh.' });
     }
+    if (!canMutateIncident(req, doc.sender?.phone)) {
+      return res.status(403).json({
+        message: 'Bạn không có quyền hủy phản ánh của người khác.',
+      });
+    }
     if (doc.status !== 'pending_review') {
       return res.status(400).json({ message: 'Hồ sơ đã được duyệt tiếp nhận hoặc xử lý, không thể hủy.' });
     }
+
+    const urlsToClean = [
+      ...(Array.isArray(doc.photosBefore) ? doc.photosBefore : []),
+      ...(Array.isArray(doc.photosAfter) ? doc.photosAfter : []),
+    ];
+
     await IncidentModel.deleteOne({ _id: doc._id });
+
+    // Tự động dọn toàn bộ ảnh của hồ sơ đã hủy trên Cloudinary
+    if (urlsToClean.length > 0) {
+      void deleteCloudinaryUrls(urlsToClean);
+    }
+
     return res.json({ deleted: true, id: req.params.id });
   } catch (err) {
     console.error('[Incidents] delete error:', err);

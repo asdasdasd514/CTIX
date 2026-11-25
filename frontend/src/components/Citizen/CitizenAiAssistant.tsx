@@ -115,18 +115,24 @@ export const CitizenAiAssistant: React.FC = () => {
       speakReply(res.reply);
     }
 
+    // Hỗ trợ ĐA LỆNH (multi-intent): thực thi đồng thời cờ phụ (chữ to, cuộn trang) cùng lệnh chính
+    if (typeof res.elderlyEnabled === 'boolean') {
+      setElderlyMode(res.elderlyEnabled);
+    }
+
+    let didNavigate = false;
+
     if (res.action === 'create_report' && res.reportDraft) {
       setChatOpen(false);
       navigate('/citizen/submit', {
         state: {
           aiPrefill: res.reportDraft,
+          openCamera: Boolean(res.openCamera),
           aiPrefillAt: Date.now(),
         },
       });
-      return;
-    }
-
-    if (res.action === 'open_camera') {
+      didNavigate = true;
+    } else if (res.action === 'open_camera') {
       setChatOpen(false);
       navigate('/citizen/submit', {
         state: {
@@ -134,52 +140,29 @@ export const CitizenAiAssistant: React.FC = () => {
           aiNavAt: Date.now(),
         },
       });
-      return;
-    }
-
-    if (res.action === 'open_my_reports') {
+      didNavigate = true;
+    } else if (res.action === 'open_my_reports') {
       setChatOpen(false);
       navigate('/citizen/reports', {
         state: { onlyMyReports: true, aiNavAt: Date.now() },
       });
-      return;
-    }
-
-    if (res.action === 'filter_reports') {
+      didNavigate = true;
+    } else if (res.action === 'filter_reports') {
       setChatOpen(false);
       navigate('/citizen/reports', {
         state: { aiFilter: res.reportFilter || {}, aiNavAt: Date.now() },
       });
-      return;
-    }
-
-    if (res.action === 'toggle_elderly') {
-      setElderlyMode(res.elderlyEnabled ?? true);
-      return;
-    }
-
-    if (res.action === 'scroll_page') {
-      window.scrollTo({
-        top: res.scrollDirection === 'bottom' ? document.body.scrollHeight : 0,
-        behavior: 'smooth',
-      });
-      return;
-    }
-
-    if (res.action === 'go_back') {
+      didNavigate = true;
+    } else if (res.action === 'go_back') {
       setChatOpen(false);
       navigate(-1);
-      return;
-    }
-
-    if (res.action === 'call_hotline') {
+      didNavigate = true;
+    } else if (res.action === 'call_hotline') {
       setChatOpen(false);
       navigate('/citizen/help');
       setToast('Tổng đài hỗ trợ khẩn cấp 24/7 Phường Trấn Biên: 1022');
-      return;
-    }
-
-    if (res.action === 'logout') {
+      didNavigate = true;
+    } else if (res.action === 'logout') {
       if (isAuthenticated) {
         logout();
         setChatOpen(false);
@@ -188,26 +171,32 @@ export const CitizenAiAssistant: React.FC = () => {
       } else {
         setToast('Bạn hiện chưa đăng nhập tài khoản.');
       }
-      return;
-    }
-
-    if (res.action === 'navigate' && res.route) {
+      didNavigate = true;
+    } else if (res.action === 'navigate' && res.route) {
       setChatOpen(false);
       if (res.route === '/citizen/account' && !isAuthenticated) {
         navigate('/login');
         setToast('Bạn cần đăng nhập để xem trang Tài khoản cá nhân.');
-        return;
-      }
-      if ((res.route === '/login' || res.route === '/register') && isAuthenticated) {
+      } else if ((res.route === '/login' || res.route === '/register') && isAuthenticated) {
         navigate('/citizen/account');
         setToast('Bạn đã đăng nhập rồi. Đang mở trang Tài khoản.');
-        return;
+      } else {
+        navigate(res.route);
       }
-      navigate(res.route);
+      didNavigate = true;
+    }
+
+    if (res.scrollDirection) {
+      window.setTimeout(() => {
+        window.scrollTo({
+          top: res.scrollDirection === 'bottom' ? document.body.scrollHeight : 0,
+          behavior: 'smooth',
+        });
+      }, didNavigate ? 250 : 0);
       return;
     }
 
-    if (fromVoice && res.transcript) {
+    if (!didNavigate && res.action !== 'toggle_elderly' && fromVoice && res.transcript) {
       setChatOpen(true);
     }
   };
@@ -298,9 +287,9 @@ export const CitizenAiAssistant: React.FC = () => {
       } catch {}
 
       const mimeType = pickSupportedAudioMime();
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+      const recorderOptions: MediaRecorderOptions = { audioBitsPerSecond: 32000 };
+      if (mimeType) recorderOptions.mimeType = mimeType;
+      const recorder = new MediaRecorder(stream, recorderOptions);
 
       recorder.ondataavailable = (ev) => {
         if (ev.data && ev.data.size > 0) {
@@ -341,8 +330,12 @@ export const CitizenAiAssistant: React.FC = () => {
             ]);
           }
           executeAssistantResult(res, true);
-        } catch {
-          setToast('Không thể gửi âm thanh lên AI. Vui lòng kiểm tra kết nối máy chủ.');
+        } catch (err) {
+          const msg =
+            err instanceof Error && err.message && !err.message.includes('Failed to fetch')
+              ? err.message
+              : 'Không thể kết nối máy chủ AI (có thể máy chủ đang khởi động lại). Vui lòng thử lại sau vài giây.';
+          setToast(msg);
         } finally {
           setVoiceProcessing(false);
         }

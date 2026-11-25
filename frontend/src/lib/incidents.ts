@@ -33,6 +33,13 @@ export const STATUS_LABELS: Record<IncidentStatus, string> = {
   closed: "Đã đánh giá",
   rejected: "Từ chối tiếp nhận",
 };
+
+/**
+ * Hồ sơ công khai hiển thị trên Cổng Công Dân (ẩn bài Chờ duyệt & Từ chối tiếp nhận).
+ */
+export function isPublicIncident(item: Pick<Incident, "status">): boolean {
+  return item.status !== "pending_review" && item.status !== "rejected";
+}
 export const UNITS: Record<IncidentCategory, string> = {
   street_light: "Tổ bảo trì chiếu sáng",
   flooding: "Tổ thoát nước",

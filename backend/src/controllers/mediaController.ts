@@ -1,6 +1,15 @@
 import type { Request, Response } from 'express';
 import { uploadBufferToCloudinary, deleteFromCloudinary } from '../config/cloudinary';
 
+const VALID_PHASES = new Set(['before', 'after', 'linked']);
+const VALID_CATEGORIES = new Set([
+  'street_light',
+  'flooding',
+  'waste',
+  'road_damage',
+  'other',
+]);
+
 export async function uploadMedia(req: Request, res: Response) {
   try {
     const files = (req.files as Express.Multer.File[]) || [];
@@ -8,16 +17,23 @@ export async function uploadMedia(req: Request, res: Response) {
       return res.status(400).json({ message: 'Vui lòng chọn ít nhất 1 ảnh để tải lên.' });
     }
 
+    const rawPhase = String(req.body?.phase || 'before').trim();
+    const phase = VALID_PHASES.has(rawPhase) ? rawPhase : 'before';
+
+    const rawCategory = String(req.body?.category || 'other').trim();
+    const category = VALID_CATEGORIES.has(rawCategory) ? rawCategory : 'other';
+
     const folder =
-      req.body?.phase === 'after'
-        ? 'ctix_smartcity/incidents/after'
-        : 'ctix_smartcity/incidents/before';
+      phase === 'linked'
+        ? `ctix_smartcity/incidents/linked/${category}`
+        : `ctix_smartcity/incidents/${phase}/${category}`;
 
     const uploaded = await Promise.all(
       files.map((file) => uploadBufferToCloudinary(file.buffer, folder))
     );
 
     return res.status(201).json({
+      folder,
       images: uploaded,
       urls: uploaded.map((item) => item.url),
     });

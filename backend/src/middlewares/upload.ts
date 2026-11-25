@@ -5,8 +5,8 @@ const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/g
 export const uploadImages = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB / ảnh
-    files: 6,
+    fileSize: 10 * 1024 * 1024, // 10MB / ảnh
+    files: 8,
   },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_MIMES.has(file.mimetype)) {

@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { mediaApi } from '../../services/api';
-import { distanceMeters } from '../../lib/incidents';
+import { distanceMeters, isPublicIncident } from '../../lib/incidents';
+import { getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
+import { compressImageFiles } from '../../lib/imageCompress';
 import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
+import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -50,8 +54,28 @@ export const CitizenReportDetailPage: React.FC = () => {
     deleteIncident,
     rateIncident,
   } = useIncidentStore();
+  const { isAuthenticated, currentUser } = useAuthStore();
 
   const incident = incidents.find((item) => item.id === id);
+
+  // Kiểm tra chính chủ hồ sơ: chỉ người tạo mới được chỉnh sửa hoặc hủy khi đang Chờ duyệt
+  const isOwner = (() => {
+    if (!incident) return false;
+    const guestIds = getGuestReportIds();
+    const senderPhone = normalizePhone(incident.sender?.phone);
+    if (isAuthenticated) {
+      if (currentUser.role !== 'citizen') return true;
+      const myPhone = normalizePhone(currentUser.phone);
+      return Boolean(
+        (myPhone && senderPhone && myPhone === senderPhone) ||
+          guestIds.includes(incident.id)
+      );
+    }
+    return guestIds.includes(incident.id);
+  })();
+  const requesterPhone = isAuthenticated
+    ? currentUser.phone
+    : getGuestPhone() || incident?.sender?.phone;
 
   // Chế độ chỉnh sửa toàn bộ hồ sơ (Thông tin + Loại sự cố + Nhiều ảnh + Vị trí bản đồ)
   const [isEditing, setIsEditing] = useState(false);
@@ -119,8 +143,9 @@ export const CitizenReportDetailPage: React.FC = () => {
     window.setTimeout(() => setActionMessage(null), 3500);
   };
 
-  // Mở chế độ Chỉnh sửa hồ sơ (nạp toàn bộ dữ liệu hiện tại)
+  // Mở chế độ Chỉnh sửa hồ sơ (chỉ chính chủ khi đang Chờ duyệt)
   const handleStartEdit = () => {
+    if (!isOwner || incident.status !== 'pending_review') return;
     setEditTitle(incident.title);
     setEditDescription(incident.description);
     setEditCategory(incident.category);
@@ -130,14 +155,14 @@ export const CitizenReportDetailPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Thêm nhiều ảnh khi đang chỉnh sửa hồ sơ (upload thật lên Cloudinary)
+  // Thêm nhiều ảnh khi đang chỉnh sửa hồ sơ (nén ảnh + upload vào đúng thư mục Cloudinary theo category)
   const handleEditAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const fileList = Array.from(files);
+    const fileList = await compressImageFiles(Array.from(files));
     try {
-      const uploadedUrls = await mediaApi.uploadFiles(fileList, 'before');
+      const uploadedUrls = await mediaApi.uploadFiles(fileList, 'before', editCategory);
       if (uploadedUrls.length > 0) {
         setEditPhotos((prev) => [...prev, ...uploadedUrls]);
         e.target.value = '';
@@ -226,29 +251,35 @@ export const CitizenReportDetailPage: React.FC = () => {
     }
   };
 
-  // Lưu toàn bộ thay đổi hồ sơ
+  // Lưu toàn bộ thay đổi hồ sơ (chỉ chính chủ)
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOwner || incident.status !== 'pending_review') return;
     if (!editTitle.trim() || !editDescription.trim()) return;
-    updateIncident(incident.id, {
-      title: editTitle.trim(),
-      description: editDescription.trim(),
-      category: editCategory,
-      photosBefore: editPhotos.length > 0 ? editPhotos : incident.photosBefore,
-      location: editLocation,
-    });
+    updateIncident(
+      incident.id,
+      {
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+        category: editCategory,
+        photosBefore: editPhotos.length > 0 ? editPhotos : incident.photosBefore,
+        location: editLocation,
+      },
+      requesterPhone
+    );
     setIsEditing(false);
     showToast('Đã cập nhật toàn bộ hồ sơ phản ánh thành công!');
   };
 
-  // Hủy yêu cầu phản ánh này
+  // Hủy yêu cầu phản ánh này (chỉ chính chủ)
   const handleCancelReport = () => {
+    if (!isOwner || incident.status !== 'pending_review') return;
     const confirmed = window.confirm(
       'Bạn có chắc chắn muốn hủy yêu cầu phản ánh này không? Thao tác này không thể hoàn tác.'
     );
     if (confirmed) {
-      deleteIncident(incident.id);
-      navigate('/citizen/reports');
+      deleteIncident(incident.id, requesterPhone);
+      navigate('/citizen/reports', { state: { onlyMyReports: true } });
     }
   };
 
@@ -613,59 +644,70 @@ export const CitizenReportDetailPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-rose-700 block">
-                    ● Ảnh lúc người dân báo cáo ({incident.photosBefore.length} ảnh):
-                  </span>
-                  <div
-                    className={`grid gap-2.5 ${
-                      incident.photosBefore.length === 1
-                        ? 'grid-cols-1'
-                        : incident.photosBefore.length === 2
-                        ? 'grid-cols-2'
-                        : 'grid-cols-2 sm:grid-cols-3'
-                    }`}
-                  >
-                    {incident.photosBefore.map((src, idx) => (
+                {incident.photosBefore.length > 0 &&
+                incident.photosAfter &&
+                incident.photosAfter.length > 0 ? (
+                  <BeforeAfterSlider
+                    photosBefore={incident.photosBefore}
+                    photosAfter={incident.photosAfter}
+                  />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-rose-700 block">
+                        ● Ảnh lúc người dân báo cáo ({incident.photosBefore.length} ảnh):
+                      </span>
                       <div
-                        key={idx}
-                        className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative"
+                        className={`grid gap-2.5 ${
+                          incident.photosBefore.length === 1
+                            ? 'grid-cols-1'
+                            : incident.photosBefore.length === 2
+                            ? 'grid-cols-2'
+                            : 'grid-cols-2 sm:grid-cols-3'
+                        }`}
                       >
-                        <img
-                          src={src}
-                          alt={`Ảnh hiện trường ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <span className="absolute bottom-1.5 right-1.5 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px]">
-                          #{idx + 1}
-                        </span>
+                        {incident.photosBefore.map((src, idx) => (
+                          <div
+                            key={idx}
+                            className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative"
+                          >
+                            <img
+                              src={src}
+                              alt={`Ảnh hiện trường ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <span className="absolute bottom-1.5 right-1.5 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px]">
+                              #{idx + 1}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
 
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <span className="text-xs font-bold text-emerald-700 block">
-                    ● Ảnh nghiệm thu sau khi xử lý:
-                  </span>
-                  {incident.photosAfter && incident.photosAfter.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {incident.photosAfter.map((src, idx) => (
-                        <div
-                          key={idx}
-                          className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200"
-                        >
-                          <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-cover" />
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <span className="text-xs font-bold text-emerald-700 block">
+                        ● Ảnh nghiệm thu sau khi xử lý:
+                      </span>
+                      {incident.photosAfter && incident.photosAfter.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {incident.photosAfter.map((src, idx) => (
+                            <div
+                              key={idx}
+                              className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200"
+                            >
+                              <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="p-6 rounded-[5px] bg-slate-50 border border-dashed border-slate-300 text-center text-slate-400 text-xs">
+                          <Clock className="w-5 h-5 mx-auto mb-1 text-slate-300" />
+                          <span>Đơn vị đang triển khai khắc phục — chưa có ảnh nghiệm thu</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="p-6 rounded-[5px] bg-slate-50 border border-dashed border-slate-300 text-center text-slate-400 text-xs">
-                      <Clock className="w-5 h-5 mx-auto mb-1 text-slate-300" />
-                      <span>Đơn vị đang triển khai khắc phục — chưa có ảnh nghiệm thu</span>
-                    </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
 
               {/* Vị trí trên bản đồ */}
@@ -735,8 +777,7 @@ export const CitizenReportDetailPage: React.FC = () => {
                   .filter(
                     (other) =>
                       other.id !== incident.id &&
-                      other.status !== 'pending_review' &&
-                      other.status !== 'rejected' &&
+                      isPublicIncident(other) &&
                       other.status !== 'resolved' &&
                       other.status !== 'closed'
                   )
@@ -948,7 +989,9 @@ export const CitizenReportDetailPage: React.FC = () => {
               <div className="p-3.5 rounded-[5px] bg-violet-50 border border-violet-200 text-xs text-violet-900 space-y-1">
                 <div className="font-bold">Đang chờ UBND Phường kiểm duyệt tiếp nhận</div>
                 <p className="text-violet-700 leading-relaxed">
-                  Phản ánh của bạn đã được ghi nhận và đang chờ cán bộ xác thực trước khi công khai & phân công xử lý. Bạn vẫn có thể chỉnh sửa hoặc hủy trong thời gian này.
+                  {isOwner
+                    ? 'Phản ánh của bạn đã được ghi nhận và đang chờ cán bộ xác thực trước khi công khai & phân công xử lý. Bạn vẫn có thể chỉnh sửa hoặc hủy trong thời gian này.'
+                    : 'Phản ánh này đang chờ UBND Phường kiểm duyệt tiếp nhận.'}
                 </p>
               </div>
             )}
@@ -963,8 +1006,8 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* 2 NÚT HÀNH ĐỘNG CHỈ HIỆN KHI HỒ SƠ ĐANG CHỜ DUYỆT (CHƯA TIẾP NHẬN) */}
-            {incident.status === 'pending_review' && (
+            {/* 2 NÚT HÀNH ĐỘNG CHỈ HIỆN CHO CHÍNH CHỦ KHI HỒ SƠ ĐANG CHỜ DUYỆT */}
+            {incident.status === 'pending_review' && isOwner && (
               <div className="pt-4 border-t border-slate-200 space-y-2.5">
                 <button
                   type="button"

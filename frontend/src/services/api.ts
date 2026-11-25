@@ -76,11 +76,16 @@ export const authApi = {
   me: () => apiRequest<{ user: any }>('/auth/me'),
 };
 
-// 2. Media Upload API (Cloudinary)
+// 2. Media Upload API (Cloudinary — phân chia thư mục theo phase & category)
 export const mediaApi = {
-  uploadFiles: async (files: File[], phase: 'before' | 'after' = 'before'): Promise<string[]> => {
+  uploadFiles: async (
+    files: File[],
+    phase: 'before' | 'after' | 'linked' = 'before',
+    category: IncidentCategory = 'other'
+  ): Promise<string[]> => {
     const formData = new FormData();
     formData.append('phase', phase);
+    formData.append('category', category);
     files.forEach((f) => formData.append('files', f));
     const res = await apiRequest<{ urls: string[] }>('/media/upload', {
       method: 'POST',
@@ -149,15 +154,18 @@ export const incidentsApi = {
       category: IncidentCategory;
       location: { lat: number; lng: number; address: string; ward?: string };
       photosBefore: string[];
-    }>
+    }>,
+    requesterPhone?: string
   ) =>
     apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      body: JSON.stringify(patch),
+      headers: requesterPhone ? { 'x-requester-phone': requesterPhone } : undefined,
+      body: JSON.stringify(requesterPhone ? { ...patch, requesterPhone } : patch),
     }),
-  remove: (id: string) =>
+  remove: (id: string, requesterPhone?: string) =>
     apiRequest<{ deleted: boolean }>(`/incidents/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: requesterPhone ? { 'x-requester-phone': requesterPhone } : undefined,
     }),
   upvote: (id: string) =>
     apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}/upvote`, {
@@ -336,6 +344,7 @@ export interface AiAssistantResponse {
   reportDraft?: AiReportDraft;
   reportFilter?: AiReportFilter;
   route?: string;
+  openCamera?: boolean;
   elderlyEnabled?: boolean;
   scrollDirection?: 'top' | 'bottom';
   analyzedBy: 'gemini' | 'fallback';

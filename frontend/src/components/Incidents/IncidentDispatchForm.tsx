@@ -23,6 +23,7 @@ import {
 } from "../../lib/incidents";
 import { useIncidentStore } from "../../store/useIncidentStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { BeforeAfterSlider } from "../common/BeforeAfterSlider";
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -90,44 +91,73 @@ export function IncidentOverview({
         </div>
       </div>
 
-      <div className="work-evidence">
-        {incident.photosBefore[0] ? (
-          <figure>
-            <img
-              src={incident.photosBefore[0]}
-              alt="Ảnh hiện trường trước xử lý"
-            />
-            <figcaption>Ảnh hiện trường trước xử lý</figcaption>
-          </figure>
-        ) : (
-          <p className="work-help">Chưa có ảnh hiện trường.</p>
-        )}
-        {incident.photosAfter?.[0] && (
-          <figure>
-            <img
-              src={incident.photosAfter[0]}
-              alt="Ảnh hiện trường sau xử lý"
-            />
-            <figcaption>Ảnh sau xử lý</figcaption>
-          </figure>
-        )}
-        <dl>
-          <div>
-            <dt>Tiếp nhận</dt>
-            <dd>{formatDate(incident.createdAt)}</dd>
+      {incident.photosBefore.length > 0 &&
+      incident.photosAfter &&
+      incident.photosAfter.length > 0 ? (
+        <div className="space-y-3">
+          <BeforeAfterSlider
+            photosBefore={incident.photosBefore}
+            photosAfter={incident.photosAfter}
+          />
+          <div className="work-evidence">
+            <dl>
+              <div>
+                <dt>Tiếp nhận</dt>
+                <dd>{formatDate(incident.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>Đồng phản ánh</dt>
+                <dd>{incident.sameReportsCount} lượt</dd>
+              </div>
+              <div>
+                <dt>Xác minh tại chỗ</dt>
+                <dd>
+                  {incident.verifiedByVolunteer ? "Đã xác minh" : "Chưa xác minh"}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div>
-            <dt>Đồng phản ánh</dt>
-            <dd>{incident.sameReportsCount} lượt</dd>
-          </div>
-          <div>
-            <dt>Xác minh tại chỗ</dt>
-            <dd>
-              {incident.verifiedByVolunteer ? "Đã xác minh" : "Chưa xác minh"}
-            </dd>
-          </div>
-        </dl>
-      </div>
+        </div>
+      ) : (
+        <div className="work-evidence">
+          {incident.photosBefore[0] ? (
+            <figure>
+              <img
+                src={incident.photosBefore[0]}
+                alt="Ảnh hiện trường trước xử lý"
+              />
+              <figcaption>Ảnh hiện trường trước xử lý</figcaption>
+            </figure>
+          ) : (
+            <p className="work-help">Chưa có ảnh hiện trường.</p>
+          )}
+          {incident.photosAfter?.[0] && (
+            <figure>
+              <img
+                src={incident.photosAfter[0]}
+                alt="Ảnh hiện trường sau xử lý"
+              />
+              <figcaption>Ảnh sau xử lý</figcaption>
+            </figure>
+          )}
+          <dl>
+            <div>
+              <dt>Tiếp nhận</dt>
+              <dd>{formatDate(incident.createdAt)}</dd>
+            </div>
+            <div>
+              <dt>Đồng phản ánh</dt>
+              <dd>{incident.sameReportsCount} lượt</dd>
+            </div>
+            <div>
+              <dt>Xác minh tại chỗ</dt>
+              <dd>
+                {incident.verifiedByVolunteer ? "Đã xác minh" : "Chưa xác minh"}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
       {incident.verificationNotes && (
         <p className="work-help">

@@ -1,8 +1,9 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident } from '../../types/incident';
+import { isPublicIncident } from '../../lib/incidents';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   MapPin,
@@ -29,7 +30,9 @@ export const NearbyIncidentsMapPage: React.FC = () => {
   );
 
   const baseList = isCitizenView
-    ? incidents.filter((item) => item.status !== 'resolved' && item.status !== 'closed')
+    ? incidents.filter(
+        (item) => isPublicIncident(item) && item.status !== 'resolved' && item.status !== 'closed'
+      )
     : incidents;
 
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(baseList[0] || null);

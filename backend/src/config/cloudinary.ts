@@ -17,7 +17,7 @@ export interface UploadedImageResult {
 
 export function uploadBufferToCloudinary(
   buffer: Buffer,
-  folder = 'ctix_smartcity/incidents'
+  folder = 'ctix_smartcity/incidents/before/other'
 ): Promise<UploadedImageResult> {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -42,9 +42,32 @@ export function uploadBufferToCloudinary(
   });
 }
 
+export function extractCloudinaryPublicId(url: string): string | null {
+  if (!url || !url.includes('res.cloudinary.com')) return null;
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[a-zA-Z0-9]+)?$/);
+    return match?.[1] ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteFromCloudinary(publicId: string): Promise<void> {
   if (!publicId) return;
-  await cloudinary.uploader.destroy(publicId);
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (err) {
+    console.warn('[Cloudinary] delete warn:', err instanceof Error ? err.message : err);
+  }
+}
+
+export async function deleteCloudinaryUrls(urls: string[]): Promise<void> {
+  const ids = urls
+    .map((u) => extractCloudinaryPublicId(u))
+    .filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return;
+  await Promise.allSettled(ids.map((id) => deleteFromCloudinary(id)));
 }
 
 export { cloudinary };

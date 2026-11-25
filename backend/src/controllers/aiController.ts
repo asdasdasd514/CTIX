@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import {
+  AiServiceError,
   runCitizenAssistant,
   runCitizenVoiceAudio,
   type AssistantMessage,
@@ -22,6 +23,9 @@ export async function citizenAssistant(req: Request, res: Response) {
     return res.json(result);
   } catch (err) {
     console.error('[AI Controller] assistant error:', err);
+    if (err instanceof AiServiceError) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
     return res.status(500).json({ message: 'Trợ lý AI tạm thời bận. Vui lòng thử lại.' });
   }
 }
@@ -38,8 +42,11 @@ export async function citizenVoiceCommand(req: Request, res: Response) {
     return res.json(result);
   } catch (err) {
     console.error('[AI Controller] voiceCommand error:', err);
+    if (err instanceof AiServiceError) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
     return res.status(500).json({
-      message: 'Không thể xử lý âm thanh lúc này. Vui lòng thử lại.',
+      message: 'Không thể xử lý âm thanh lúc này. Vui lòng thử lại sau vài giây.',
     });
   }
 }

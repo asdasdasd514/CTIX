@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory } from '../../types/incident';
+import { isPublicIncident } from '../../lib/incidents';
 import { getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
 import {
   CheckCircle2,
@@ -78,8 +79,12 @@ function getCategoryBadge(category: IncidentCategory) {
 export const MyReportsPage: React.FC = () => {
   const navigate = useNavigate();
   const routerLocation = useLocation();
-  const { incidents } = useIncidentStore();
+  const { incidents, refreshIncidents } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
+
+  useEffect(() => {
+    void refreshIncidents();
+  }, [refreshIncidents]);
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('all');
   const [onlyMyReports, setOnlyMyReports] = useState<boolean>(
@@ -144,6 +149,9 @@ export const MyReportsPage: React.FC = () => {
   };
 
   const myReportsCount = incidents.filter(isMyIncident).length;
+  const myPendingReviewCount = incidents.filter(
+    (item) => isMyIncident(item) && item.status === 'pending_review'
+  ).length;
 
   const toggleCategory = (cat: IncidentCategory) => {
     setSelectedCategories((prev) =>
@@ -159,8 +167,8 @@ export const MyReportsPage: React.FC = () => {
     if (onlyMyReports) {
       if (!isMyIncident(item)) return false;
     } else {
-      // Danh sách công khai chỉ hiển thị hồ sơ đã được duyệt tiếp nhận (ẩn Chờ duyệt & Từ chối)
-      if (item.status === 'pending_review' || item.status === 'rejected') return false;
+      // Danh sách công khai đồng nhất dùng isPublicIncident (ẩn Chờ duyệt & Từ chối)
+      if (!isPublicIncident(item)) return false;
     }
     if (statusFilter === 'pending') {
       if (item.status === 'resolved' || item.status === 'closed' || item.status === 'rejected') return false;
@@ -285,6 +293,22 @@ export const MyReportsPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Banner nhắc gọn khi người dùng có phản ánh đang Chờ duyệt nhưng đang đứng ở tab công khai */}
+      {!onlyMyReports && myPendingReviewCount > 0 && (
+        <div className="p-3 rounded-[5px] bg-violet-50 border border-violet-200 flex flex-wrap items-center justify-between gap-2 text-xs text-violet-900">
+          <span>
+            Bạn đang có <strong>{myPendingReviewCount} phản ánh chờ UBND Phường duyệt</strong> (chưa hiển thị trong danh sách công khai).
+          </span>
+          <button
+            type="button"
+            onClick={() => setOnlyMyReports(true)}
+            className="px-3 py-1.5 rounded-[5px] bg-violet-700 hover:bg-violet-800 text-white font-bold transition shrink-0"
+          >
+            Xem trong Phản ánh của tôi
+          </button>
+        </div>
+      )}
+
       {/* 2. THANH CÔNG CỤ: PHẢN ÁNH CỦA TÔI + TRẠNG THÁI + CHỌN NHIỀU LOẠI SỰ CỐ + TÌM KIẾM */}
       <div className="bg-white p-3.5 sm:p-4 rounded-[5px] border border-slate-200 shadow-sm space-y-3">
         {/* Ô tra cứu theo SĐT khi khách chưa đăng nhập bật "Phản ánh của tôi" */}
@@ -314,7 +338,7 @@ export const MyReportsPage: React.FC = () => {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Tất cả ({incidents.length})
+                Tất cả ({onlyMyReports ? myReportsCount : incidents.filter(isPublicIncident).length})
               </button>
               <button
                 onClick={() => setStatusFilter('pending')}

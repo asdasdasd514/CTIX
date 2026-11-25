@@ -18,7 +18,7 @@ apiRouter.post('/auth/demo-login', authCtrl.demoLogin);
 apiRouter.get('/auth/me', requireAuth, authCtrl.getMe);
 
 // Media (Cloudinary)
-apiRouter.post('/media/upload', uploadImages.array('files', 6), mediaCtrl.uploadMedia);
+apiRouter.post('/media/upload', uploadImages.array('files', 8), mediaCtrl.uploadMedia);
 apiRouter.delete('/media', mediaCtrl.deleteMedia);
 
 // Incidents (MOD-01, MOD-02, MOD-03, MOD-04, MOD-05)
