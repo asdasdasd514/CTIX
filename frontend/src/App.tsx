@@ -19,6 +19,7 @@ import { SubmitIncidentWizard } from './modules/citizen/SubmitIncidentWizard';
 import { MyReportsPage } from './modules/citizen/MyReportsPage';
 import { CitizenReportDetailPage } from './modules/citizen/CitizenReportDetailPage';
 import { FieldTasksPage } from './modules/field/FieldTasksPage';
+import { FieldTaskDetailPage } from './modules/field/FieldTaskDetailPage';
 import { CitizenHomePage } from './pages/Citizen/CitizenHomePage';
 import { CitizenHelpPage } from './pages/Citizen/CitizenHelpPage';
 import { CitizenAccountPage } from './pages/Citizen/CitizenAccountPage';
@@ -193,6 +194,7 @@ export const App: React.FC = () => {
             }
           />
           <Route path="field-tasks" element={<FieldTasksPage />} />
+          <Route path="field-tasks/:id" element={<FieldTaskDetailPage />} />
           <Route path="verify" element={<Navigate to="/admin/field-tasks" replace />} />
           <Route
             path="statistics"

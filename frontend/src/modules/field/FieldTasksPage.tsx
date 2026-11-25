@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Camera,
   MapPin,
   CheckCircle2,
   ClipboardCheck,
-  Play,
   AlertTriangle,
   UserCheck,
   Clock,
@@ -13,14 +11,15 @@ import {
   RefreshCw,
   ArrowRight,
   ShieldCheck,
+  ListChecks,
 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { IncidentResolutionModal } from './IncidentResolutionModal';
-import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
+import type { IncidentPriority } from '../../types/incident';
 import {
   CATEGORIES,
+  PRIORITY_LABELS,
   STATUS_LABELS,
   UNASSIGNED_STAFF_LABEL,
   deadlineLabel,
@@ -35,13 +34,8 @@ import {
 type FieldTab = 'assigned' | 'completed';
 
 export function FieldTasksPage() {
-  const {
-    incidents,
-    verifyIncident,
-    startIncident,
-    toggleWorkflowStep,
-    refreshIncidents,
-  } = useIncidentStore();
+  const navigate = useNavigate();
+  const { incidents, refreshIncidents } = useIncidentStore();
   const { currentUser } = useAuthStore();
   const isFieldStaff = currentUser.role === 'volunteer';
 
@@ -71,12 +65,9 @@ export function FieldTasksPage() {
 
   const [unitFilter, setUnitFilter] = useState('all');
   const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | IncidentPriority>('all');
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [mineOnly, setMineOnly] = useState(false);
-  const [resolveId, setResolveId] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [verifyId, setVerifyId] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const highlightedCardRef = useRef<HTMLElement>(null);
 
@@ -91,7 +82,7 @@ export function FieldTasksPage() {
   }, [linkedIncident]);
 
   // Phạm vi cơ bản:
-  // - Tài khoản Tổ xử lý (volunteer): tự động giới hạn đúng nhiệm vụ của Tổ hoặc cá nhân mình
+  // - Tài khoản Tổ xử lý (volunteer): chỉ xem đúng nhiệm vụ thuộc Tổ hoặc cá nhân mình
   // - Quản trị/Điều phối (officer/leader): xem toàn phường & có bộ lọc theo tổ/người phụ trách
   const scopedIncidents = useMemo(() => {
     const valid = incidents.filter(
@@ -101,7 +92,7 @@ export function FieldTasksPage() {
 
     const myDept = (currentUser.department || '').trim().toLowerCase();
     const myName = (currentUser.name || '').trim().toLowerCase();
-    const matched = valid.filter((i) => {
+    return valid.filter((i) => {
       const unitMatch =
         myDept &&
         i.assignedTo?.unitName &&
@@ -112,8 +103,6 @@ export function FieldTasksPage() {
         i.assignedTo.assigneeName.trim().toLowerCase() === myName;
       return Boolean(unitMatch || assigneeMatch);
     });
-    // Chỉ hiển thị đúng nhiệm vụ thuộc Tổ hoặc cá nhân phụ trách (không lộ nhiệm vụ của tổ khác)
-    return matched;
   }, [incidents, isFieldStaff, currentUser.department, currentUser.name]);
 
   const unitOptions = useMemo(() => getAllKnownUnits(scopedIncidents), [scopedIncidents]);
@@ -145,6 +134,8 @@ export function FieldTasksPage() {
       )
         return false;
     }
+    if (priorityFilter !== 'all' && i.priority !== priorityFilter) return false;
+    if (overdueOnly && !isOverdue(i)) return false;
     if (
       mineOnly &&
       myTasksCount > 0 &&
@@ -163,18 +154,6 @@ export function FieldTasksPage() {
   };
 
   const overdueActiveCount = groups.assigned.filter((i) => isOverdue(i)).length;
-  const target = incidents.find((i) => i.id === resolveId);
-
-  const act = (action: () => void, text: string) => {
-    setError('');
-    try {
-      action();
-      setMessage(text);
-      window.setTimeout(() => setMessage(''), 4000);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
@@ -182,11 +161,11 @@ export function FieldTasksPage() {
     setRefreshing(false);
   };
 
+  // Mặc định sắp xếp phản ánh MỚI NHẤT lên đầu (việc lọc ưu tiên / quá hạn do bộ lọc đảm nhiệm)
   const sortedItems = [...groups[tab]].sort(
     (a, b) =>
       Number(b.id === linkedId) - Number(a.id === linkedId) ||
-      Number(isOverdue(b)) - Number(isOverdue(a)) ||
-      Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+      Date.parse(b.createdAt) - Date.parse(a.createdAt)
   );
 
   return (
@@ -203,7 +182,7 @@ export function FieldTasksPage() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Nhận việc, tick hoàn thành quy trình SOP, chụp ảnh nghiệm thu Trước – Sau tại hiện trường
+            Bấm vào từng nhiệm vụ để xem chi tiết hiện trường, tick từng bước SOP và chụp ảnh nghiệm thu
           </p>
         </div>
 
@@ -249,16 +228,27 @@ export function FieldTasksPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[5px] border border-slate-200 border-l-4 border-l-rose-600 p-4 shadow-sm flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => {
+            setTab('assigned');
+            setOverdueOnly((v) => !v);
+          }}
+          className={`text-left bg-white rounded-[5px] border border-l-4 border-l-rose-600 p-4 shadow-sm flex items-center justify-between transition ${
+            overdueOnly ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/30' : 'border-slate-200 hover:border-rose-300'
+          }`}
+        >
           <div>
             <div className="text-xs font-bold text-slate-500 uppercase">Quá hạn SLA</div>
             <div className="text-2xl font-black text-rose-700 mt-0.5">{overdueActiveCount}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Cần ưu tiên hoàn thành ngay</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              {overdueOnly ? 'Đang lọc hồ sơ quá hạn (bấm để bỏ lọc)' : 'Bấm để lọc các hồ sơ quá hạn'}
+            </div>
           </div>
           <div className="w-11 h-11 rounded-[5px] bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-6 h-6" />
           </div>
-        </div>
+        </button>
 
         <div className="bg-white rounded-[5px] border border-slate-200 border-l-4 border-l-emerald-600 p-4 shadow-sm flex items-center justify-between">
           <div>
@@ -273,7 +263,7 @@ export function FieldTasksPage() {
       </div>
 
       {/* 3. THANH TAB & BỘ LỌC */}
-      <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-3.5 sm:p-4 space-y-3">
+      <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-3.5 sm:p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* 2 Tab gọn gàng: Cần xử lý & Đã xử lý */}
           <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200">
@@ -301,8 +291,20 @@ export function FieldTasksPage() {
             </button>
           </div>
 
-          {/* Bộ lọc theo Tổ / Người phụ trách */}
+          {/* Bộ lọc theo Mức ưu tiên / Tổ / Người phụ trách */}
           <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="Lọc nhiệm vụ theo mức độ ưu tiên"
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value as 'all' | IncidentPriority)}
+              className="h-9 px-3 rounded-[5px] border border-slate-300 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            >
+              <option value="all">Tất cả mức độ</option>
+              <option value="urgent">Khẩn cấp</option>
+              <option value="high">Ưu tiên cao</option>
+              <option value="normal">Bình thường</option>
+            </select>
+
             {!isFieldStaff && (
               <>
                 <select
@@ -354,35 +356,15 @@ export function FieldTasksPage() {
         </div>
       </div>
 
-      {/* Thông báo thao tác */}
-      {message && (
-        <div
-          role="status"
-          className="p-3 rounded-[5px] bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2"
-        >
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{message}</span>
-        </div>
-      )}
-      {error && (
-        <div
-          role="alert"
-          className="p-3 rounded-[5px] bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2"
-        >
-          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* 4. DANH SÁCH THẺ NHIỆM VỤ */}
+      {/* 4. DANH SÁCH THẺ NHIỆM VỤ GỌN (BẤM VÀO ĐỂ MỞ TRANG CHI TIẾT & TICK BƯỚC SOP) */}
       {sortedItems.length === 0 ? (
         <div className="bg-white rounded-[5px] border border-slate-200 p-10 text-center space-y-2 shadow-sm">
           <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto" />
           <div className="text-sm font-bold text-slate-700">
-            Không có nhiệm vụ nào trong mục này
+            Không có nhiệm vụ nào phù hợp bộ lọc hiện tại
           </div>
           <p className="text-xs text-slate-500">
-            Khi Cán bộ điều phối giao việc mới, hồ sơ sẽ tự động hiển thị tại đây.
+            Khi Cán bộ điều phối giao việc mới, hồ sơ sẽ tự động hiển thị trên đầu danh sách.
           </p>
         </div>
       ) : (
@@ -395,6 +377,7 @@ export function FieldTasksPage() {
             const doneSteps = steps.filter((s) => s.completed).length;
             const progressPct = steps.length > 0 ? Math.round((doneSteps / steps.length) * 100) : 0;
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${item.location.lat},${item.location.lng}`;
+            const detailPath = `/admin/field-tasks/${encodeURIComponent(item.id)}`;
 
             return (
               <article
@@ -404,12 +387,15 @@ export function FieldTasksPage() {
                   isHighlighted
                     ? 'border-blue-600 ring-2 ring-blue-500/30'
                     : overdue && !completed
-                    ? 'border-rose-300'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? 'border-rose-300 hover:border-rose-400'
+                    : 'border-slate-200 hover:border-blue-300'
                 }`}
               >
-                <div className="p-4 sm:p-5 space-y-3.5">
-                  {/* Dòng đầu: Mã + Badges */}
+                <div
+                  onClick={() => navigate(detailPath)}
+                  className="p-4 sm:p-5 space-y-3 cursor-pointer"
+                >
+                  {/* Dòng đầu: Mã + Loại + Ưu tiên + Trạng thái */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-mono text-[11px] font-black px-2 py-0.5 rounded-[4px] bg-slate-100 text-slate-800 border border-slate-200">
@@ -418,6 +404,17 @@ export function FieldTasksPage() {
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-[4px] bg-blue-50 text-blue-800 border border-blue-200">
                         {CATEGORIES[item.category]}
                       </span>
+                      {item.priority !== 'normal' && (
+                        <span
+                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-[4px] border ${
+                            item.priority === 'urgent'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {PRIORITY_LABELS[item.priority]}
+                        </span>
+                      )}
                       {item.verifiedByVolunteer && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-200">
                           ✓ Đã xác minh
@@ -440,76 +437,59 @@ export function FieldTasksPage() {
                     </span>
                   </div>
 
-                  {/* Tiêu đề + Ảnh hiện trường / Thanh trượt Trước - Sau */}
-                  {completed && item.photosBefore.length > 0 && item.photosAfter && item.photosAfter.length > 0 ? (
-                    <div className="space-y-2">
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                  {/* Ảnh thu nhỏ + Tiêu đề & Địa chỉ */}
+                  <div className="flex items-start gap-3">
+                    {item.photosBefore[0] && (
+                      <img
+                        src={completed && item.photosAfter?.[0] ? item.photosAfter[0] : item.photosBefore[0]}
+                        alt={item.title}
+                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-[5px] object-cover border border-slate-200 shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-700">
                         {item.title}
                       </h3>
-                      <BeforeAfterSlider
-                        photosBefore={item.photosBefore}
-                        photosAfter={item.photosAfter}
-                        beforeTimestamp={item.createdAt}
-                        afterTimestamp={item.resolution?.resolvedAt || item.updatedAt}
-                        address={item.location.address}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-3">
-                      {item.photosBefore[0] && (
-                        <img
-                          src={item.photosBefore[0]}
-                          alt={item.title}
-                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-[5px] object-cover border border-slate-200 shrink-0"
-                        />
-                      )}
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug line-clamp-2">
-                          {item.title}
-                        </h3>
-                        <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
-                        <div className="flex items-start gap-1 text-[11px] text-slate-500 pt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                          <span className="line-clamp-2">{item.location.address}</span>
-                        </div>
+                      <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
+                      <div className="flex items-start gap-1 text-[11px] text-slate-500 pt-0.5">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                        <span className="line-clamp-1">{item.location.address}</span>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Thông tin phân công + Hạn SLA */}
                   {item.assignedTo && (
-                    <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 text-xs space-y-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="p-2.5 rounded-[5px] bg-slate-50 border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
                         <span className="font-bold text-slate-800 inline-flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-blue-700 shrink-0" />
                           {item.assignedTo.unitName}
                         </span>
-                        <span
-                          className={`text-[11px] font-bold inline-flex items-center gap-1 ${
-                            overdue && !completed ? 'text-rose-700' : 'text-slate-600'
-                          }`}
-                        >
-                          <Clock className="w-3.5 h-3.5 shrink-0" />
-                          {deadlineLabel(item)} ({formatDate(item.assignedTo.deadline)})
+                        <span className="text-[11px] text-slate-500 block mt-0.5">
+                          Phụ trách: <strong className="text-slate-800">{getAssigneeLabel(item.assignedTo)}</strong>
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-600">
-                        Phụ trách: <strong className="text-slate-900">{getAssigneeLabel(item.assignedTo)}</strong>
-                      </div>
-                      {item.assignedTo.notes && (
-                        <p className="text-[11px] text-slate-600 italic pt-0.5">
-                          “{item.assignedTo.notes}”
-                        </p>
-                      )}
+                      <span
+                        className={`text-[11px] font-bold inline-flex items-center gap-1 shrink-0 ${
+                          overdue && !completed ? 'text-rose-700' : 'text-slate-600'
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        {deadlineLabel(item)}
+                      </span>
                     </div>
                   )}
 
-                  {/* Quy trình SOP hiện trường (có thanh tiến độ & tick trực tiếp khi đang xử lý) */}
+                  {/* Thanh tiến độ SOP tóm tắt (không tick từ bên ngoài) */}
                   {steps.length > 0 && (
-                    <div className="p-3 rounded-[5px] bg-blue-50/50 border border-blue-200/80 space-y-2.5">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                        <span>Quy trình xử lý hiện trường (SOP)</span>
-                        <span className="text-[11px] font-extrabold text-blue-700">
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                        <span className="inline-flex items-center gap-1">
+                          <ListChecks className="w-3.5 h-3.5 text-blue-700" />
+                          Tiến độ quy trình SOP
+                        </span>
+                        <span className="text-blue-700 font-extrabold">
                           {doneSteps}/{steps.length} bước ({progressPct}%)
                         </span>
                       </div>
@@ -519,171 +499,41 @@ export function FieldTasksPage() {
                           style={{ width: `${progressPct}%` }}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        {steps.map((step, idx) => {
-                          const canToggle = item.status === 'in_progress';
-                          return (
-                            <label
-                              key={step.id}
-                              className={`flex items-start gap-2 text-xs p-1.5 rounded-[4px] transition ${
-                                canToggle
-                                  ? 'cursor-pointer hover:bg-white'
-                                  : 'opacity-80 cursor-default'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={step.completed}
-                                disabled={!canToggle}
-                                onChange={() =>
-                                  toggleWorkflowStep(item.id, step.id, currentUser.name)
-                                }
-                                className="mt-0.5 accent-emerald-600 shrink-0"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <span
-                                  className={
-                                    step.completed
-                                      ? 'line-through text-slate-500'
-                                      : 'text-slate-800 font-medium'
-                                  }
-                                >
-                                  Bước {idx + 1}: {step.title}
-                                </span>
-                                {step.completedAt && (
-                                  <span className="block text-[10px] text-emerald-700">
-                                    ✓ {step.completedBy || currentUser.name} • {formatDate(step.completedAt)}
-                                  </span>
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
                     </div>
-                  )}
-
-                  {/* Kết quả nghiệm thu khi đã hoàn thành */}
-                  {completed && item.resolution && (
-                    <div className="p-3 rounded-[5px] bg-emerald-50 border border-emerald-200 text-xs space-y-1">
-                      <div className="font-bold text-emerald-900">
-                        Kết quả nghiệm thu ({formatDate(item.resolution.resolvedAt)})
-                      </div>
-                      <p className="text-emerald-800">{item.resolution.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Form Xác minh tại chỗ (mở inline khi bấm Xác minh) */}
-                  {verifyId === item.id && (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        act(() => {
-                          verifyIncident(item.id, notes.trim() || 'Đã xác minh đúng hiện trường.');
-                          setVerifyId(null);
-                          setNotes('');
-                        }, `Đã ghi nhận xác minh hiện trường cho hồ sơ ${item.code}.`);
-                      }}
-                      className="p-3 rounded-[5px] bg-amber-50 border border-amber-300 space-y-2"
-                    >
-                      <label className="block text-xs font-bold text-amber-950">
-                        Ghi chú xác minh tại hiện trường:
-                      </label>
-                      <input
-                        type="text"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Ví dụ: Đã có mặt kiểm tra, xác nhận đúng vị trí sự cố..."
-                        className="w-full px-3 py-2 rounded-[5px] border border-amber-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-600"
-                      />
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setVerifyId(null);
-                            setNotes('');
-                          }}
-                          className="px-3 py-1.5 rounded-[5px] bg-white border border-slate-300 text-xs font-semibold text-slate-700"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-3.5 py-1.5 rounded-[5px] bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold"
-                        >
-                          Lưu xác minh
-                        </button>
-                      </div>
-                    </form>
                   )}
                 </div>
 
-                {/* Footer nút thao tác */}
-                <div className="px-4 sm:px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold inline-flex items-center gap-1.5 transition"
-                  >
-                    <Navigation className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Chỉ đường</span>
-                  </a>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {!completed && !item.verifiedByVolunteer && verifyId !== item.id && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setVerifyId(item.id);
-                          setNotes('');
-                        }}
-                        className="px-3 py-1.5 rounded-[5px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition"
-                      >
-                        Xác minh tại chỗ
-                      </button>
-                    )}
-
-                    {item.status === 'assigned' && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          act(
-                            () => startIncident(item.id),
-                            `Đã chuyển hồ sơ ${item.code} sang Đang xử lý hiện trường.`
-                          )
-                        }
-                        className="px-3.5 py-1.5 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm transition"
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                        <span>Bắt đầu xử lý</span>
-                      </button>
-                    )}
-
-                    {item.status === 'in_progress' && (
-                      <button
-                        type="button"
-                        onClick={() => setResolveId(item.id)}
-                        className="px-3.5 py-1.5 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm transition"
-                      >
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>Hoàn thành & Ảnh sau</span>
-                      </button>
-                    )}
+                {/* Footer gọn: Chỉ đường + Mở trang chi tiết & xử lý */}
+                <div className="px-4 sm:px-5 py-2.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold inline-flex items-center gap-1 transition"
+                    >
+                      <Navigation className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Chỉ đường</span>
+                    </a>
+                    <span className="hidden sm:inline">{formatDate(item.createdAt)}</span>
                   </div>
+
+                  <Link
+                    to={detailPath}
+                    className={`px-3.5 py-1.5 rounded-[5px] text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm transition ${
+                      completed
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-blue-700 hover:bg-blue-800 text-white'
+                    }`}
+                  >
+                    <span>{completed ? 'Xem chi tiết & Ảnh Trước–Sau' : 'Xem chi tiết & Xử lý'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </article>
             );
           })}
         </div>
-      )}
-
-      {/* Modal Nghiệm thu Before - After */}
-      {target && (
-        <IncidentResolutionModal
-          incident={target}
-          onClose={() => setResolveId(null)}
-        />
       )}
     </div>
   );

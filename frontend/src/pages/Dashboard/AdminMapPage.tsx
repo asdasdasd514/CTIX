@@ -21,7 +21,6 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   UNASSIGNED_UNIT_FILTER,
-  compareDispatchPriority,
   deadlineLabel,
   formatDate,
   getAllKnownUnits,
@@ -163,7 +162,7 @@ export function AdminMapPage() {
             );
           return text.includes(query.trim().toLocaleLowerCase("vi"));
         })
-        .sort((a, b) => compareDispatchPriority(a, b, now)),
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     [incidents, filter, category, query, urgentOnly, unit, month, now],
   );
 

@@ -179,16 +179,7 @@ export const OfficerInboxPage: React.FC = () => {
       }
       return true;
     })
-    .sort((a, b) => {
-      const aOver = isOverdue(a, now) ? 1 : 0;
-      const bOver = isOverdue(b, now) ? 1 : 0;
-      if (aOver !== bOver) return bOver - aOver;
-      const prioOrder: Record<IncidentPriority, number> = { urgent: 3, high: 2, normal: 1 };
-      if (prioOrder[a.priority] !== prioOrder[b.priority]) {
-        return prioOrder[b.priority] - prioOrder[a.priority];
-      }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
