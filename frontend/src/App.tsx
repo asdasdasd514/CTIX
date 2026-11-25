@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/Auth/LoginPage';
+import { RegisterPage } from './pages/Auth/RegisterPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { CitizenLayout } from './layouts/CitizenLayout';
 import { IocDashboardPage } from './pages/Dashboard/IocDashboardPage';
@@ -12,6 +13,7 @@ import { useAuthStore } from './store/useAuthStore';
 import { OfficerInboxPage } from './pages/Officer/OfficerInboxPage';
 import { DispatchDetailPage } from './pages/Officer/DispatchDetailPage';
 import { MembersPage } from './pages/Officer/MembersPage';
+import { AccountsPage } from './pages/Officer/AccountsPage';
 import { NearbyIncidentsMapPage } from './modules/map/NearbyIncidentsMapPage';
 import { SubmitIncidentWizard } from './modules/citizen/SubmitIncidentWizard';
 import { MyReportsPage } from './modules/citizen/MyReportsPage';
@@ -54,8 +56,9 @@ export const App: React.FC = () => {
       )}
 
       <Routes>
-        {/* Trang đăng nhập là trang chính khi chưa đăng nhập */}
+        {/* Trang đăng nhập & đăng ký */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* ========================================================
             1. PHÂN HỆ CÔNG DÂN (Citizen Portal)
@@ -106,6 +109,9 @@ export const App: React.FC = () => {
 
           <Route path="members" element={<MembersPage />} />
           <Route path="admin/members" element={<MembersPage />} />
+
+          <Route path="accounts" element={<AccountsPage />} />
+          <Route path="admin/accounts" element={<AccountsPage />} />
 
           <Route path="dispatch/:id" element={<DispatchDetailPage />} />
           <Route path="admin/dispatch/:id" element={<DispatchDetailPage />} />

@@ -4,6 +4,7 @@ import * as mediaCtrl from '../controllers/mediaController';
 import * as incidentCtrl from '../controllers/incidentController';
 import * as teamCtrl from '../controllers/teamController';
 import * as statsCtrl from '../controllers/statsController';
+import * as userCtrl from '../controllers/userController';
 import { requireAuth, optionalAuth } from '../middlewares/auth';
 import { uploadImages } from '../middlewares/upload';
 
@@ -40,6 +41,12 @@ apiRouter.delete('/teams/units/:id', teamCtrl.deleteUnit);
 apiRouter.post('/teams/members', teamCtrl.createMember);
 apiRouter.patch('/teams/members/:id', teamCtrl.updateMember);
 apiRouter.delete('/teams/members/:id', teamCtrl.deleteMember);
+
+// Users / Accounts Management (Admin)
+apiRouter.get('/users', userCtrl.listUsers);
+apiRouter.post('/users', userCtrl.createUser);
+apiRouter.patch('/users/:id', userCtrl.updateUser);
+apiRouter.delete('/users/:id', userCtrl.deleteUser);
 
 // Stats
 apiRouter.get('/stats/summary', statsCtrl.getSummaryStats);

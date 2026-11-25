@@ -55,6 +55,12 @@ interface AuthState {
   currentUser: UserProfile;
   loginAs: (role: keyof typeof PRESET_ACCOUNTS) => void;
   loginWithCredentials: (identifier: string, password: string) => Promise<UserProfile>;
+  registerCitizen: (payload: {
+    name?: string;
+    phone: string;
+    password: string;
+    confirmPassword: string;
+  }) => Promise<UserProfile>;
   logout: () => void;
 }
 
@@ -110,6 +116,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loginWithCredentials: async (identifier, password) => {
     const res = await authApi.login(identifier, password);
+    setAuthToken(res.token);
+    try {
+      sessionStorage.setItem(SESSION_KEY, res.user.role);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    } catch {}
+    set({ isAuthenticated: true, currentUser: res.user });
+    return res.user as UserProfile;
+  },
+
+  registerCitizen: async (payload) => {
+    const res = await authApi.register(payload);
     setAuthToken(res.token);
     try {
       sessionStorage.setItem(SESSION_KEY, res.user.role);

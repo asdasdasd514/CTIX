@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Lock, User, ArrowRight, ShieldCheck, Users, AlertCircle } from 'lucide-react';
 
@@ -150,6 +150,17 @@ export const LoginPage: React.FC = () => {
                 <span>Admin</span>
               </button>
             </div>
+          </div>
+
+          {/* Link đăng ký tài khoản công dân */}
+          <div className="pt-3 border-t border-slate-100 text-center text-xs text-slate-600">
+            Chưa có tài khoản công dân?{' '}
+            <Link
+              to="/register"
+              className="font-bold text-blue-700 hover:underline"
+            >
+              Đăng ký bằng số điện thoại
+            </Link>
           </div>
         </div>
       </div>

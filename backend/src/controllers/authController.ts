@@ -9,8 +9,10 @@ function serializeUser(u: {
   title: string;
   role: UserRoleType;
   department: string;
+  unitId?: string;
   phone: string;
-  email: string;
+  email?: string;
+  isActive?: boolean;
 }) {
   return {
     id: u.userId,
@@ -18,50 +20,72 @@ function serializeUser(u: {
     title: u.title,
     role: u.role,
     department: u.department,
+    unitId: u.unitId,
     phone: u.phone,
-    email: u.email,
+    email: u.email || '',
+    isActive: u.isActive ?? true,
   };
 }
 
+// POST /api/auth/register — Đăng ký tài khoản Công dân qua SĐT + Mật khẩu + Xác nhận mật khẩu
 export async function register(req: Request, res: Response) {
   try {
-    const { name, phone, email, password } = req.body as {
+    const { name, phone, email, password, confirmPassword } = req.body as {
       name?: string;
       phone?: string;
       email?: string;
       password?: string;
+      confirmPassword?: string;
     };
 
-    if (!name?.trim() || !phone?.trim() || !email?.trim() || !password || password.length < 6) {
+    const cleanPhone = (phone || '').replace(/[\s.-]/g, '').trim();
+    if (!cleanPhone || !/^0\d{8,10}$/.test(cleanPhone)) {
       return res.status(400).json({
-        message: 'Vui lòng nhập đầy đủ họ tên, SĐT, email và mật khẩu tối thiểu 6 ký tự.',
+        message: 'Số điện thoại không hợp lệ (ví dụ: 0912345678).',
       });
     }
 
-    const existing = await UserModel.findOne({
-      $or: [{ email: email.toLowerCase().trim() }, { phone: phone.trim() }],
-    });
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        message: 'Mật khẩu phải có tối thiểu 6 ký tự.',
+      });
+    }
+
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return res.status(400).json({
+        message: 'Mật khẩu xác nhận không khớp.',
+      });
+    }
+
+    const cleanEmail = email?.trim().toLowerCase() || undefined;
+    const orQuery: Record<string, unknown>[] = [{ phone: cleanPhone }];
+    if (cleanEmail) orQuery.push({ email: cleanEmail });
+
+    const existing = await UserModel.findOne({ $or: orQuery });
     if (existing) {
-      return res.status(409).json({ message: 'Email hoặc số điện thoại đã được đăng ký.' });
+      return res.status(409).json({
+        message: 'Số điện thoại (hoặc email) này đã được đăng ký.',
+      });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await UserModel.create({
       userId: `u-${Date.now().toString(36)}`,
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.toLowerCase().trim(),
+      name: name?.trim() || `Công dân ${cleanPhone.slice(-4)}`,
+      phone: cleanPhone,
+      ...(cleanEmail ? { email: cleanEmail } : {}),
       passwordHash,
       role: 'citizen',
       title: 'Công dân Phường Trấn Biên',
       department: 'Phường Trấn Biên, TP. Biên Hòa',
+      isActive: true,
     });
 
     const token = signToken({
       userId: user.userId,
       name: user.name,
       role: user.role,
-      email: user.email,
+      email: user.email || user.phone,
     });
 
     return res.status(201).json({ token, user: serializeUser(user) });
@@ -71,6 +95,7 @@ export async function register(req: Request, res: Response) {
   }
 }
 
+// POST /api/auth/login — Đăng nhập qua SĐT hoặc Email + Mật khẩu (phân quyền tự động)
 export async function login(req: Request, res: Response) {
   try {
     const { identifier, email, phone, password } = req.body as {
@@ -79,18 +104,26 @@ export async function login(req: Request, res: Response) {
       phone?: string;
       password?: string;
     };
-    const key = (identifier || email || phone || '').trim();
-    if (!key || !password) {
-      return res.status(400).json({ message: 'Vui lòng nhập tài khoản và mật khẩu.' });
+    const rawKey = (identifier || email || phone || '').trim();
+    if (!rawKey || !password) {
+      return res.status(400).json({ message: 'Vui lòng nhập số điện thoại/email và mật khẩu.' });
     }
 
+    const normalizedPhone = rawKey.replace(/[\s.-]/g, '');
     const user = await UserModel.findOne({
-      $or: [{ email: key.toLowerCase() }, { phone: key }],
-      isActive: true,
+      $or: [
+        { email: rawKey.toLowerCase() },
+        { phone: rawKey },
+        { phone: normalizedPhone },
+      ],
     });
 
     if (!user) {
       return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Tài khoản này đang bị tạm khóa. Vui lòng liên hệ UBND Phường.' });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
@@ -102,7 +135,7 @@ export async function login(req: Request, res: Response) {
       userId: user.userId,
       name: user.name,
       role: user.role,
-      email: user.email,
+      email: user.email || user.phone,
     });
 
     return res.json({ token, user: serializeUser(user) });
@@ -112,6 +145,7 @@ export async function login(req: Request, res: Response) {
   }
 }
 
+// POST /api/auth/demo-login — Đăng nhập nhanh theo vai trò
 export async function demoLogin(req: Request, res: Response) {
   try {
     const role = (req.body?.role || 'citizen') as UserRoleType;
@@ -126,7 +160,7 @@ export async function demoLogin(req: Request, res: Response) {
       userId: user.userId,
       name: user.name,
       role: user.role,
-      email: user.email,
+      email: user.email || user.phone,
     });
 
     return res.json({ token, user: serializeUser(user) });
@@ -136,6 +170,7 @@ export async function demoLogin(req: Request, res: Response) {
   }
 }
 
+// GET /api/auth/me
 export async function getMe(req: AuthRequest, res: Response) {
   try {
     if (!req.user) {

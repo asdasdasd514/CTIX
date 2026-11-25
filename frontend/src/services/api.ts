@@ -57,7 +57,13 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ identifier, password }),
     }),
-  register: (payload: { name: string; phone: string; email: string; password: string }) =>
+  register: (payload: {
+    name?: string;
+    phone: string;
+    email?: string;
+    password: string;
+    confirmPassword?: string;
+  }) =>
     apiRequest<{ token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -183,6 +189,58 @@ export const teamsApi = {
     }),
   deleteMember: (id: string) =>
     apiRequest<{ deleted: boolean }>(`/teams/members/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+};
+
+// 5. Users / Accounts Management API (Admin)
+export interface AccountRecord {
+  id: string;
+  name: string;
+  title: string;
+  role: 'citizen' | 'officer' | 'leader' | 'volunteer';
+  department: string;
+  unitId?: string;
+  phone: string;
+  email?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export const usersApi = {
+  list: () => apiRequest<{ users: AccountRecord[] }>('/users'),
+  create: (payload: {
+    name: string;
+    phone: string;
+    email?: string;
+    password: string;
+    role: 'citizen' | 'officer' | 'leader' | 'volunteer';
+    title?: string;
+    unitId?: string;
+  }) =>
+    apiRequest<{ user: AccountRecord }>('/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  update: (
+    id: string,
+    patch: Partial<{
+      name: string;
+      phone: string;
+      email: string;
+      password: string;
+      role: 'citizen' | 'officer' | 'leader' | 'volunteer';
+      title: string;
+      unitId: string;
+      isActive: boolean;
+    }>
+  ) =>
+    apiRequest<{ user: AccountRecord }>(`/users/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  remove: (id: string) =>
+    apiRequest<{ deleted: boolean }>(`/users/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     }),
 };

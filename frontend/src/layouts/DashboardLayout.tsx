@@ -9,6 +9,7 @@ import {
   MapPin,
   Inbox,
   Users,
+  UserCog,
   ClipboardList,
   ChartNoAxesCombined,
   Settings,
@@ -27,7 +28,9 @@ export function DashboardLayout() {
 
   const routeMeta = pathname.includes('statistics')
     ? { title: 'Thống kê', subtitle: 'Báo cáo tổng hợp & hiệu suất xử lý', icon: ChartNoAxesCombined }
-    : pathname.includes('members')
+    : pathname.includes('accounts')
+      ? { title: 'Quản lý tài khoản', subtitle: 'Quản lý tài khoản công dân, quản trị viên và đội xử lý', icon: UserCog }
+      : pathname.includes('members')
       ? { title: 'Thành viên & Nhóm', subtitle: 'Quản lý nhân sự hiện trường và các tổ đội', icon: Users }
       : pathname.includes('field') || pathname.includes('verify')
         ? { title: 'Nhiệm vụ hiện trường', subtitle: 'Theo dõi tiến độ xử lý & nghiệm thu', icon: ClipboardList }

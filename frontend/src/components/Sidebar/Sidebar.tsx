@@ -4,6 +4,7 @@ import {
   MapPin,
   Inbox,
   Users,
+  UserCog,
   ClipboardList,
   ChartNoAxesCombined,
   Settings,
@@ -24,6 +25,7 @@ export function Sidebar({
     { path: '/map', label: 'Bản đồ', icon: MapPin },
     { path: '/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
     { path: '/members', label: 'Thành viên & Nhóm', icon: Users },
+    { path: '/accounts', label: 'Tài khoản', icon: UserCog },
     { path: '/field/tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
     { path: '/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
   ];
