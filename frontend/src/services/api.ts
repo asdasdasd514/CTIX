@@ -304,17 +304,17 @@ export const usersApi = {
     }),
 };
 
-// 6. Citizen AI Assistant API (Chatbot & Voice Command)
+// 6. Citizen AI Assistant API (Chatbot & Direct Audio Voice Command)
 export interface AiReportDraft {
   category: IncidentCategory;
   customCategoryName?: string;
   description: string;
-  addressHint?: string;
 }
 
 export interface AiAssistantResponse {
   action: 'create_report' | 'open_my_reports' | 'navigate' | 'toggle_elderly' | 'chat_reply';
   reply: string;
+  transcript?: string;
   reportDraft?: AiReportDraft;
   route?: string;
   elderlyEnabled?: boolean;
@@ -331,4 +331,13 @@ export const aiApi = {
       method: 'POST',
       body: JSON.stringify({ message, mode, history }),
     }),
+  voiceCommand: (audioBlob: Blob) => {
+    const formData = new FormData();
+    const ext = audioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+    formData.append('audio', audioBlob, `voice-command.${ext}`);
+    return apiRequest<AiAssistantResponse>('/ai/voice-command', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };

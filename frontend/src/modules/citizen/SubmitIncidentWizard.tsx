@@ -112,9 +112,7 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<IncidentCategory>('street_light');
   const [customCategoryName, setCustomCategoryName] = useState<string>('');
-  const [description, setDescription] = useState<string>(
-    'Bóng đèn cao áp tại ngõ 2 bị chập chờn và tắt hẳn 3 ngày nay, ban đêm rất tối và nguy hiểm.'
-  );
+  const [description, setDescription] = useState<string>('');
   const [phone, setPhone] = useState<string>(isAuthenticated ? currentUser.phone : '');
   const [senderName, setSenderName] = useState<string>(isAuthenticated ? currentUser.name : '');
   const [formError, setFormError] = useState<string | null>(null);
@@ -128,7 +126,7 @@ export const SubmitIncidentWizard: React.FC = () => {
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
 
-  // Nhận dữ liệu điền tự động từ Trợ lý AI (Chatbot / Ra lệnh giọng nói)
+  // Nhận dữ liệu điền tự động từ Trợ lý AI (giữ đúng nguyên mô tả người dùng nói, không ép tên đường)
   useEffect(() => {
     const state = routerLocation.state as { aiPrefill?: AiReportDraft; aiPrefillAt?: number } | null;
     if (!state?.aiPrefill) return;
@@ -136,9 +134,6 @@ export const SubmitIncidentWizard: React.FC = () => {
     if (draft.category) setSelectedCategory(draft.category);
     if (draft.customCategoryName) setCustomCategoryName(draft.customCategoryName);
     if (draft.description) setDescription(draft.description);
-    if (draft.addressHint) {
-      setLocation((prev) => ({ ...prev, address: draft.addressHint! }));
-    }
     setStep(1);
     setAiPrefillNotice(true);
   }, [routerLocation.state]);

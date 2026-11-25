@@ -7,7 +7,7 @@ import * as statsCtrl from '../controllers/statsController';
 import * as userCtrl from '../controllers/userController';
 import * as aiCtrl from '../controllers/aiController';
 import { requireAuth, optionalAuth } from '../middlewares/auth';
-import { uploadImages } from '../middlewares/upload';
+import { uploadImages, uploadAudio } from '../middlewares/upload';
 
 export const apiRouter = Router();
 
@@ -55,8 +55,9 @@ apiRouter.post('/users', userCtrl.createUser);
 apiRouter.patch('/users/:id', userCtrl.updateUser);
 apiRouter.delete('/users/:id', userCtrl.deleteUser);
 
-// AI Assistant (Chatbot & Voice Command)
+// AI Assistant (Chatbot & Direct Audio Voice Command)
 apiRouter.post('/ai/assistant', optionalAuth, aiCtrl.citizenAssistant);
+apiRouter.post('/ai/voice-command', optionalAuth, uploadAudio.single('audio'), aiCtrl.citizenVoiceCommand);
 
 // Stats
 apiRouter.get('/stats/summary', statsCtrl.getSummaryStats);

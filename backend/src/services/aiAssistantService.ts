@@ -17,11 +17,11 @@ export interface AssistantMessage {
 export interface AssistantResponse {
   action: AssistantAction;
   reply: string;
+  transcript?: string;
   reportDraft?: {
     category: IncidentCategoryType;
     customCategoryName?: string;
     description: string;
-    addressHint?: string;
   };
   route?: string;
   elderlyEnabled?: boolean;
@@ -162,12 +162,11 @@ Thông tin thực tế hệ thống:
 - Tổng đài hỗ trợ khẩn cấp: 1022.
 
 Quy tắc chọn "action":
-1. "create_report": Khi người dân muốn gửi phản ánh / báo cáo một sự cố hiện trường (vd: "tôi muốn phản ánh đèn đường...", "báo cáo ổ gà ở...", "có đống rác bốc mùi...").
+1. "create_report": Khi người dân muốn gửi phản ánh / báo cáo một sự cố hiện trường (vd: "tôi muốn phản ánh đèn đường...", "báo cáo ổ gà...", "có đống rác bốc mùi...").
    - Bóc tách "reportDraft":
      * category: chọn 1 trong ["street_light", "flooding", "waste", "road_damage", "other"]
      * customCategoryName: nếu category="other" thì ghi tên loại ngắn gọn (vd "Cây xanh ngã đổ"), ngược lại null
-     * description: viết lại mô tả hiện trường rõ ràng, lịch sự, sửa lỗi chính tả do nhận diện giọng nói
-     * addressHint: trích xuất địa chỉ/tên đường nếu người dùng có nhắc (vd "45 Đường Nguyễn Ái Quốc, Phường Trấn Biên"), nếu không nhắc thì null
+     * description: GIỮ NGUYÊN SÁT 100% CHI TIẾT MÔ TẢ THEO ĐÚNG LỜI NGƯỜI DÂN NÓI (chỉ bỏ cụm mở đầu lệnh như "Tôi muốn phản ánh", "Cho tôi báo cáo" nếu có; TUYỆT ĐỐI KHÔNG tự sáng tác thêm, KHÔNG viết lại kiểu văn mẫu, KHÔNG tự ép hay tự bịa tên đường).
 2. "open_my_reports": Khi người dân muốn xem danh sách phản ánh của mình ("xem phản ánh của tôi", "kiểm tra hồ sơ đã gửi").
 3. "toggle_elderly": Khi người dân muốn bật/tắt chế độ người cao tuổi / chữ to ("bật chữ lớn", "tắt chế độ người cao tuổi").
 4. "navigate": Khi người dân muốn chuyển sang trang khác:
@@ -256,7 +255,6 @@ Trả về JSON duy nhất đúng cấu trúc:
                 : 'other',
               customCategoryName: parsed.reportDraft.customCategoryName || undefined,
               description: parsed.reportDraft.description?.trim() || trimmed,
-              addressHint: parsed.reportDraft.addressHint || undefined,
             }
           : undefined,
       route: parsed.route || undefined,
@@ -268,4 +266,144 @@ Trả về JSON duy nhất đúng cấu trúc:
     console.warn('[AI Assistant] Fallback:', err instanceof Error ? err.message : err);
     return fallbackAssistant(trimmed);
   }
+}
+
+// Nhận trực tiếp file Audio từ điện thoại → Gemini 2.5 Flash nghe thẳng giọng nói tiếng Việt
+export async function runCitizenVoiceAudio(
+  audioBuffer: Buffer,
+  mimeType: string
+): Promise<AssistantResponse> {
+  if (!env.GEMINI_API_KEY) {
+    return {
+      action: 'chat_reply',
+      reply: 'Chưa cấu hình GEMINI_API_KEY trên máy chủ để nhận diện âm thanh trực tiếp.',
+      analyzedBy: 'fallback',
+    };
+  }
+
+  const cleanMime = (mimeType || 'audio/webm').split(';')[0].trim();
+  const base64Audio = audioBuffer.toString('base64');
+
+  const prompt = `Bạn là Trợ lý Giọng nói AI cho công dân trên ứng dụng phản ánh hiện trường CTIX.
+Hãy NGHE KỸ đoạn âm thanh tiếng Việt đính kèm và thực hiện đúng 3 việc:
+
+1. "transcript": Chép lại CHÍNH XÁC NGUYÊN VĂN từng chữ người dùng đã nói bằng tiếng Việt chuẩn (không thêm bớt, không ép hay tự bịa tên đường). Nếu âm thanh im lặng hoặc không có tiếng nói rõ, trả về chuỗi rỗng "".
+2. "action": Xác định ý định của người nói:
+   - "create_report": Khi người dùng muốn gửi phản ánh / báo cáo một sự cố hiện trường (vd "tôi muốn phản ánh...", "báo cáo...", hoặc mô tả sự cố đèn đường, ngập nước, rác thải, ổ gà, cây đổ...).
+   - "open_my_reports": Khi muốn xem danh sách phản ánh của mình.
+   - "toggle_elderly": Khi muốn bật/tắt chế độ người cao tuổi / chữ to.
+   - "navigate": Khi muốn mở trang khác ("/citizen/home", "/citizen/reports", "/citizen/help", "/citizen/account").
+   - "chat_reply": Khi hỏi đáp bình thường hoặc không rõ lệnh.
+3. Nếu action là "create_report", điền "reportDraft":
+   - "category": chọn 1 trong ["street_light", "flooding", "waste", "road_damage", "other"]
+   - "customCategoryName": nếu category="other" thì ghi tên loại ngắn gọn, ngược lại null
+   - "description": LẤY ĐÚNG NGUYÊN CHI TIẾT MÔ TẢ THEO ĐÚNG LỜI NGƯỜI DÙNG VỪA NÓI (chỉ bỏ cụm mở đầu lệnh như "Tôi muốn phản ánh", "Cho tôi báo cáo" nếu có; TUYỆT ĐỐI KHÔNG tự viết lại văn mẫu, KHÔNG thêm chi tiết người dùng không nói, KHÔNG ép/sửa tên đường).
+
+Trả về JSON duy nhất đúng cấu trúc:
+{
+  "transcript": "nguyên văn lời người nói",
+  "action": "create_report" | "open_my_reports" | "navigate" | "toggle_elderly" | "chat_reply",
+  "reply": "Câu phản hồi tiếng Việt thật ngắn gọn (1 câu)",
+  "reportDraft": {
+    "category": "street_light" | "flooding" | "waste" | "road_damage" | "other",
+    "customCategoryName": "string | null",
+    "description": "string"
+  } | null,
+  "route": "/citizen/home" | "/citizen/reports" | "/citizen/help" | "/citizen/account" | "/citizen/submit" | null,
+  "elderlyEnabled": true | false | null
+}`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal: controller.signal,
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                mimeType: cleanMime,
+                data: base64Audio,
+              },
+            },
+            { text: prompt },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+      },
+    }),
+  });
+  clearTimeout(timer);
+
+  if (!res.ok) {
+    const errTxt = await res.text().catch(() => '');
+    throw new Error(`Gemini Audio API error (${res.status}): ${errTxt.slice(0, 180)}`);
+  }
+
+  const data = (await res.json()) as any;
+  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) {
+    throw new Error('AI không trả về dữ liệu nhận diện giọng nói.');
+  }
+
+  const parsed = JSON.parse(rawText) as {
+    transcript?: string;
+    action?: AssistantAction;
+    reply?: string;
+    reportDraft?: {
+      category?: IncidentCategoryType;
+      customCategoryName?: string | null;
+      description?: string;
+    } | null;
+    route?: string | null;
+    elderlyEnabled?: boolean | null;
+  };
+
+  const transcript = (parsed.transcript || '').trim();
+  if (!transcript) {
+    return {
+      action: 'chat_reply',
+      transcript: '',
+      reply: 'Chưa nghe rõ giọng nói của bạn. Hãy giữ nút AI 1 giây rồi nói gần micro hơn nhé.',
+      analyzedBy: 'gemini',
+    };
+  }
+
+  const action: AssistantAction = parsed.action || 'chat_reply';
+  const validCategories: IncidentCategoryType[] = [
+    'street_light',
+    'flooding',
+    'waste',
+    'road_damage',
+    'other',
+  ];
+
+  return {
+    action,
+    transcript,
+    reply: parsed.reply?.trim() || 'Đã nhận lệnh giọng nói của bạn.',
+    reportDraft:
+      action === 'create_report' && parsed.reportDraft
+        ? {
+            category: validCategories.includes(parsed.reportDraft.category as IncidentCategoryType)
+              ? (parsed.reportDraft.category as IncidentCategoryType)
+              : 'other',
+            customCategoryName: parsed.reportDraft.customCategoryName || undefined,
+            description: parsed.reportDraft.description?.trim() || transcript,
+          }
+        : undefined,
+    route: parsed.route || undefined,
+    elderlyEnabled:
+      typeof parsed.elderlyEnabled === 'boolean' ? parsed.elderlyEnabled : undefined,
+    analyzedBy: 'gemini',
+  };
 }

@@ -10,58 +10,53 @@ interface ChatMsg {
   text: string;
 }
 
-interface SpeechRecognitionAlternativeLike {
-  transcript: string;
-}
-interface SpeechRecognitionResultLike {
-  isFinal: boolean;
-  [index: number]: SpeechRecognitionAlternativeLike;
-}
-interface SpeechRecognitionEventLike {
-  resultIndex: number;
-  results: ArrayLike<SpeechRecognitionResultLike>;
-}
-interface SpeechRecognitionLike {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((e: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
-
 const HOLD_DURATION_MS = 1000;
+
+function pickSupportedAudioMime(): string {
+  if (typeof MediaRecorder === 'undefined') return '';
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+  ];
+  for (const mime of candidates) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return '';
+}
 
 export const CitizenAiAssistant: React.FC = () => {
   const navigate = useNavigate();
   const { setElderlyMode } = useIncidentStore();
 
-  // Chatbot state (tối giản, không có nút gợi ý nhanh)
+  // Chatbot tối giản (không có nút gợi ý nhanh)
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Bạn có thể hỏi về quy trình phản ánh, hoặc nhấn giữ nút AI 1 giây để ra lệnh bằng giọng nói.',
+      text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Chạm để hỏi đáp hoặc nhấn giữ nút AI 1 giây để ra lệnh bằng giọng nói.',
     },
   ]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [voiceFeedback, setVoiceFeedback] = useState(true);
 
-  // Hold 1s -> Voice Command state
+  // Hold 1s -> Direct Audio Recording for Gemini 2.5 Flash
   const [holding, setHolding] = useState(false);
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceProcessing, setVoiceProcessing] = useState(false);
-  const [liveTranscript, setLiveTranscript] = useState('');
+  const [recordSeconds, setRecordSeconds] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
   const holdTimerRef = useRef<number | null>(null);
+  const recordIntervalRef = useRef<number | null>(null);
   const triggeredVoiceRef = useRef(false);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const finalTranscriptRef = useRef('');
+  const cancelledVoiceRef = useRef(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -70,9 +65,25 @@ export const CitizenAiAssistant: React.FC = () => {
 
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 4500);
+    const t = window.setTimeout(() => setToast(null), 5000);
     return () => window.clearTimeout(t);
   }, [toast]);
+
+  const cleanupMedia = () => {
+    if (recordIntervalRef.current) {
+      window.clearInterval(recordIntervalRef.current);
+      recordIntervalRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+    }
+    mediaRecorderRef.current = null;
+  };
+
+  useEffect(() => {
+    return () => cleanupMedia();
+  }, []);
 
   const speakReply = (text: string) => {
     if (!voiceFeedback || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -82,14 +93,12 @@ export const CitizenAiAssistant: React.FC = () => {
       utter.lang = 'vi-VN';
       utter.rate = 1.05;
       window.speechSynthesis.speak(utter);
-    } catch {
-      // ignore TTS errors
-    }
+    } catch {}
   };
 
   const executeAssistantResult = (res: AiAssistantResponse, fromVoice: boolean) => {
     if (fromVoice) {
-      setToast(res.reply);
+      setToast(res.transcript ? `“${res.transcript}” — ${res.reply}` : res.reply);
       speakReply(res.reply);
     }
 
@@ -123,13 +132,12 @@ export const CitizenAiAssistant: React.FC = () => {
       return;
     }
 
-    // Nếu là câu hỏi bình thường bằng giọng nói -> mở khung Chatbot hiển thị câu trả lời
-    if (fromVoice) {
+    if (fromVoice && res.transcript) {
       setChatOpen(true);
     }
   };
 
-  const sendToAssistant = async (text: string, mode: 'chat' | 'voice') => {
+  const sendTextToAssistant = async (text: string) => {
     const clean = text.trim();
     if (!clean) return;
 
@@ -139,38 +147,32 @@ export const CitizenAiAssistant: React.FC = () => {
       .map((m) => ({ role: m.role, text: m.text }));
 
     setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: 'user', text: clean }]);
-    if (mode === 'voice') setVoiceProcessing(true);
-    else setSending(true);
+    setSending(true);
 
     try {
-      const res = await aiApi.assistant(clean, mode, historyPayload);
+      const res = await aiApi.assistant(clean, 'chat', historyPayload);
       setMessages((prev) => [
         ...prev,
         { id: `a-${Date.now()}`, role: 'assistant', text: res.reply },
       ]);
-      executeAssistantResult(res, mode === 'voice');
+      executeAssistantResult(res, false);
     } catch {
-      const fallbackMsg = 'Không kết nối được máy chủ AI. Vui lòng thử lại sau.';
       setMessages((prev) => [
         ...prev,
-        { id: `e-${Date.now()}`, role: 'assistant', text: fallbackMsg },
+        {
+          id: `e-${Date.now()}`,
+          role: 'assistant',
+          text: 'Không kết nối được máy chủ AI. Vui lòng thử lại sau.',
+        },
       ]);
-      if (mode === 'voice') setToast(fallbackMsg);
     } finally {
       setSending(false);
-      setVoiceProcessing(false);
     }
   };
 
-  const startVoiceCommand = () => {
-    const win = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionLike;
-      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-    };
-    const SpeechRec = win.SpeechRecognition || win.webkitSpeechRecognition;
-
-    if (!SpeechRec) {
-      setToast('Trình duyệt này chưa hỗ trợ thu âm giọng nói. Bạn hãy chạm để dùng Chatbot nhé.');
+  const startAudioRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setToast('Trình duyệt không hỗ trợ thu âm trực tiếp. Hãy chạm để dùng Chatbot nhé.');
       return;
     }
 
@@ -178,72 +180,90 @@ export const CitizenAiAssistant: React.FC = () => {
       navigator.vibrate?.(40);
     } catch {}
 
-    finalTranscriptRef.current = '';
-    setLiveTranscript('');
-    setVoiceActive(true);
+    cancelledVoiceRef.current = false;
+    audioChunksRef.current = [];
+    setRecordSeconds(0);
     setChatOpen(false);
 
-    const rec = new SpeechRec();
-    rec.lang = 'vi-VN';
-    rec.continuous = true;
-    rec.interimResults = true;
-
-    rec.onresult = (event) => {
-      let interim = '';
-      let finals = finalTranscriptRef.current;
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const res = event.results[i];
-        const txt = res[0]?.transcript || '';
-        if (res.isFinal) {
-          finals = `${finals} ${txt}`.trim();
-        } else {
-          interim += txt;
-        }
-      }
-      finalTranscriptRef.current = finals;
-      setLiveTranscript(`${finals} ${interim}`.trim());
-    };
-
-    rec.onerror = (e) => {
-      if (e.error === 'not-allowed') {
-        setToast('Vui lòng cấp quyền Micro cho trình duyệt để dùng điều khiển giọng nói.');
-      }
-      setVoiceActive(false);
-    };
-
-    rec.onend = () => {
-      // xử lý gửi lệnh khi kết thúc thu âm
-    };
-
-    recognitionRef.current = rec;
     try {
-      rec.start();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Nếu người dùng đã thả tay trong lúc xin quyền micro -> dừng ngay
+      if (!triggeredVoiceRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      mediaStreamRef.current = stream;
+      const mimeType = pickSupportedAudioMime();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      recorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) {
+          audioChunksRef.current.push(ev.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const chunks = audioChunksRef.current;
+        const type = recorder.mimeType || mimeType || 'audio/webm';
+        cleanupMedia();
+        setVoiceActive(false);
+
+        if (cancelledVoiceRef.current || chunks.length === 0) return;
+
+        const blob = new Blob(chunks, { type });
+        if (blob.size < 800) {
+          setToast('Đoạn ghi âm quá ngắn. Hãy giữ nút và nói rõ yêu cầu nhé.');
+          return;
+        }
+
+        setVoiceProcessing(true);
+        try {
+          const res = await aiApi.voiceCommand(blob);
+          if (res.transcript) {
+            setMessages((prev) => [
+              ...prev,
+              { id: `u-${Date.now()}`, role: 'user', text: res.transcript! },
+              { id: `a-${Date.now() + 1}`, role: 'assistant', text: res.reply },
+            ]);
+          }
+          executeAssistantResult(res, true);
+        } catch {
+          setToast('Không thể gửi âm thanh lên AI. Vui lòng kiểm tra kết nối máy chủ.');
+        } finally {
+          setVoiceProcessing(false);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setVoiceActive(true);
+
+      recordIntervalRef.current = window.setInterval(() => {
+        setRecordSeconds((s) => s + 1);
+      }, 1000);
     } catch {
       setVoiceActive(false);
+      setToast('Vui lòng cấp quyền Micro để dùng điều khiển bằng giọng nói.');
     }
   };
 
-  const stopAndProcessVoice = () => {
-    const rec = recognitionRef.current;
-    recognitionRef.current = null;
-    if (rec) {
+  const stopAudioRecording = (cancel = false) => {
+    cancelledVoiceRef.current = cancel;
+    const rec = mediaRecorderRef.current;
+    if (rec && rec.state !== 'inactive') {
       try {
         rec.stop();
-      } catch {}
-    }
-    setVoiceActive(false);
-
-    // Đợi 250ms để SpeechRecognition chốt từ cuối cùng
-    window.setTimeout(() => {
-      const spoken = (finalTranscriptRef.current || liveTranscript).trim();
-      setLiveTranscript('');
-      finalTranscriptRef.current = '';
-      if (spoken) {
-        void sendToAssistant(spoken, 'voice');
-      } else {
-        setToast('Chưa nghe rõ lệnh của bạn. Hãy giữ nút 1 giây rồi nói rõ hơn nhé.');
+      } catch {
+        cleanupMedia();
+        setVoiceActive(false);
       }
-    }, 250);
+    } else {
+      cleanupMedia();
+      setVoiceActive(false);
+    }
   };
 
   // Xử lý nhấn giữ 1s vs chạm nhẹ
@@ -256,7 +276,7 @@ export const CitizenAiAssistant: React.FC = () => {
     holdTimerRef.current = window.setTimeout(() => {
       triggeredVoiceRef.current = true;
       setHolding(false);
-      startVoiceCommand();
+      void startAudioRecording();
     }, HOLD_DURATION_MS);
   };
 
@@ -269,9 +289,8 @@ export const CitizenAiAssistant: React.FC = () => {
 
     if (triggeredVoiceRef.current) {
       triggeredVoiceRef.current = false;
-      stopAndProcessVoice();
+      stopAudioRecording(false);
     } else {
-      // Chạm nhẹ (< 1s) -> mở / đóng Chatbot
       setChatOpen((prev) => !prev);
     }
   };
@@ -284,7 +303,7 @@ export const CitizenAiAssistant: React.FC = () => {
     setHolding(false);
     if (triggeredVoiceRef.current) {
       triggeredVoiceRef.current = false;
-      stopAndProcessVoice();
+      stopAudioRecording(false);
     }
   };
 
@@ -293,8 +312,11 @@ export const CitizenAiAssistant: React.FC = () => {
     if (!inputText.trim() || sending) return;
     const text = inputText;
     setInputText('');
-    void sendToAssistant(text, 'chat');
+    void sendTextToAssistant(text);
   };
+
+  const formatTimer = (sec: number) =>
+    `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 
   return (
     <>
@@ -313,7 +335,7 @@ export const CitizenAiAssistant: React.FC = () => {
         </div>
       )}
 
-      {/* 2. KHUNG ĐANG NGHE LỆNH GIỌNG NÓI (KHI GIỮ ĐỦ 1 GIÂY) */}
+      {/* 2. KHUNG ĐANG GHI ÂM TRỰC TIẾP GỬI GEMINI 2.5 FLASH */}
       {(voiceActive || voiceProcessing) && (
         <div className="fixed bottom-[144px] md:bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 bg-slate-900 text-white rounded-[10px] shadow-2xl border border-blue-500/40 p-4 space-y-2.5">
           <div className="flex items-center justify-between gap-2">
@@ -325,24 +347,14 @@ export const CitizenAiAssistant: React.FC = () => {
               )}
               <span className="text-xs font-bold tracking-wide text-blue-100">
                 {voiceProcessing
-                  ? 'AI Gemini đang xử lý lệnh...'
-                  : 'Đang nghe lệnh giọng nói (thả tay để gửi)'}
+                  ? 'AI Gemini đang nghe & chép nguyên văn...'
+                  : `Đang ghi âm trực tiếp (${formatTimer(recordSeconds)})`}
               </span>
             </div>
             {voiceActive && (
               <button
                 type="button"
-                onClick={() => {
-                  if (recognitionRef.current) {
-                    try {
-                      recognitionRef.current.stop();
-                    } catch {}
-                    recognitionRef.current = null;
-                  }
-                  finalTranscriptRef.current = '';
-                  setLiveTranscript('');
-                  setVoiceActive(false);
-                }}
+                onClick={() => stopAudioRecording(true)}
                 className="text-[11px] text-slate-400 hover:text-white"
               >
                 Hủy
@@ -350,20 +362,27 @@ export const CitizenAiAssistant: React.FC = () => {
             )}
           </div>
 
-          <div className="min-h-[40px] p-2.5 rounded-[6px] bg-white/10 text-xs sm:text-sm text-white leading-relaxed">
-            {liveTranscript || (
-              <span className="text-slate-400 italic">
-                Ví dụ: &ldquo;Tôi muốn phản ánh đèn đường trước số 45 Nguyễn Ái Quốc bị tắt...&rdquo;
-              </span>
+          <div className="p-2.5 rounded-[6px] bg-white/10 text-xs text-blue-100 leading-relaxed flex items-center justify-between gap-3">
+            <span>
+              {voiceProcessing
+                ? 'Đang phân tích giọng nói và tự động điền đúng mô tả của bạn...'
+                : 'Hãy nói tự nhiên yêu cầu phản ánh của bạn, thả tay ra để gửi.'}
+            </span>
+            {voiceActive && (
+              <div className="flex items-end gap-0.5 h-5 shrink-0">
+                <span className="w-1 bg-amber-400 rounded-full animate-pulse h-3" />
+                <span className="w-1 bg-amber-300 rounded-full animate-pulse h-5" />
+                <span className="w-1 bg-amber-400 rounded-full animate-pulse h-2.5" />
+                <span className="w-1 bg-amber-300 rounded-full animate-pulse h-4" />
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* 3. CỬA SỔ CHATBOT TỐI GIẢN (CHẠM NHẸ < 1s, KHÔNG CÓ NÚT GỢI Ý NHANH) */}
+      {/* 3. CỬA SỔ CHATBOT TỐI GIẢN (KHÔNG NÚT GỢI Ý NHANH) */}
       {chatOpen && !voiceActive && (
         <div className="fixed bottom-[144px] md:bottom-24 left-3 right-3 sm:left-auto sm:right-6 sm:w-[360px] z-50 bg-white rounded-[8px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[65vh]">
-          {/* Header */}
           <div className="bg-blue-950 text-white px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-[6px] bg-blue-800 border border-white/15 flex items-center justify-center shrink-0">
@@ -400,7 +419,6 @@ export const CitizenAiAssistant: React.FC = () => {
             </div>
           </div>
 
-          {/* Danh sách tin nhắn */}
           <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 bg-slate-50">
             {messages.map((msg) => (
               <div
@@ -429,7 +447,6 @@ export const CitizenAiAssistant: React.FC = () => {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Ô nhập tin nhắn */}
           <form
             onSubmit={handleChatSubmit}
             className="p-2.5 bg-white border-t border-slate-200 flex items-center gap-2"
@@ -453,7 +470,7 @@ export const CitizenAiAssistant: React.FC = () => {
         </div>
       )}
 
-      {/* 4. NÚT TRỢ LÝ AI NỔI DUY NHẤT (CHẠM = CHATBOT | GIỮ 1S = RA LỆNH GIỌNG NÓI) */}
+      {/* 4. NÚT TRỢ LÝ AI NỔI DUY NHẤT (CHẠM = CHATBOT | GIỮ 1S = THU ÂM TRỰC TIẾP) */}
       <div className="fixed bottom-[76px] right-4 md:bottom-6 md:right-6 z-50 flex flex-col items-end gap-1.5 select-none">
         {holding && (
           <span className="px-2.5 py-1 rounded-[5px] bg-slate-900/90 text-white text-[11px] font-semibold shadow-md">
@@ -477,7 +494,6 @@ export const CitizenAiAssistant: React.FC = () => {
                 : 'bg-blue-700 hover:bg-blue-800 text-white'
           }`}
         >
-          {/* Vòng tiến trình 1 giây khi đang nhấn giữ */}
           {holding && (
             <svg
               className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none"
