@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { DEMO_UNITS, type DemoUnit } from '../lib/incidents';
 import type { IncidentCategory } from '../types/incident';
+import { teamsApi } from '../services/api';
 
 export interface StaffMember {
   id: string;
@@ -22,6 +23,7 @@ export interface TeamUnit {
 interface TeamState {
   units: TeamUnit[];
   members: StaffMember[];
+  syncTeamsFromBackend: () => Promise<void>;
   addMember: (member: Omit<StaffMember, 'id'>) => void;
   updateMember: (id: string, patch: Partial<Omit<StaffMember, 'id'>>) => void;
   removeMember: (id: string) => void;
@@ -108,9 +110,7 @@ function loadInitial(): { units: TeamUnit[]; members: StaffMember[] } {
           return parsed;
         }
       }
-    } catch {
-      // ignore corrupted storage
-    }
+    } catch {}
   }
   return buildInitialData(DEMO_UNITS);
 }
@@ -119,9 +119,7 @@ function persist(units: TeamUnit[], members: StaffMember[]) {
   if (typeof window !== 'undefined') {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ units, members }));
-    } catch {
-      // ignore quota error
-    }
+    } catch {}
   }
 }
 
@@ -131,42 +129,75 @@ export const useTeamStore = create<TeamState>((set, get) => ({
   units: initial.units,
   members: initial.members,
 
+  syncTeamsFromBackend: async () => {
+    try {
+      const data = await teamsApi.getAll();
+      if (Array.isArray(data.units) && data.units.length > 0) {
+        persist(data.units, data.members || []);
+        set({ units: data.units, members: data.members || [] });
+      }
+    } catch {
+      // Giữ cache local nếu backend tạm offline
+    }
+  },
+
   addMember: (member) => {
-    const newMember: StaffMember = {
-      ...member,
-      id: `staff-${Date.now().toString(36)}`,
-    };
+    const tempId = `staff-${Date.now().toString(36)}`;
+    const newMember: StaffMember = { ...member, id: tempId };
     const nextMembers = [newMember, ...get().members];
     persist(get().units, nextMembers);
     set({ members: nextMembers });
+
+    teamsApi
+      .createMember(member)
+      .then((res) => {
+        if (res?.member) {
+          const synced = get().members.map((m) => (m.id === tempId ? res.member : m));
+          persist(get().units, synced);
+          set({ members: synced });
+        }
+      })
+      .catch(() => {});
   },
 
   updateMember: (id, patch) => {
     const nextMembers = get().members.map((m) => (m.id === id ? { ...m, ...patch } : m));
     persist(get().units, nextMembers);
     set({ members: nextMembers });
+    teamsApi.updateMember(id, patch).catch(() => {});
   },
 
   removeMember: (id) => {
     const nextMembers = get().members.filter((m) => m.id !== id);
     persist(get().units, nextMembers);
     set({ members: nextMembers });
+    teamsApi.deleteMember(id).catch(() => {});
   },
 
   addUnit: (unit) => {
-    const newUnit: TeamUnit = {
-      ...unit,
-      id: `unit-${Date.now().toString(36)}`,
-    };
+    const tempId = `unit-${Date.now().toString(36)}`;
+    const newUnit: TeamUnit = { ...unit, id: tempId };
     const nextUnits = [...get().units, newUnit];
     persist(nextUnits, get().members);
     set({ units: nextUnits });
+
+    teamsApi
+      .createUnit(unit)
+      .then((res) => {
+        if (res?.unit) {
+          const synced = get().units.map((u) => (u.id === tempId ? res.unit : u));
+          persist(synced, get().members);
+          set({ units: synced });
+        }
+      })
+      .catch(() => {});
   },
 
   updateUnit: (id, patch) => {
     const nextUnits = get().units.map((u) => (u.id === id ? { ...u, ...patch } : u));
     persist(nextUnits, get().members);
     set({ units: nextUnits });
+    teamsApi.updateUnit(id, patch).catch(() => {});
   },
 
   removeUnit: (id) => {
@@ -174,6 +205,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     const nextMembers = get().members.filter((m) => m.unitId !== id);
     persist(nextUnits, nextMembers);
     set({ units: nextUnits, members: nextMembers });
+    teamsApi.deleteUnit(id).catch(() => {});
   },
 
   resetTeams: () => {
@@ -182,3 +214,8 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     set(fresh);
   },
 }));
+
+// Tự động đồng bộ danh sách tổ đội & thành viên từ MongoDB khi mở trình duyệt
+if (typeof window !== 'undefined' && typeof fetch === 'function') {
+  void useTeamStore.getState().syncTeamsFromBackend();
+}

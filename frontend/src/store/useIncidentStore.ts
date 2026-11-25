@@ -8,6 +8,7 @@ import type {
   IncidentPriority,
 } from "../types/incident.ts";
 import { generateMockIncidents } from "../data/mockIncidents.ts";
+import { incidentsApi } from "../services/api.ts";
 import {
   CATEGORIES,
   distanceMeters,
@@ -19,6 +20,10 @@ import {
 } from "../lib/incidents.ts";
 
 export const STORAGE_KEY = "tran_bien_smart_incidents_v1";
+const isBrowserEnv = () =>
+  typeof window !== "undefined" &&
+  typeof window.location !== "undefined" &&
+  typeof fetch === "function";
 const dateValid = (value: unknown) =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
 export function parseIncidents(raw: string): Incident[] {
@@ -387,6 +392,31 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       return [incident, ...items];
     });
     set({ selectedIncidentId: result.incident.id });
+    if (isBrowserEnv() && !result.isDuplicateGrouped) {
+      const tempId = result.incident.id;
+      incidentsApi
+        .create({
+          title: result.incident.title,
+          description: result.incident.description,
+          category: result.incident.category,
+          location: result.incident.location,
+          senderPhone: result.incident.sender.phone,
+          senderName: result.incident.sender.name,
+          photosBefore: result.incident.photosBefore,
+        })
+        .then((res) => {
+          if (res?.incident) {
+            const synced = get().incidents.map((i) => (i.id === tempId ? res.incident : i));
+            save(synced);
+            set({
+              incidents: synced,
+              selectedIncidentId: get().selectedIncidentId === tempId ? res.incident.id : get().selectedIncidentId,
+              lastSyncedAt: new Date().toISOString(),
+            });
+          }
+        })
+        .catch(() => {});
+    }
     return result;
   },
   assignIncident: (
@@ -453,6 +483,20 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         },
       };
     });
+    if (isBrowserEnv()) {
+      incidentsApi
+        .assign(id, {
+          unitName: trimmedUnit,
+          deadlineDays: days,
+          officerName,
+          priority: options.priority,
+          category: options.category,
+          assigneeId: staffMember?.id || options.assigneeId,
+          assigneeName: staffMember?.name || options.assigneeName,
+          notes: trimmedNotes,
+        })
+        .catch(() => {});
+    }
   },
   reassignIncident: (id, options) => {
     const trimmedUnit = options.unitName.trim();
@@ -551,13 +595,15 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       };
     });
   },
-  startIncident: (id) =>
+  startIncident: (id) => {
     changeIncident(id, (item) => {
       if (item.status !== "assigned" || !item.assignedTo)
         throw new Error("Chỉ bắt đầu hồ sơ đã được phân công.");
       return { ...item, status: "in_progress" };
-    }),
-  verifyIncident: (id, notes) =>
+    });
+    if (isBrowserEnv()) incidentsApi.start(id).catch(() => {});
+  },
+  verifyIncident: (id, notes) => {
     changeIncident(id, (item) => {
       if (isComplete(item)) throw new Error("Hồ sơ đã hoàn tất.");
       if (!notes?.trim()) throw new Error("Nhập nội dung xác minh tại chỗ.");
@@ -566,7 +612,9 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         verifiedByVolunteer: true,
         verificationNotes: notes.trim(),
       };
-    }),
+    });
+    if (isBrowserEnv()) incidentsApi.verify(id, notes).catch(() => {});
+  },
   resolveIncident: (id, notes, photosAfter, officerName = "Tổ hiện trường") => {
     if (
       !notes.trim() ||
@@ -588,6 +636,9 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         },
       };
     });
+    if (isBrowserEnv()) {
+      incidentsApi.resolve(id, notes.trim(), photosAfter, officerName).catch(() => {});
+    }
   },
   rateIncident: (id, stars, criteria, comment) => {
     if (!Number.isInteger(stars) || stars < 1 || stars > 5)
@@ -601,18 +652,25 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         rating: { stars, criteria, comment, ratedAt: new Date().toISOString() },
       };
     });
+    if (isBrowserEnv()) incidentsApi.rate(id, stars, comment, criteria).catch(() => {});
   },
-  upvoteIncident: (id) =>
+  upvoteIncident: (id) => {
     changeIncident(id, (item) => ({
       ...item,
       sameReportsCount: item.sameReportsCount + 1,
-    })),
+    }));
+    if (isBrowserEnv()) incidentsApi.upvote(id).catch(() => {});
+  },
   addIncidentPhotos: (id, newPhotos) => {
     if (!newPhotos.length) return;
     changeIncident(id, (item) => ({
       ...item,
       photosBefore: [...item.photosBefore, ...newPhotos],
     }));
+    if (isBrowserEnv()) {
+      const updated = get().incidents.find((i) => i.id === id);
+      if (updated) incidentsApi.update(id, { photosBefore: updated.photosBefore }).catch(() => {});
+    }
   },
   updateIncidentDescription: (id, description, title) => {
     changeIncident(id, (item) => ({
@@ -620,12 +678,14 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       ...(title ? { title } : {}),
       description,
     }));
+    if (isBrowserEnv()) incidentsApi.update(id, { description, ...(title ? { title } : {}) }).catch(() => {});
   },
   updateIncident: (id, patch) => {
     changeIncident(id, (item) => ({
       ...item,
       ...patch,
     }));
+    if (isBrowserEnv()) incidentsApi.update(id, patch).catch(() => {});
   },
   deleteIncident: (id) => {
     try {
@@ -638,6 +698,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         lastSyncedAt: new Date().toISOString(),
         syncNotice: "Đã hủy một hồ sơ phản ánh.",
       });
+      if (isBrowserEnv()) incidentsApi.remove(id).catch(() => {});
     } catch (error) {
       set({ storageError: (error as Error).message });
     }
@@ -692,3 +753,25 @@ if (import.meta.hot)
   import.meta.hot.dispose(() =>
     window.removeEventListener("storage", syncFromStorage),
   );
+
+// Tự động đồng bộ dữ liệu thật từ Backend (MongoDB Atlas) khi chạy trên trình duyệt
+if (isBrowserEnv()) {
+  incidentsApi
+    .list()
+    .then((res) => {
+      if (Array.isArray(res?.incidents) && res.incidents.length > 0) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(res.incidents));
+        } catch {}
+        useIncidentStore.setState({
+          incidents: res.incidents,
+          storageError: null,
+          lastSyncedAt: new Date().toISOString(),
+          syncNotice: "Đã đồng bộ dữ liệu từ MongoDB Atlas.",
+        });
+      }
+    })
+    .catch(() => {
+      // Giữ dữ liệu cache local khi backend chưa bật
+    });
+}

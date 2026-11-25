@@ -4,6 +4,7 @@ import type { Incident } from "../../types/incident";
 import { useIncidentStore } from "../../store/useIncidentStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { readPhoto } from "../../lib/photos";
+import { mediaApi } from "../../services/api";
 export function IncidentResolutionModal({
   incident,
   onClose,
@@ -92,7 +93,16 @@ export function IncidentResolutionModal({
               setLoading(true);
               setError("");
               try {
-                setPhoto(await readPhoto(file));
+                try {
+                  const urls = await mediaApi.uploadFiles([file], "after");
+                  if (urls[0]) {
+                    setPhoto(urls[0]);
+                  } else {
+                    setPhoto(await readPhoto(file));
+                  }
+                } catch {
+                  setPhoto(await readPhoto(file));
+                }
               } catch (error) {
                 setError((error as Error).message);
               } finally {

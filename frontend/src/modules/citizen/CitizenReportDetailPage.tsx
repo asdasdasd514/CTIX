@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { mediaApi } from '../../services/api';
 import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
@@ -128,12 +129,24 @@ export const CitizenReportDetailPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Thêm nhiều ảnh khi đang chỉnh sửa hồ sơ
-  const handleEditAddPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Thêm nhiều ảnh khi đang chỉnh sửa hồ sơ (upload thật lên Cloudinary)
+  const handleEditAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const readers = Array.from(files).map(
+    const fileList = Array.from(files);
+    try {
+      const uploadedUrls = await mediaApi.uploadFiles(fileList, 'before');
+      if (uploadedUrls.length > 0) {
+        setEditPhotos((prev) => [...prev, ...uploadedUrls]);
+        e.target.value = '';
+        return;
+      }
+    } catch {
+      // Fallback sang FileReader khi backend chưa bật
+    }
+
+    const readers = fileList.map(
       (file) =>
         new Promise<string>((resolve) => {
           const reader = new FileReader();

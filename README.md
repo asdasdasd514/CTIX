@@ -1,70 +1,38 @@
-# CTIX — Citizen & City Incident eXchange
-## Hệ Thống Tiếp Nhận & Giám Sát Phản Ánh Hiện Trường Đô Thị Thông Minh
-**Đề bài 2 — Hackathon 2026 • Phường Trấn Biên, TP. Biên Hòa, Tỉnh Đồng Nai**
+# CTIX — Trấn Biên SmartCity (Full-Stack)
 
-CTIX là nền tảng web hiện đại kết nối trực tiếp **Người dân (Công dân)** và **Chính quyền (UBND & Trung tâm Điều hành IOC)**, số hóa toàn diện quy trình phản ánh sự cố đô thị (chiếu sáng, ngập lụt, rác thải, hạ tầng giao thông).
+Nền tảng tiếp nhận, điều phối, theo dõi và nghiệm thu phản ánh hiện trường đô thị cho **UBND Phường Trấn Biên, TP. Biên Hòa, Đồng Nai**.
 
----
+## Cấu trúc thư mục
 
-## 🌟 Tính Năng Nổi Bật
-
-### 1. 👤 Cổng Dịch Vụ Công Dân (Citizen Portal)
-- **Thanh Điều Hướng Trên Cùng (Top Navigation)** chuẩn 4 mục:
-  - `🏠 Trang chủ`: Tin tức đô thị, số liệu giải quyết, cảnh báo khẩn từ UBND Phường.
-  - `📋 Phản ánh`: Danh sách tất cả phản ánh trên địa bàn + Nút `+ Thêm Phản Ánh Mới` nổi bật + Xem ảnh Trước/Sau + Chấm điểm hài lòng 5 sao.
-  - `🗺️ Bản đồ`: Bản đồ số hiện trường trực quan với nút `+1 Upvote` đồng thuận sự cố.
-  - `❓ Trợ giúp`: Hướng dẫn quy trình 4 bước, câu hỏi thường gặp (FAQ) và danh bạ đường dây nóng khẩn cấp.
-- **Quy Trình Gửi Phản Ánh Tinh Gọn 2 Bước**:
-  - **Bước 1**: Tải ảnh hiện trường thật từ máy tính/điện thoại (xem trước tức thì) + Chọn danh mục + Điền ghi chú + Số điện thoại.
-  - **Bước 2**: Bản đồ OpenStreetMap tương tác:
-    - Nút **`[📍 Lấy vị trí hiện tại (GPS)]`** 1 chạm.
-    - Lia map & nhấp vào bất cứ điểm nào để đặt ghim.
-    - Tự động nhận diện tên đường qua Reverse Geocoding.
-- **Tiện ích trợ năng**: Nút phóng to **`👓 Chữ Lớn`** cho người cao tuổi.
-
-### 2. 🏛️ Bàn Làm Việc Cán Bộ & Trung Tâm IOC (Admin Portal)
-- **Sidebar IRS Chuyên Nghiệp**:
-  - Màu nền Dark Navy `#0b132b`, thu nhỏ `w-20` và mở rộng `w-64`.
-  - **La bàn định hướng kim xoay 360 độ liên tục** (`AnimatedCompass`).
-  - **Vạch phát sáng trắng cạnh trái** nhận diện mục đang mở.
-- **Màn hình 01**: Bảng điều hành tổng thể IOC (4 thẻ KPI, Bản đồ OpenStreetMap trung tâm, BXH thi đua 30 xã/phường, Sự cố khẩn cấp).
-- **Màn hình 04**: Bàn làm việc cán bộ tiếp nhận (Lọc hồ sơ theo danh mục, cảnh báo hạn xử lý SLA 24h/48h đếm ngược).
-- **Màn hình 05**: Phân công & Điều phối xử lý sự cố (Giao việc cho 3 đội tiếp ứng trực ban, thiết lập SLA, gửi Zalo/SMS điều động).
-- **Nghiệm thu Before - After**: Đối soát ảnh hiện trường trước và sau thi công của Đội thanh niên tình nguyện.
-
-### 3. 🗺️ Bản Đồ Số Đa Nguồn (Multi-Layer OpenStreetMap)
-- Tích hợp chuẩn **OpenStreetMap** qua nguồn CartoDB Voyager tốc độ cao, không bị nghẽn mạng hay lỗi DNS.
-- Hỗ trợ chuyển đổi nhanh giữa:
-  - **`🗺️ Đường sá`**: Bản đồ đô thị tiếng Việt chi tiết.
-  - **`🛰️ Vệ tinh`**: Ảnh vệ tinh độ phân giải cao ESRI World Imagery.
-
----
-
-## 🛠️ Công Nghệ Sử Dụng
-
-- **Frontend Core**: React 19, TypeScript
-- **Bundler & Build Tool**: Vite 8
-- **Styling**: Tailwind CSS
-- **Mapping & GIS**: Leaflet, OpenStreetMap, CartoDB Voyager, ESRI Satellite, Nominatim API
-- **State Management**: Zustand (kèm LocalStorage persist)
-- **Routing**: React Router DOM v7
-- **Iconography**: Lucide React
-
----
-
-## 🚀 Hướng Dẫn Cài Đặt & Khởi Chạy
-
-```bash
-# 1. Cài đặt các gói phụ thuộc
-npm install
-
-# 2. Khởi chạy môi trường phát triển (Dev Server)
-npm run dev
-
-# 3. Biên dịch bản sản xuất (Production Build)
-npm run build
+```text
+CTIX/
+├── frontend/     # React 19 + TypeScript + Vite + Tailwind CSS + Zustand + Leaflet
+└── backend/      # Node.js + Express + TypeScript + MongoDB Atlas (Mongoose) + Cloudinary + JWT
 ```
 
-Mở trình duyệt truy cập:
-- `http://localhost:5173/citizen/home` (Cổng Người Dân)
-- `http://localhost:5173/dashboard` (Bàn Điều Hành IOC Cán Bộ)
+## 5 Module Chức Năng Chính
+- **`[MOD-01]` Citizen Intake:** Công dân gửi phản ánh, nhập mô tả (hỗ trợ giọng nói), tải nhiều ảnh hiện trường lên Cloudinary, chọn vị trí GPS/bản đồ, chỉnh sửa/hủy hồ sơ.
+- **`[MOD-02]` Tracking & Feedback:** Theo dõi tiến trình giải quyết 4 bước, thời gian hoàn thành và đánh giá hài lòng 1–5 sao.
+- **`[MOD-03]` Smart City GIS Map:** Bản đồ số hiển thị điểm sự cố (GeoJSON `2dsphere`), phân quyền hiển thị giữa Công dân và Cán bộ.
+- **`[MOD-04]` Officer Dispatch:** Hàng đợi tiếp nhận, phân công nhân lực theo Cá nhân / Tổ đội, quản lý Thành viên & Nhóm, Dashboard & Thống kê.
+- **`[MOD-05]` Field Resolution & Audit:** Xác minh hiện trường, tải ảnh sau xử lý lên Cloudinary, nghiệm thu hoàn tất và lưu nhật ký kiểm toán.
+
+## Hướng dẫn chạy Local
+
+### 1. Chạy Backend (`http://localhost:4000`)
+```bash
+cd backend
+cp .env.example .env   # Điền MONGODB_URI và thông số Cloudinary
+npm install
+npm run seed           # Nạp 64 hồ sơ mẫu + 5 tổ đội + 10 thành viên + tài khoản demo
+npm run dev
+```
+
+### 2. Chạy Frontend (`http://localhost:5173`)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+> **Lưu ý khi Deploy Vercel:** Đặt **Root Directory** của dự án Frontend là `frontend` và thêm biến môi trường `VITE_API_URL=https://<domain-backend-cua-ban>/api`.

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { mediaApi } from '../../services/api';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
@@ -142,12 +143,31 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const activePhoto = photos[activePhotoIndex] || photos[0];
 
-  // Xử lý chọn NHIỀU ảnh thật từ máy tính/điện thoại
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Xử lý chọn NHIỀU ảnh thật từ máy tính/điện thoại (tải lên Cloudinary)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const fileList = Array.from(files);
+    try {
+      const uploadedUrls = await mediaApi.uploadFiles(fileList, 'before');
+      if (uploadedUrls.length > 0) {
+        const uploadedPhotos: UploadedPhoto[] = uploadedUrls.map((url, idx) => ({
+          url,
+          name: fileList[idx]?.name || `anh-${idx + 1}.jpg`,
+        }));
+        setPhotos((prev) => {
+          const next = [...prev, ...uploadedPhotos];
+          setActivePhotoIndex(next.length - 1);
+          return next;
+        });
+        e.target.value = '';
+        return;
+      }
+    } catch {
+      // Fallback sang FileReader khi backend chưa bật
+    }
+
     const readers = fileList.map(
       (file) =>
         new Promise<UploadedPhoto>((resolve) => {
