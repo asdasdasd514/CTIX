@@ -28,6 +28,8 @@ import {
   AlertCircle,
   Mic,
   MicOff,
+  SwitchCamera,
+  ImagePlus,
 } from 'lucide-react';
 
 interface UploadedPhoto {
@@ -97,20 +99,24 @@ export const SubmitIncidentWizard: React.FC = () => {
   const { addIncident, linkDuplicateIncident, elderlyMode } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const nativeCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   const [aiPrefillNotice, setAiPrefillNotice] = useState<boolean>(false);
   const [step, setStep] = useState<1 | 2>(1);
 
-  // Hỗ trợ tải lên NHIỀU ẢNH hiện trường
-  const [photos, setPhotos] = useState<UploadedPhoto[]>([
-    {
-      url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600&auto=format&fit=crop&q=80',
-      name: 'anh-hien-truong-1.jpg',
-    },
-  ]);
+  // Form khởi tạo TRẮNG hoàn toàn (không ảnh mẫu, không địa chỉ mẫu, không chọn sẵn danh mục)
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
 
-  const [selectedCategory, setSelectedCategory] = useState<IncidentCategory>('street_light');
+  // Camera trực tiếp (WebRTC cho cả máy tính & điện thoại)
+  const [cameraOpen, setCameraOpen] = useState<boolean>(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [capturingPhoto, setCapturingPhoto] = useState<boolean>(false);
+
+  const [selectedCategory, setSelectedCategory] = useState<IncidentCategory | ''>('');
   const [customCategoryName, setCustomCategoryName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [phone, setPhone] = useState<string>(isAuthenticated ? currentUser.phone : '');
@@ -120,22 +126,82 @@ export const SubmitIncidentWizard: React.FC = () => {
   const [location, setLocation] = useState<IncidentLocation>({
     lat: 10.9572,
     lng: 106.8184,
-    address: '128 Đường Nguyễn Ái Quốc, Khu phố 2, Phường Trấn Biên',
+    address: '',
   });
+  const [hasPickedLocation, setHasPickedLocation] = useState<boolean>(false);
 
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
 
-  // Nhận dữ liệu điền tự động từ Trợ lý AI (giữ đúng nguyên mô tả người dùng nói, không ép tên đường)
+  const stopCameraStream = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+      cameraStreamRef.current = null;
+    }
+  };
+
+  const openLiveCamera = async (facing: 'environment' | 'user' = cameraFacingMode) => {
+    setCameraError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      // Fallback sang camera gốc trên thiết bị di động nếu trình duyệt không hỗ trợ WebRTC
+      nativeCameraInputRef.current?.click();
+      return;
+    }
+    stopCameraStream();
+    setCameraOpen(true);
+    try {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      cameraStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+    } catch {
+      stopCameraStream();
+      setCameraOpen(false);
+      setCameraError('Không thể mở camera trực tiếp (chưa cấp quyền hoặc không có camera). Đang chuyển sang chọn/chụp từ thiết bị...');
+      nativeCameraInputRef.current?.click();
+    }
+  };
+
+  const closeLiveCamera = () => {
+    stopCameraStream();
+    setCameraOpen(false);
+  };
+
   useEffect(() => {
-    const state = routerLocation.state as { aiPrefill?: AiReportDraft; aiPrefillAt?: number } | null;
-    if (!state?.aiPrefill) return;
-    const draft = state.aiPrefill;
-    if (draft.category) setSelectedCategory(draft.category);
-    if (draft.customCategoryName) setCustomCategoryName(draft.customCategoryName);
-    if (draft.description) setDescription(draft.description);
-    setStep(1);
-    setAiPrefillNotice(true);
+    return () => stopCameraStream();
+  }, []);
+
+  // Nhận dữ liệu điền tự động từ Trợ lý AI hoặc lệnh mở camera
+  useEffect(() => {
+    const state = routerLocation.state as {
+      aiPrefill?: AiReportDraft;
+      aiPrefillAt?: number;
+      openCamera?: boolean;
+      aiNavAt?: number;
+    } | null;
+    if (state?.aiPrefill) {
+      const draft = state.aiPrefill;
+      if (draft.category) setSelectedCategory(draft.category);
+      if (draft.customCategoryName) setCustomCategoryName(draft.customCategoryName);
+      if (draft.description) setDescription(draft.description);
+      setStep(1);
+      setAiPrefillNotice(true);
+    }
+    if (state?.openCamera) {
+      setStep(1);
+      void openLiveCamera('environment');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routerLocation.state]);
 
   // AI Gemini kiểm tra phản ánh tương tự trong bán kính 50m tại Bước 2
@@ -146,7 +212,7 @@ export const SubmitIncidentWizard: React.FC = () => {
   const [dismissedDupCheck, setDismissedDupCheck] = useState<boolean>(false);
 
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 2 || !selectedCategory) return;
     let cancelled = false;
     setDismissedDupCheck(false);
     const timer = setTimeout(async () => {
@@ -200,12 +266,8 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const activePhoto = photos[activePhotoIndex] || photos[0];
 
-  // Xử lý chọn NHIỀU ảnh thật từ máy tính/điện thoại (tải lên Cloudinary)
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const fileList = Array.from(files);
+  const uploadOrLoadFiles = async (fileList: File[]) => {
+    if (fileList.length === 0) return;
     try {
       const uploadedUrls = await mediaApi.uploadFiles(fileList, 'before');
       if (uploadedUrls.length > 0) {
@@ -218,7 +280,6 @@ export const SubmitIncidentWizard: React.FC = () => {
           setActivePhotoIndex(next.length - 1);
           return next;
         });
-        e.target.value = '';
         return;
       }
     } catch {
@@ -239,30 +300,72 @@ export const SubmitIncidentWizard: React.FC = () => {
         })
     );
 
-    Promise.all(readers).then((loadedPhotos) => {
-      const valid = loadedPhotos.filter((p) => p.url);
-      if (valid.length > 0) {
-        setPhotos((prev) => {
-          const next = [...prev, ...valid];
-          setActivePhotoIndex(next.length - 1);
-          return next;
-        });
-      }
-      e.target.value = '';
-    });
+    const loadedPhotos = await Promise.all(readers);
+    const valid = loadedPhotos.filter((p) => p.url);
+    if (valid.length > 0) {
+      setPhotos((prev) => {
+        const next = [...prev, ...valid];
+        setActivePhotoIndex(next.length - 1);
+        return next;
+      });
+    }
   };
 
-  // Xóa một ảnh khỏi danh sách
+  // Xử lý chọn NHIỀU ảnh thật từ máy tính/điện thoại (tải lên Cloudinary)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadOrLoadFiles(Array.from(files));
+    e.target.value = '';
+  };
+
+  // Chụp 1 khung hình từ Camera trực tiếp
+  const handleCaptureFromCamera = async () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+    setCapturingPhoto(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9)
+      );
+      if (blob) {
+        const fileName = `chup-hien-truong-${Date.now()}.jpg`;
+        const file = new File([blob], fileName, { type: 'image/jpeg' });
+        await uploadOrLoadFiles([file]);
+      }
+      closeLiveCamera();
+    } finally {
+      setCapturingPhoto(false);
+    }
+  };
+
+  const handleToggleCameraFacing = () => {
+    const nextFacing = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    setCameraFacingMode(nextFacing);
+    void openLiveCamera(nextFacing);
+  };
+
+  // Xóa một ảnh khỏi danh sách (cho phép xóa hết về 0 ảnh)
   const handleRemovePhoto = (idx: number) => {
     setPhotos((prev) => {
-      if (prev.length <= 1) return prev;
       const next = prev.filter((_, i) => i !== idx);
-      setActivePhotoIndex((curr) => (curr >= next.length ? next.length - 1 : curr));
+      setActivePhotoIndex((curr) => {
+        if (next.length === 0) return 0;
+        return curr >= next.length ? next.length - 1 : curr;
+      });
       return next;
     });
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
+    setHasPickedLocation(true);
     setLocation((prev) => ({
       ...prev,
       lat,
@@ -323,9 +426,28 @@ export const SubmitIncidentWizard: React.FC = () => {
     e.preventDefault();
     setFormError(null);
     const cleanPhone = phone.replace(/[\s.-]/g, '').trim();
+    if (!selectedCategory) {
+      setFormError('Vui lòng chọn phân loại sự cố trước khi gửi.');
+      setStep(1);
+      return;
+    }
+    if (selectedCategory === 'other' && !customCategoryName.trim()) {
+      setFormError('Vui lòng nhập tên loại sự cố khác.');
+      setStep(1);
+      return;
+    }
+    if (!description.trim()) {
+      setFormError('Vui lòng nhập mô tả tình trạng hiện trường.');
+      setStep(1);
+      return;
+    }
     if (!senderName.trim() || !cleanPhone) {
       setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại để UBND Phường liên hệ khi cần.');
       setStep(1);
+      return;
+    }
+    if (!location.address.trim()) {
+      setFormError('Vui lòng chọn vị trí trên bản đồ hoặc nhập địa chỉ sự cố.');
       return;
     }
     const categoryLabel =
@@ -333,7 +455,7 @@ export const SubmitIncidentWizard: React.FC = () => {
         ? customCategoryName.trim() || 'Sự cố khác'
         : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Phản ánh sự cố';
     const result = addIncident({
-      title: `${categoryLabel}: ${description.slice(0, 48)}...`,
+      title: `${categoryLabel}: ${description.slice(0, 48)}${description.length > 48 ? '...' : ''}`,
       description,
       category: selectedCategory,
       location,
@@ -355,13 +477,30 @@ export const SubmitIncidentWizard: React.FC = () => {
     } else {
       setNotification({
         type: 'success',
-        message: `Đã gửi phản ánh thành công kèm ${photos.length} ảnh hiện trường! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`,
+        message:
+          photos.length > 0
+            ? `Đã gửi phản ánh thành công kèm ${photos.length} ảnh hiện trường! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`
+            : `Đã gửi phản ánh thành công! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`,
         code: result.incident.code,
       });
     }
   };
 
-  const currentCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
+  const resetWizardForm = () => {
+    setNotification(null);
+    setStep(1);
+    setPhotos([]);
+    setActivePhotoIndex(0);
+    setSelectedCategory('');
+    setCustomCategoryName('');
+    setDescription('');
+    setLocation({ lat: 10.9572, lng: 106.8184, address: '' });
+    setHasPickedLocation(false);
+    setAiPrefillNotice(false);
+    setFormError(null);
+  };
+
+  const currentCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || null;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -463,10 +602,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
                 <button
-                  onClick={() => {
-                    setNotification(null);
-                    setStep(1);
-                  }}
+                  onClick={resetWizardForm}
                   className="px-4 py-2.5 bg-white border border-slate-300 rounded-[5px] text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
                 >
                   Gửi thêm phản ánh khác
@@ -512,22 +648,31 @@ export const SubmitIncidentWizard: React.FC = () => {
                   </span>
                 </div>
 
-                {/* KHUNG TẢI NHIỀU ẢNH */}
+                {/* KHUNG CHỤP ẢNH TRỰC TIẾP & TẢI NHIỀU ẢNH */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
                       Ảnh chụp hiện trường sự cố ({photos.length} ảnh):
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Thêm ảnh
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void openLiveCamera()}
+                        className="text-xs font-bold text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1"
+                      >
+                        <Camera className="w-3.5 h-3.5" /> Chụp ảnh
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tải ảnh lên
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Input multiple cho phép chọn nhiều ảnh */}
+                  {/* Input multiple chọn ảnh từ máy */}
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -537,8 +682,24 @@ export const SubmitIncidentWizard: React.FC = () => {
                     className="hidden"
                   />
 
-                  {/* Ảnh xem trước chính */}
-                  {activePhoto && (
+                  {/* Input fallback chụp ảnh gốc trên điện thoại */}
+                  <input
+                    type="file"
+                    ref={nativeCameraInputRef}
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+
+                  {cameraError && (
+                    <div className="p-2.5 rounded-[5px] bg-amber-50 border border-amber-200 text-xs text-amber-800 font-medium">
+                      {cameraError}
+                    </div>
+                  )}
+
+                  {/* Khung xem trước hoặc khung trống khi chưa có ảnh */}
+                  {activePhoto ? (
                     <div className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center group">
                       <img
                         src={activePhoto.url}
@@ -546,14 +707,22 @@ export const SubmitIncidentWizard: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
 
-                      <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-3">
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-wrap items-center justify-center gap-2 p-3">
+                        <button
+                          type="button"
+                          onClick={() => void openLiveCamera()}
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[5px] text-xs font-bold shadow-lg transition flex items-center gap-2"
+                        >
+                          <Camera className="w-4 h-4 shrink-0" />
+                          <span>Chụp thêm ảnh</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold shadow-lg transition flex items-center gap-2"
                         >
                           <Upload className="w-4 h-4 shrink-0" />
-                          <span>Thêm ảnh khác từ máy</span>
+                          <span>Tải thêm ảnh từ máy</span>
                         </button>
                       </div>
 
@@ -564,22 +733,54 @@ export const SubmitIncidentWizard: React.FC = () => {
                         </span>
                       </div>
                     </div>
+                  ) : (
+                    <div className="rounded-[5px] border-2 border-dashed border-slate-300 bg-slate-50 p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-3">
+                      <div className="w-12 h-12 rounded-[5px] bg-blue-100 text-blue-700 flex items-center justify-center">
+                        <ImagePlus className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-xs sm:text-sm font-bold text-slate-800">
+                          Chưa có ảnh hiện trường nào
+                        </div>
+                        <p className="text-[11px] text-slate-500 max-w-sm">
+                          Mở camera chụp trực tiếp hoặc chọn nhiều ảnh từ máy tính / điện thoại của bạn
+                        </p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto pt-1">
+                        <button
+                          type="button"
+                          onClick={() => void openLiveCamera()}
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[5px] text-xs font-bold shadow-sm transition flex items-center justify-center gap-2"
+                        >
+                          <Camera className="w-4 h-4 shrink-0" />
+                          <span>Mở Camera chụp ảnh</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold shadow-sm transition flex items-center justify-center gap-2"
+                        >
+                          <Upload className="w-4 h-4 shrink-0" />
+                          <span>Tải ảnh từ thiết bị</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
 
-                  {/* Dải thumbnail tất cả ảnh đã tải lên + nút + Thêm ảnh */}
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                    {photos.map((p, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setActivePhotoIndex(idx)}
-                        className={`relative aspect-square rounded-[5px] overflow-hidden border-2 cursor-pointer transition ${
-                          idx === activePhotoIndex
-                            ? 'border-blue-700 ring-2 ring-blue-500/30'
-                            : 'border-slate-200 hover:border-slate-400'
-                        }`}
-                      >
-                        <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
-                        {photos.length > 1 && (
+                  {/* Dải thumbnail khi đã có ít nhất 1 ảnh */}
+                  {photos.length > 0 && (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                      {photos.map((p, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setActivePhotoIndex(idx)}
+                          className={`relative aspect-square rounded-[5px] overflow-hidden border-2 cursor-pointer transition ${
+                            idx === activePhotoIndex
+                              ? 'border-blue-700 ring-2 ring-blue-500/30'
+                              : 'border-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={(ev) => {
@@ -591,31 +792,51 @@ export const SubmitIncidentWizard: React.FC = () => {
                           >
                             <X className="w-3 h-3" />
                           </button>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
 
-                    {/* Ô bấm thêm ảnh mới */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-[5px] border-2 border-dashed border-blue-300 bg-blue-50/60 hover:bg-blue-100/80 text-blue-700 flex flex-col items-center justify-center gap-1 transition"
-                    >
-                      <Plus className="w-5 h-5" />
-                      <span className="text-[10px] font-bold">Thêm ảnh</span>
-                    </button>
-                  </div>
+                      {/* Ô bấm chụp ảnh mới */}
+                      <button
+                        type="button"
+                        onClick={() => void openLiveCamera()}
+                        className="aspect-square rounded-[5px] border-2 border-dashed border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-700 flex flex-col items-center justify-center gap-1 transition"
+                      >
+                        <Camera className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Chụp ảnh</span>
+                      </button>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5"
-                    >
-                      <Upload className="w-4 h-4 shrink-0" />
-                      <span>Chọn nhiều ảnh từ máy tính / điện thoại</span>
-                    </button>
-                  </div>
+                      {/* Ô bấm tải ảnh mới */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square rounded-[5px] border-2 border-dashed border-blue-300 bg-blue-50/60 hover:bg-blue-100/80 text-blue-700 flex flex-col items-center justify-center gap-1 transition"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Tải ảnh</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {photos.length > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void openLiveCamera()}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      >
+                        <Camera className="w-4 h-4 shrink-0" />
+                        <span>Mở Camera chụp thêm ảnh</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      >
+                        <Upload className="w-4 h-4 shrink-0" />
+                        <span>Chọn thêm ảnh từ thiết bị</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* CHỌN DANH MỤC SỰ CỐ (1 BỘ LỌC DUY NHẤT + TÙY CHỌN "SỰ CỐ KHÁC") */}
@@ -783,6 +1004,18 @@ export const SubmitIncidentWizard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!selectedCategory) {
+                        setFormError('Vui lòng chọn phân loại sự cố trước khi tiếp tục.');
+                        return;
+                      }
+                      if (selectedCategory === 'other' && !customCategoryName.trim()) {
+                        setFormError('Vui lòng nhập tên loại sự cố khác.');
+                        return;
+                      }
+                      if (!description.trim()) {
+                        setFormError('Vui lòng nhập mô tả tình trạng hiện trường trước khi tiếp tục.');
+                        return;
+                      }
                       if (!senderName.trim() || !phone.replace(/[\s.-]/g, '').trim()) {
                         setFormError('Vui lòng nhập đầy đủ Họ và tên và Số điện thoại trước khi tiếp tục.');
                         return;
@@ -831,11 +1064,15 @@ export const SubmitIncidentWizard: React.FC = () => {
                     mode="citizen"
                     center={[location.lat, location.lng]}
                     zoom={16}
-                    singlePin={{
-                      lat: location.lat,
-                      lng: location.lng,
-                      label: location.address,
-                    }}
+                    singlePin={
+                      hasPickedLocation
+                        ? {
+                            lat: location.lat,
+                            lng: location.lng,
+                            label: location.address || 'Vị trí đã chọn',
+                          }
+                        : undefined
+                    }
                     onMapClick={handleMapClick}
                   />
                 </div>
@@ -1015,17 +1252,24 @@ export const SubmitIncidentWizard: React.FC = () => {
                 </span>
               </div>
 
-              {activePhoto && (
+              {activePhoto ? (
                 <div className="aspect-video w-full rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative">
                   <img src={activePhoto.url} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] font-mono">
-                    {selectedCategory === 'other'
-                      ? customCategoryName.trim() || 'Sự cố khác'
-                      : currentCategoryObj.name}
-                  </div>
+                  {currentCategoryObj && (
+                    <div className="absolute bottom-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] font-mono">
+                      {selectedCategory === 'other'
+                        ? customCategoryName.trim() || 'Sự cố khác'
+                        : currentCategoryObj.name}
+                    </div>
+                  )}
                   <div className="absolute top-2 right-2 bg-blue-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px]">
                     {photos.length} ảnh
                   </div>
+                </div>
+              ) : (
+                <div className="aspect-video w-full rounded-[5px] bg-slate-50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-xs gap-1.5">
+                  <Camera className="w-6 h-6" />
+                  <span>Chưa có ảnh hiện trường</span>
                 </div>
               )}
 
@@ -1033,9 +1277,17 @@ export const SubmitIncidentWizard: React.FC = () => {
                 <div className="flex items-start gap-2">
                   <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
                   <span className="text-slate-700 font-medium break-words">
-                    {location.address}
+                    {location.address || 'Chưa chọn địa chỉ sự cố'}
                   </span>
                 </div>
+
+                {currentCategoryObj && (
+                  <div className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-[5px] inline-block">
+                    {selectedCategory === 'other'
+                      ? customCategoryName.trim() || 'Sự cố khác'
+                      : currentCategoryObj.name}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -1085,6 +1337,67 @@ export const SubmitIncidentWizard: React.FC = () => {
               >
                 Gọi 1022
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CAMERA CHỤP ẢNH TRỰC TIẾP (MÁY TÍNH & ĐIỆN THOẠI) */}
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/90 flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-2xl bg-slate-900 rounded-[8px] border border-slate-700 shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <span>Chụp ảnh hiện trường trực tiếp</span>
+              </div>
+              <button
+                type="button"
+                onClick={closeLiveCamera}
+                className="p-1.5 rounded hover:bg-white/10 text-slate-300 hover:text-white transition"
+                aria-label="Đóng camera"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative bg-black aspect-[4/3] sm:aspect-video w-full flex items-center justify-center overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleToggleCameraFacing}
+                className="px-3.5 py-2.5 rounded-[5px] bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 transition"
+              >
+                <SwitchCamera className="w-4 h-4" />
+                <span>Đổi camera</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={capturingPhoto}
+                onClick={() => void handleCaptureFromCamera()}
+                className="px-6 py-2.5 rounded-[5px] bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs sm:text-sm font-black shadow-lg flex items-center gap-2 transition"
+              >
+                <Camera className="w-4 h-4" />
+                <span>{capturingPhoto ? 'Đang lưu ảnh...' : 'Chụp ảnh ngay'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={closeLiveCamera}
+                className="px-3.5 py-2.5 rounded-[5px] bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition"
+              >
+                Hủy
+              </button>
             </div>
           </div>
         </div>

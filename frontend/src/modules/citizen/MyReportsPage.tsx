@@ -87,9 +87,34 @@ export const MyReportsPage: React.FC = () => {
   );
 
   useEffect(() => {
-    const st = routerLocation.state as { onlyMyReports?: boolean } | null;
+    const st = routerLocation.state as {
+      onlyMyReports?: boolean;
+      aiFilter?: {
+        category?: IncidentCategory | 'all';
+        status?: 'all' | 'pending' | 'resolved';
+        searchQuery?: string;
+        onlyMyReports?: boolean;
+      };
+    } | null;
     if (st?.onlyMyReports) {
       setOnlyMyReports(true);
+    }
+    if (st?.aiFilter) {
+      const f = st.aiFilter;
+      if (typeof f.onlyMyReports === 'boolean') {
+        setOnlyMyReports(f.onlyMyReports);
+      }
+      if (f.status) {
+        setStatusFilter(f.status);
+      }
+      if (f.category === 'all') {
+        setSelectedCategories([]);
+      } else if (f.category) {
+        setSelectedCategories([f.category]);
+      }
+      if (typeof f.searchQuery === 'string') {
+        setSearchTerm(f.searchQuery);
+      }
     }
   }, [routerLocation.state]);
   const [guestLookupPhone, setGuestLookupPhone] = useState<string>(() => getGuestPhone());

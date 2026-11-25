@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bot, Mic, Send, X, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { aiApi, type AiAssistantResponse } from '../../services/api';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface ChatMsg {
   id: string;
@@ -29,6 +30,7 @@ function pickSupportedAudioMime(): string {
 export const CitizenAiAssistant: React.FC = () => {
   const navigate = useNavigate();
   const { setElderlyMode } = useIncidentStore();
+  const { isAuthenticated, logout } = useAuthStore();
 
   // Chatbot tối giản (không có nút gợi ý nhanh)
   const [chatOpen, setChatOpen] = useState(false);
@@ -36,7 +38,7 @@ export const CitizenAiAssistant: React.FC = () => {
     {
       id: 'welcome',
       role: 'assistant',
-      text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Chạm để hỏi đáp hoặc nhấn giữ nút AI 1 giây để ra lệnh bằng giọng nói.',
+      text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Chạm để hỏi đáp, hoặc giữ nút AI 1 giây để ra lệnh điều khiển trang (mở bản đồ, lọc phản ánh, bật chữ to, mở camera, gửi phản ánh...).',
     },
   ]);
   const [inputText, setInputText] = useState('');
@@ -52,6 +54,9 @@ export const CitizenAiAssistant: React.FC = () => {
 
   const holdTimerRef = useRef<number | null>(null);
   const recordIntervalRef = useRef<number | null>(null);
+  const volumeIntervalRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const peakVolumeRef = useRef<number>(0);
   const triggeredVoiceRef = useRef(false);
   const cancelledVoiceRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -73,6 +78,14 @@ export const CitizenAiAssistant: React.FC = () => {
     if (recordIntervalRef.current) {
       window.clearInterval(recordIntervalRef.current);
       recordIntervalRef.current = null;
+    }
+    if (volumeIntervalRef.current) {
+      window.clearInterval(volumeIntervalRef.current);
+      volumeIntervalRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
     }
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -113,10 +126,29 @@ export const CitizenAiAssistant: React.FC = () => {
       return;
     }
 
+    if (res.action === 'open_camera') {
+      setChatOpen(false);
+      navigate('/citizen/submit', {
+        state: {
+          openCamera: true,
+          aiNavAt: Date.now(),
+        },
+      });
+      return;
+    }
+
     if (res.action === 'open_my_reports') {
       setChatOpen(false);
       navigate('/citizen/reports', {
         state: { onlyMyReports: true, aiNavAt: Date.now() },
+      });
+      return;
+    }
+
+    if (res.action === 'filter_reports') {
+      setChatOpen(false);
+      navigate('/citizen/reports', {
+        state: { aiFilter: res.reportFilter || {}, aiNavAt: Date.now() },
       });
       return;
     }
@@ -126,8 +158,51 @@ export const CitizenAiAssistant: React.FC = () => {
       return;
     }
 
+    if (res.action === 'scroll_page') {
+      window.scrollTo({
+        top: res.scrollDirection === 'bottom' ? document.body.scrollHeight : 0,
+        behavior: 'smooth',
+      });
+      return;
+    }
+
+    if (res.action === 'go_back') {
+      setChatOpen(false);
+      navigate(-1);
+      return;
+    }
+
+    if (res.action === 'call_hotline') {
+      setChatOpen(false);
+      navigate('/citizen/help');
+      setToast('Tổng đài hỗ trợ khẩn cấp 24/7 Phường Trấn Biên: 1022');
+      return;
+    }
+
+    if (res.action === 'logout') {
+      if (isAuthenticated) {
+        logout();
+        setChatOpen(false);
+        navigate('/citizen/home');
+        setToast('Đã đăng xuất tài khoản thành công.');
+      } else {
+        setToast('Bạn hiện chưa đăng nhập tài khoản.');
+      }
+      return;
+    }
+
     if (res.action === 'navigate' && res.route) {
       setChatOpen(false);
+      if (res.route === '/citizen/account' && !isAuthenticated) {
+        navigate('/login');
+        setToast('Bạn cần đăng nhập để xem trang Tài khoản cá nhân.');
+        return;
+      }
+      if ((res.route === '/login' || res.route === '/register') && isAuthenticated) {
+        navigate('/citizen/account');
+        setToast('Bạn đã đăng nhập rồi. Đang mở trang Tài khoản.');
+        return;
+      }
       navigate(res.route);
       return;
     }
@@ -194,6 +269,34 @@ export const CitizenAiAssistant: React.FC = () => {
       }
 
       mediaStreamRef.current = stream;
+      peakVolumeRef.current = 0;
+
+      // Đo mức âm lượng thực tế để chống gửi file im lặng lên AI (tránh ảo giác tự ghi phản ánh)
+      try {
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const source = ctx.createMediaStreamSource(stream);
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          audioContextRef.current = ctx;
+          const dataArr = new Uint8Array(analyser.fftSize);
+          volumeIntervalRef.current = window.setInterval(() => {
+            analyser.getByteTimeDomainData(dataArr);
+            let sumSq = 0;
+            for (let i = 0; i < dataArr.length; i++) {
+              const norm = (dataArr[i] - 128) / 128;
+              sumSq += norm * norm;
+            }
+            const rms = Math.sqrt(sumSq / dataArr.length);
+            if (rms > peakVolumeRef.current) {
+              peakVolumeRef.current = rms;
+            }
+          }, 80);
+        }
+      } catch {}
+
       const mimeType = pickSupportedAudioMime();
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
@@ -208,13 +311,21 @@ export const CitizenAiAssistant: React.FC = () => {
       recorder.onstop = async () => {
         const chunks = audioChunksRef.current;
         const type = recorder.mimeType || mimeType || 'audio/webm';
+        const peakVol = peakVolumeRef.current;
+        const hadAnalyser = Boolean(audioContextRef.current);
         cleanupMedia();
         setVoiceActive(false);
 
         if (cancelledVoiceRef.current || chunks.length === 0) return;
 
+        // Nếu micro hoàn toàn im lặng -> không gửi lên AI, không tự ghi phản ánh
+        if (hadAnalyser && peakVol < 0.015) {
+          setToast('Chưa nghe thấy giọng nói của bạn. Hãy giữ nút AI 1 giây và nói rõ yêu cầu nhé.');
+          return;
+        }
+
         const blob = new Blob(chunks, { type });
-        if (blob.size < 800) {
+        if (blob.size < 1200) {
           setToast('Đoạn ghi âm quá ngắn. Hãy giữ nút và nói rõ yêu cầu nhé.');
           return;
         }

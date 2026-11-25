@@ -311,13 +311,33 @@ export interface AiReportDraft {
   description: string;
 }
 
+export interface AiReportFilter {
+  category?: IncidentCategory | 'all';
+  status?: 'all' | 'pending' | 'resolved';
+  searchQuery?: string;
+  onlyMyReports?: boolean;
+}
+
 export interface AiAssistantResponse {
-  action: 'create_report' | 'open_my_reports' | 'navigate' | 'toggle_elderly' | 'chat_reply';
+  action:
+    | 'create_report'
+    | 'open_my_reports'
+    | 'filter_reports'
+    | 'open_camera'
+    | 'navigate'
+    | 'toggle_elderly'
+    | 'scroll_page'
+    | 'go_back'
+    | 'call_hotline'
+    | 'logout'
+    | 'chat_reply';
   reply: string;
   transcript?: string;
   reportDraft?: AiReportDraft;
+  reportFilter?: AiReportFilter;
   route?: string;
   elderlyEnabled?: boolean;
+  scrollDirection?: 'top' | 'bottom';
   analyzedBy: 'gemini' | 'fallback';
 }
 
