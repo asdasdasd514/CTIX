@@ -21,7 +21,7 @@ export const LoginPage: React.FC = () => {
       if (user.role === 'citizen') {
         navigate('/citizen/home', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate('/admin/dashboard', { replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');

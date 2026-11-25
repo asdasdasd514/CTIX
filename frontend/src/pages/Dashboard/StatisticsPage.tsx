@@ -90,7 +90,7 @@ export function StatisticsPage() {
     if (month) params.set("month", month);
     if (activeAssignee !== "all") params.set("assignee", activeAssignee);
     const qs = params.toString();
-    return qs ? `/dashboard?${qs}` : "/dashboard";
+    return qs ? `/admin/inbox?${qs}` : "/admin/inbox";
   };
 
   const buildMapUrl = () => {
@@ -99,7 +99,7 @@ export function StatisticsPage() {
     if (category !== "all") params.set("category", category);
     if (unit !== "all") params.set("unit", unit);
     if (month) params.set("month", month);
-    return `/map?${params.toString()}`;
+    return `/admin/map?${params.toString()}`;
   };
 
   const unitRows = useMemo(() => {
@@ -552,7 +552,7 @@ export function StatisticsPage() {
                   <li key={item.id}>
                     <Link
                       className="stat-attention-item"
-                      to={`/dispatch/${encodeURIComponent(item.id)}?from=statistics`}
+                      to={`/admin/dispatch/${encodeURIComponent(item.id)}?from=statistics`}
                     >
                       <div>
                         <span className="work-code">{item.code}</span>{" "}

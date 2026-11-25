@@ -254,7 +254,7 @@ export const NearbyIncidentsMapPage: React.FC = () => {
                 ) : (
                   currentUser.role !== 'citizen' && selectedIncident.status === 'pending' && (
                     <button
-                      onClick={() => navigate(`/dispatch/${selectedIncident.id}`)}
+                      onClick={() => navigate(`/admin/dispatch/${selectedIncident.id}`)}
                       className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm border border-blue-900"
                     >
                       <span>Chuyển sang phân công xử lý</span>

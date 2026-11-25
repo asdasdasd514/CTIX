@@ -403,7 +403,7 @@ export const IocDashboardPage: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => navigate('/inbox')}
+                      onClick={() => navigate('/admin/inbox')}
                       className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-[5px] text-[11px] font-bold transition shrink-0"
                     >
                       Đôn đốc
@@ -435,7 +435,7 @@ export const IocDashboardPage: React.FC = () => {
                 {urgentQueue.map((item) => (
                   <div
                     key={item.id}
-                    onClick={() => navigate(`/dispatch/${item.id}`)}
+                    onClick={() => navigate(`/admin/dispatch/${item.id}`)}
                     className="p-3 rounded-[5px] bg-rose-50/40 hover:bg-rose-50 border border-rose-200 border-l-4 border-l-rose-600 cursor-pointer transition space-y-1"
                   >
                     <div className="flex items-center justify-between gap-2">

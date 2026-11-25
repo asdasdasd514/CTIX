@@ -150,10 +150,10 @@ export function FieldTasksPage() {
           <p>Xác minh tại chỗ, nhận việc và cập nhật ảnh sau xử lý</p>
         </div>
         <div className="work-heading-links">
-          <Link className="work-text-link" to="/map">
+          <Link className="work-text-link" to="/admin/map">
             Bản đồ phản ánh
           </Link>
-          <Link className="work-text-link" to="/dashboard">
+          <Link className="work-text-link" to="/admin/inbox">
             Tiếp nhận & phân công →
           </Link>
         </div>

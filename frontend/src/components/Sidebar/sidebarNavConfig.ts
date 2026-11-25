@@ -31,14 +31,14 @@ export const NAV_GROUPS: NavGroupConfig[] = [
       {
         id: 'dashboard',
         label: '01. Bảng Điều Hành IOC',
-        path: '/dashboard',
+        path: '/admin/dashboard',
         icon: LayoutDashboard,
         roles: ['admin', 'officer', 'leader', 'staff'],
       },
       {
         id: 'map',
         label: 'Bản Đồ Số Hiện Trường',
-        path: '/map',
+        path: '/admin/map',
         icon: MapPin,
         roles: ['admin', 'officer', 'leader', 'staff'],
       },
@@ -51,7 +51,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
       {
         id: 'inbox',
         label: '04. Hồ Sơ Chờ Phân Công',
-        path: '/inbox',
+        path: '/admin/inbox',
         icon: ClipboardList,
         badge: '3 khẩn',
         roles: ['admin', 'officer', 'leader', 'staff'],
@@ -59,7 +59,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
       {
         id: 'field',
         label: '05. Nghiệm Thu Before-After',
-        path: '/field/tasks',
+        path: '/admin/field-tasks',
         icon: Users,
         roles: ['admin', 'officer', 'leader', 'staff'],
       },

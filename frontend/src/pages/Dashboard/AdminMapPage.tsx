@@ -168,8 +168,8 @@ export function AdminMapPage() {
   if (urgentOnly) dispatchListParams.set("urgent", "1");
   if (query.trim()) dispatchListParams.set("q", query.trim());
   const dispatchListUrl = dispatchListParams.toString()
-    ? `/dashboard?${dispatchListParams.toString()}`
-    : "/dashboard";
+    ? `/admin/inbox?${dispatchListParams.toString()}`
+    : "/admin/inbox";
 
   return (
     <div className="officer-workbench">

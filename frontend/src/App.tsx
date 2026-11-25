@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { RegisterPage } from './pages/Auth/RegisterPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
@@ -23,9 +23,44 @@ import { CitizenHomePage } from './pages/Citizen/CitizenHomePage';
 import { CitizenHelpPage } from './pages/Citizen/CitizenHelpPage';
 import { CitizenAccountPage } from './pages/Citizen/CitizenAccountPage';
 
+// Bảo vệ phân hệ Quản trị: Chưa đăng nhập -> /login | Công dân cố đổi URL -> /citizen/home
+const RequireAdmin: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { isAuthenticated, currentUser } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  if (currentUser.role === 'citizen') {
+    return <Navigate to="/citizen/home" replace />;
+  }
+  return children;
+};
+
+// Bảo vệ trang Login/Register: Đã đăng nhập thì điều hướng thẳng về đúng phân hệ
+const GuestOnly: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { isAuthenticated, currentUser } = useAuthStore();
+  if (isAuthenticated) {
+    return (
+      <Navigate
+        to={currentUser.role === 'citizen' ? '/citizen/home' : '/admin/dashboard'}
+        replace
+      />
+    );
+  }
+  return children;
+};
+
+// Chuyển hướng tương thích ngược cho /dispatch/:id -> /admin/dispatch/:id
+const LegacyDispatchRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={id ? `/admin/dispatch/${encodeURIComponent(id)}` : '/admin/inbox'} replace />;
+};
+
 export const App: React.FC = () => {
   const { storageError, resetToDefaultData } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
+
+  const defaultHomePath =
+    isAuthenticated && currentUser.role !== 'citizen' ? '/admin/dashboard' : '/citizen/home';
 
   return (
     <BrowserRouter>
@@ -49,19 +84,36 @@ export const App: React.FC = () => {
       )}
 
       <Routes>
-        {/* Trang đăng nhập & đăng ký */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        {/* Trang chủ mặc định: Khách & Công dân -> /citizen/home | Admin đang đăng nhập -> /admin/dashboard */}
+        <Route path="/" element={<Navigate to={defaultHomePath} replace />} />
+
+        {/* Trang đăng nhập & đăng ký (chỉ dành cho người chưa đăng nhập) */}
+        <Route
+          path="/login"
+          element={
+            <GuestOnly>
+              <LoginPage />
+            </GuestOnly>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <GuestOnly>
+              <RegisterPage />
+            </GuestOnly>
+          }
+        />
 
         {/* ========================================================
-            1. PHÂN HỆ CÔNG DÂN (Cho phép khách chưa đăng nhập vẫn xem & gửi phản ánh)
+            1. PHÂN HỆ CÔNG DÂN (/citizen/*) — Chuẩn URL thống nhất
             ======================================================== */}
         <Route path="/citizen" element={<CitizenLayout />}>
-          <Route index element={<CitizenHomePage />} />
+          <Route index element={<Navigate to="/citizen/home" replace />} />
           <Route path="home" element={<CitizenHomePage />} />
           <Route path="reports" element={<MyReportsPage />} />
           <Route path="reports/:id" element={<CitizenReportDetailPage />} />
-          <Route path="my-reports" element={<MyReportsPage />} />
+          <Route path="my-reports" element={<Navigate to="/citizen/reports" replace />} />
           <Route path="submit" element={<SubmitIncidentWizard />} />
           <Route path="map" element={<NearbyIncidentsMapPage />} />
           <Route path="help" element={<CitizenHelpPage />} />
@@ -69,49 +121,42 @@ export const App: React.FC = () => {
         </Route>
 
         {/* ========================================================
-            2. PHÂN HỆ ADMIN & CÁN BỘ (Officer Portal)
+            2. PHÂN HỆ QUẢN TRỊ & CÁN BỘ (/admin/*) — Bắt buộc quyền Admin/Cán bộ
             ======================================================== */}
         <Route
-          path="/"
+          path="/admin"
           element={
-            !isAuthenticated ? (
-              <Navigate to="/login" replace />
-            ) : currentUser.role === 'citizen' ? (
-              <Navigate to="/citizen/home" replace />
-            ) : (
+            <RequireAdmin>
               <DashboardLayout />
-            )
+            </RequireAdmin>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<IocDashboardPage />} />
-          <Route path="admin" element={<IocDashboardPage />} />
-          <Route path="admin/dashboard" element={<IocDashboardPage />} />
-
           <Route path="map" element={<AdminMapPage />} />
-          <Route path="admin/map" element={<AdminMapPage />} />
-
           <Route path="inbox" element={<OfficerInboxPage />} />
-          <Route path="admin/inbox" element={<OfficerInboxPage />} />
-
-          <Route path="members" element={<MembersPage />} />
-          <Route path="admin/members" element={<MembersPage />} />
-
-          <Route path="accounts" element={<AccountsPage />} />
-          <Route path="admin/accounts" element={<AccountsPage />} />
-
           <Route path="dispatch/:id" element={<DispatchDetailPage />} />
-          <Route path="admin/dispatch/:id" element={<DispatchDetailPage />} />
-
-          <Route path="field/tasks" element={<FieldTasksPage />} />
-          <Route path="admin/verify" element={<FieldTasksPage />} />
-
+          <Route path="members" element={<MembersPage />} />
+          <Route path="accounts" element={<AccountsPage />} />
+          <Route path="field-tasks" element={<FieldTasksPage />} />
+          <Route path="verify" element={<Navigate to="/admin/field-tasks" replace />} />
           <Route path="statistics" element={<StatisticsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
+        {/* Redirect tương thích ngược các URL Admin cũ -> /admin/* (đều bị chặn bởi RequireAdmin) */}
+        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/map" element={<Navigate to="/admin/map" replace />} />
+        <Route path="/inbox" element={<Navigate to="/admin/inbox" replace />} />
+        <Route path="/members" element={<Navigate to="/admin/members" replace />} />
+        <Route path="/accounts" element={<Navigate to="/admin/accounts" replace />} />
+        <Route path="/field/tasks" element={<Navigate to="/admin/field-tasks" replace />} />
+        <Route path="/statistics" element={<Navigate to="/admin/statistics" replace />} />
+        <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="/dispatch/:id" element={<LegacyDispatchRedirect />} />
+
+        {/* Fallback mọi đường dẫn sai -> về đúng trang chủ theo vai trò */}
+        <Route path="*" element={<Navigate to={defaultHomePath} replace />} />
       </Routes>
     </BrowserRouter>
   );

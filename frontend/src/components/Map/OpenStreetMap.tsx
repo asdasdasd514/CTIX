@@ -395,7 +395,7 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
             } else if (isCitizenMode) {
               navigate(`/citizen/reports/${item.id}`);
             } else {
-              navigate(`/dispatch/${item.id}`);
+              navigate(`/admin/dispatch/${item.id}`);
             }
           };
         }

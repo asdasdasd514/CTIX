@@ -23,13 +23,13 @@ export function Sidebar({
   ).length;
 
   const mainItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/map', label: 'Bản đồ', icon: MapPin },
-    { path: '/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
-    { path: '/members', label: 'Thành viên & Nhóm', icon: Users },
-    { path: '/accounts', label: 'Tài khoản', icon: UserCog },
-    { path: '/field/tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
-    { path: '/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/admin/map', label: 'Bản đồ', icon: MapPin },
+    { path: '/admin/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
+    { path: '/admin/members', label: 'Thành viên & Nhóm', icon: Users },
+    { path: '/admin/accounts', label: 'Tài khoản', icon: UserCog },
+    { path: '/admin/field-tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
+    { path: '/admin/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
   ];
 
   return (
@@ -75,7 +75,7 @@ export function Sidebar({
         <div className="my-2 mx-3 border-t border-white/10" />
 
         <NavLink
-          to="/settings"
+          to="/admin/settings"
           onClick={onCloseMobile}
           title={collapsed ? 'Cài đặt' : undefined}
         >

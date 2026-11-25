@@ -452,7 +452,7 @@ export const OfficerInboxPage: React.FC = () => {
               return (
                 <div
                   key={item.id}
-                  onClick={() => navigate(`/dispatch/${item.id}`)}
+                  onClick={() => navigate(`/admin/dispatch/${item.id}`)}
                   className="bg-white rounded-[5px] border border-slate-200 hover:border-blue-600 hover:shadow-md p-4 sm:p-5 transition cursor-pointer shadow-sm flex flex-col justify-between gap-3 group"
                 >
                   <div className="space-y-3">
