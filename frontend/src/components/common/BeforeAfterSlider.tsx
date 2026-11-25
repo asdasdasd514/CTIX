@@ -111,93 +111,99 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
       {/* CHẾ ĐỘ 1: THANH TRƯỢT SO SÁNH */}
       {viewMode === 'slider' ? (
-        <div
-          ref={containerRef}
-          role="slider"
-          tabIndex={0}
-          aria-label="Thanh trượt so sánh ảnh trước và sau xử lý"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(position)}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          onKeyDown={handleKeyDown}
-          className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border border-slate-300 bg-slate-900 select-none touch-none cursor-ew-resize shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          {/* Ảnh SAU xử lý (nằm dưới, hiển thị đủ 100%) */}
-          <div className="absolute inset-0 pointer-events-none">
-            <img
-              src={afterUrl}
-              alt="Ảnh sau xử lý"
-              draggable={false}
-              className="w-full h-full object-cover"
-            />
-            {afterTimestamp && (
-              <TimestampWatermark
-                timestamp={afterTimestamp}
-                address={address}
-                imageUrl={afterUrl}
-                compact
-              />
-            )}
-          </div>
-
-          {/* Ảnh TRƯỚC xử lý (nằm trên, cắt theo clip-path) */}
+        <div className="space-y-1.5">
           <div
-            style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
-            className="absolute inset-0 pointer-events-none"
+            ref={containerRef}
+            role="slider"
+            tabIndex={0}
+            aria-label="Thanh trượt so sánh ảnh trước và sau xử lý"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(position)}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onKeyDown={handleKeyDown}
+            className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border border-slate-300 bg-slate-900 select-none touch-none cursor-ew-resize shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
-            <img
-              src={beforeUrl}
-              alt="Ảnh trước xử lý"
-              draggable={false}
-              className="w-full h-full object-cover"
-            />
-            {beforeTimestamp && (
-              <TimestampWatermark
-                timestamp={beforeTimestamp}
-                address={address}
-                imageUrl={beforeUrl}
-                compact
+            {/* Ảnh SAU xử lý (nằm dưới, hiển thị đủ 100%, Watermark đặt góc dưới-PHẢI) */}
+            <div className="absolute inset-0 pointer-events-none">
+              <img
+                src={afterUrl}
+                alt="Ảnh sau xử lý"
+                draggable={false}
+                className="w-full h-full object-cover"
               />
-            )}
-          </div>
+              {afterTimestamp && (
+                <TimestampWatermark
+                  timestamp={afterTimestamp}
+                  address={address}
+                  imageUrl={afterUrl}
+                  compact
+                  align="right"
+                  visible={position <= 62}
+                />
+              )}
+            </div>
 
-          {/* Nhãn góc TRƯỚC */}
-          <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-rose-600/90 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-black tracking-wide shadow">
-              {beforeLabel}
-            </span>
-          </div>
-
-          {/* Nhãn góc SAU */}
-          <div className="absolute top-2.5 right-2.5 z-10 pointer-events-none">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-black tracking-wide shadow">
-              {afterLabel}
-            </span>
-          </div>
-
-          {/* Vạch chia dọc & Tay cầm kéo */}
-          <div
-            style={{ left: `${position}%` }}
-            className="absolute inset-y-0 z-20 -translate-x-1/2 pointer-events-none flex items-center justify-center"
-          >
-            <div className="w-[2.5px] h-full bg-white shadow-[0_0_8px_rgba(0,0,0,0.65)]" />
+            {/* Ảnh TRƯỚC xử lý (nằm trên, cắt theo clip-path, Watermark đặt góc dưới-TRÁI) */}
             <div
-              className={`absolute w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-blue-900 border-2 border-blue-700 shadow-lg flex items-center justify-center transition-transform ${
-                isDragging ? 'scale-110 ring-4 ring-blue-500/35' : ''
-              }`}
+              style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+              className="absolute inset-0 pointer-events-none"
             >
-              <MoveHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
+              <img
+                src={beforeUrl}
+                alt="Ảnh trước xử lý"
+                draggable={false}
+                className="w-full h-full object-cover"
+              />
+              {beforeTimestamp && (
+                <TimestampWatermark
+                  timestamp={beforeTimestamp}
+                  address={address}
+                  imageUrl={beforeUrl}
+                  compact
+                  align="left"
+                  visible={position >= 38}
+                />
+              )}
+            </div>
+
+            {/* Nhãn góc TRƯỚC */}
+            <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-rose-600/90 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-black tracking-wide shadow">
+                {beforeLabel}
+              </span>
+            </div>
+
+            {/* Nhãn góc SAU */}
+            <div className="absolute top-2.5 right-2.5 z-10 pointer-events-none">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-black tracking-wide shadow">
+                {afterLabel}
+              </span>
+            </div>
+
+            {/* Vạch chia dọc & Tay cầm kéo */}
+            <div
+              style={{ left: `${position}%` }}
+              className="absolute inset-y-0 z-20 -translate-x-1/2 pointer-events-none flex items-center justify-center"
+            >
+              <div className="w-[2.5px] h-full bg-white shadow-[0_0_8px_rgba(0,0,0,0.65)]" />
+              <div
+                className={`absolute w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-blue-900 border-2 border-blue-700 shadow-lg flex items-center justify-center transition-transform ${
+                  isDragging ? 'scale-110 ring-4 ring-blue-500/35' : ''
+                }`}
+              >
+                <MoveHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
             </div>
           </div>
 
-          {/* Gợi ý kéo nhỏ phía dưới */}
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-            <span className="px-2.5 py-1 rounded-[5px] bg-slate-900/75 backdrop-blur-sm text-white text-[10px] font-semibold whitespace-nowrap">
-              ← Kéo qua lại để so sánh →
+          {/* Thanh chú thích đặt gọn BÊN DƯỚI khung ảnh — không bao giờ che Watermark */}
+          <div className="flex items-center justify-center">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-slate-100 border border-slate-200 text-slate-600 text-[10px] sm:text-[11px] font-semibold">
+              ← Kéo thanh trượt qua lại để so sánh Trước & Sau →
             </span>
           </div>
         </div>
