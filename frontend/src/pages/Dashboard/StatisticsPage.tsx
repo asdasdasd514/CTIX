@@ -51,6 +51,7 @@ export function StatisticsPage() {
   const items = useMemo(
     () =>
       incidents.filter((i) => {
+        if (i.status === "rejected") return false;
         if (month && incidentMonthKey(i.createdAt) !== month) return false;
         if (category !== "all" && i.category !== category) return false;
         if (unit === UNASSIGNED_UNIT_FILTER && i.assignedTo) return false;

@@ -29,22 +29,21 @@ export const NearbyIncidentsMapPage: React.FC = () => {
     isCitizenView ? 'pending' : 'all'
   );
 
+  // Công dân chỉ xem hồ sơ công khai (ẩn Chờ duyệt & Từ chối), nhưng vẫn cho phép lọc Đang xử lý / Đã khắc phục xong
   const baseList = isCitizenView
-    ? incidents.filter(
-        (item) => isPublicIncident(item) && item.status !== 'resolved' && item.status !== 'closed'
-      )
+    ? incidents.filter((item) => isPublicIncident(item))
     : incidents;
-
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(baseList[0] || null);
 
   const filteredList = baseList.filter((item) => {
     if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-    if (!isCitizenView) {
-      if (statusFilter === 'pending' && (item.status === 'resolved' || item.status === 'closed')) return false;
-      if (statusFilter === 'resolved' && item.status !== 'resolved' && item.status !== 'closed') return false;
-    }
+    if (statusFilter === 'pending' && (item.status === 'resolved' || item.status === 'closed')) return false;
+    if (statusFilter === 'resolved' && item.status !== 'resolved' && item.status !== 'closed') return false;
     return true;
   });
+
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(
+    () => filteredList[0] || baseList[0] || null
+  );
 
   const handleMarkerClick = (item: Incident) => {
     setSelectedIncident(item);
@@ -93,16 +92,16 @@ export const NearbyIncidentsMapPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-none border border-slate-200">
             <button
               onClick={() => setCategoryFilter('all')}
-              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-none transition border ${categoryFilter === 'all'
+              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-[5px] transition border ${categoryFilter === 'all'
                 ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
             >
-              Tất cả ({incidents.length})
+              Tất cả ({baseList.length})
             </button>
             <button
               onClick={() => setCategoryFilter('street_light')}
-              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-none flex items-center gap-1 transition border ${categoryFilter === 'street_light'
+              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-[5px] flex items-center gap-1 transition border ${categoryFilter === 'street_light'
                 ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
@@ -111,7 +110,7 @@ export const NearbyIncidentsMapPage: React.FC = () => {
             </button>
             <button
               onClick={() => setCategoryFilter('flooding')}
-              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-none flex items-center gap-1 transition border ${categoryFilter === 'flooding'
+              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-[5px] flex items-center gap-1 transition border ${categoryFilter === 'flooding'
                 ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
@@ -120,7 +119,7 @@ export const NearbyIncidentsMapPage: React.FC = () => {
             </button>
             <button
               onClick={() => setCategoryFilter('waste')}
-              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-none flex items-center gap-1 transition border ${categoryFilter === 'waste'
+              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-[5px] flex items-center gap-1 transition border ${categoryFilter === 'waste'
                 ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
@@ -129,12 +128,21 @@ export const NearbyIncidentsMapPage: React.FC = () => {
             </button>
             <button
               onClick={() => setCategoryFilter('road_damage')}
-              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-none flex items-center gap-1 transition border ${categoryFilter === 'road_damage'
+              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-[5px] flex items-center gap-1 transition border ${categoryFilter === 'road_damage'
                 ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
             >
               <Construction className="w-3.5 h-3.5 shrink-0" /> Ổ gà
+            </button>
+            <button
+              onClick={() => setCategoryFilter('other')}
+              className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-[5px] flex items-center gap-1 transition border ${categoryFilter === 'other'
+                ? 'bg-violet-600 text-white border-violet-700 shadow-sm'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+            >
+              Khác
             </button>
           </div>
         </div>

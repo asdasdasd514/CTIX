@@ -3,7 +3,10 @@ import { IncidentModel } from '../models/Incident';
 
 export async function getSummaryStats(_req: Request, res: Response) {
   try {
-    const docs = await IncidentModel.find();
+    const allDocs = await IncidentModel.find();
+    const rejected = allDocs.filter((d) => d.status === 'rejected').length;
+    const pendingReview = allDocs.filter((d) => d.status === 'pending_review').length;
+    const docs = allDocs.filter((d) => d.status !== 'rejected');
     const total = docs.length;
     const pending = docs.filter((d) => d.status === 'pending').length;
     const active = docs.filter((d) => d.status === 'assigned' || d.status === 'in_progress').length;
@@ -35,9 +38,11 @@ export async function getSummaryStats(_req: Request, res: Response) {
 
     return res.json({
       total,
+      pendingReview,
       pending,
       active,
       completed,
+      rejected,
       averageDays,
       averageRating,
       ratingCount,

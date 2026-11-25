@@ -3,7 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory, IncidentPriority } from '../../types/incident';
-import { isOverdue, PRIORITY_LABELS, STATUS_LABELS } from '../../lib/incidents';
+import {
+  isOverdue,
+  incidentMonthKey,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  UNASSIGNED_UNIT_FILTER,
+} from '../../lib/incidents';
 import {
   Search,
   MapPin,
@@ -96,6 +102,9 @@ export const OfficerInboxPage: React.FC = () => {
   const urlStatus = searchParams.get('status');
   const urlCategory = searchParams.get('category') as IncidentCategory | null;
   const urlQuery = searchParams.get('q') || '';
+  const urlUnit = searchParams.get('unit') || '';
+  const urlMonth = searchParams.get('month') || '';
+  const urlAssignee = searchParams.get('assignee') || '';
 
   const [statusTab, setStatusTab] = useState<
     'pending_review' | 'pending' | 'open' | 'all' | 'overdue' | 'resolved' | 'rejected'
@@ -152,6 +161,13 @@ export const OfficerInboxPage: React.FC = () => {
 
       if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) return false;
       if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
+
+      if (urlUnit === UNASSIGNED_UNIT_FILTER && item.assignedTo) return false;
+      if (urlUnit && urlUnit !== 'all' && urlUnit !== UNASSIGNED_UNIT_FILTER && item.assignedTo?.unitName !== urlUnit)
+        return false;
+      if (urlMonth && incidentMonthKey(item.createdAt) !== urlMonth) return false;
+      if (urlAssignee && urlAssignee !== 'all' && (item.assignedTo?.assigneeName || '') !== urlAssignee)
+        return false;
 
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();

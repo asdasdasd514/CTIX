@@ -58,7 +58,9 @@ export const CitizenAccountPage: React.FC = () => {
       return Boolean(cleanPhone && itemPhone && itemPhone === cleanPhone);
     });
     const resolved = mine.filter((i) => i.status === 'resolved' || i.status === 'closed').length;
-    const inProgress = mine.length - resolved;
+    const inProgress = mine.filter(
+      (i) => i.status !== 'resolved' && i.status !== 'closed' && i.status !== 'rejected'
+    ).length;
     return { total: mine.length, resolved, inProgress };
   }, [incidents, currentUser]);
 
@@ -124,15 +126,10 @@ export const CitizenAccountPage: React.FC = () => {
       setIsEditing(false);
       setSuccess('Đã cập nhật thông tin tài khoản thành công.');
     } catch (err) {
-      updateCurrentUser({
-        name: name.trim(),
-        phone: phone.trim(),
-      });
-      setIsEditing(false);
-      setSuccess(
+      setError(
         err instanceof Error
-          ? 'Đã lưu thông tin tài khoản trên thiết bị.'
-          : 'Đã cập nhật thông tin tài khoản.'
+          ? err.message
+          : 'Không thể cập nhật thông tin tài khoản. Vui lòng thử lại.'
       );
     } finally {
       setSaving(false);

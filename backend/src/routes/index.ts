@@ -6,7 +6,7 @@ import * as teamCtrl from '../controllers/teamController';
 import * as statsCtrl from '../controllers/statsController';
 import * as userCtrl from '../controllers/userController';
 import * as aiCtrl from '../controllers/aiController';
-import { requireAuth, optionalAuth } from '../middlewares/auth';
+import { requireAuth, optionalAuth, requireRole } from '../middlewares/auth';
 import { uploadImages, uploadAudio } from '../middlewares/upload';
 
 export const apiRouter = Router();
@@ -30,30 +30,30 @@ apiRouter.patch('/incidents/:id', optionalAuth, incidentCtrl.updateIncident);
 apiRouter.delete('/incidents/:id', optionalAuth, incidentCtrl.deleteIncident);
 apiRouter.post('/incidents/:id/upvote', optionalAuth, incidentCtrl.upvoteIncident);
 apiRouter.post('/incidents/:id/link-duplicate', optionalAuth, incidentCtrl.linkDuplicate);
-apiRouter.post('/incidents/:targetId/merge/:sourceId', optionalAuth, incidentCtrl.mergeIncidents);
+apiRouter.post('/incidents/:targetId/merge/:sourceId', requireAuth, requireRole('officer', 'leader'), incidentCtrl.mergeIncidents);
 apiRouter.post('/incidents/:id/rating', optionalAuth, incidentCtrl.rateIncident);
-apiRouter.post('/incidents/:id/approve', optionalAuth, incidentCtrl.approveIncident);
-apiRouter.post('/incidents/:id/reject', optionalAuth, incidentCtrl.rejectIncident);
-apiRouter.post('/incidents/:id/assign', optionalAuth, incidentCtrl.assignIncident);
-apiRouter.post('/incidents/:id/verify', optionalAuth, incidentCtrl.verifyIncident);
-apiRouter.post('/incidents/:id/start', optionalAuth, incidentCtrl.startIncident);
-apiRouter.post('/incidents/:id/resolve', optionalAuth, incidentCtrl.resolveIncident);
-apiRouter.patch('/incidents/:id/workflow/:stepId', optionalAuth, incidentCtrl.toggleWorkflowStep);
+apiRouter.post('/incidents/:id/approve', requireAuth, requireRole('officer', 'leader'), incidentCtrl.approveIncident);
+apiRouter.post('/incidents/:id/reject', requireAuth, requireRole('officer', 'leader'), incidentCtrl.rejectIncident);
+apiRouter.post('/incidents/:id/assign', requireAuth, requireRole('officer', 'leader'), incidentCtrl.assignIncident);
+apiRouter.post('/incidents/:id/verify', requireAuth, requireRole('officer', 'leader', 'volunteer'), incidentCtrl.verifyIncident);
+apiRouter.post('/incidents/:id/start', requireAuth, requireRole('officer', 'leader', 'volunteer'), incidentCtrl.startIncident);
+apiRouter.post('/incidents/:id/resolve', requireAuth, requireRole('officer', 'leader', 'volunteer'), incidentCtrl.resolveIncident);
+apiRouter.patch('/incidents/:id/workflow/:stepId', requireAuth, requireRole('officer', 'leader', 'volunteer'), incidentCtrl.toggleWorkflowStep);
 
 // Teams & Members (MOD-04)
 apiRouter.get('/teams', teamCtrl.getTeams);
-apiRouter.post('/teams/units', teamCtrl.createUnit);
-apiRouter.patch('/teams/units/:id', teamCtrl.updateUnit);
-apiRouter.delete('/teams/units/:id', teamCtrl.deleteUnit);
-apiRouter.post('/teams/members', teamCtrl.createMember);
-apiRouter.patch('/teams/members/:id', teamCtrl.updateMember);
-apiRouter.delete('/teams/members/:id', teamCtrl.deleteMember);
+apiRouter.post('/teams/units', requireAuth, requireRole('officer', 'leader'), teamCtrl.createUnit);
+apiRouter.patch('/teams/units/:id', requireAuth, requireRole('officer', 'leader'), teamCtrl.updateUnit);
+apiRouter.delete('/teams/units/:id', requireAuth, requireRole('officer', 'leader'), teamCtrl.deleteUnit);
+apiRouter.post('/teams/members', requireAuth, requireRole('officer', 'leader'), teamCtrl.createMember);
+apiRouter.patch('/teams/members/:id', requireAuth, requireRole('officer', 'leader'), teamCtrl.updateMember);
+apiRouter.delete('/teams/members/:id', requireAuth, requireRole('officer', 'leader'), teamCtrl.deleteMember);
 
-// Users / Accounts Management (Admin)
-apiRouter.get('/users', userCtrl.listUsers);
-apiRouter.post('/users', userCtrl.createUser);
-apiRouter.patch('/users/:id', userCtrl.updateUser);
-apiRouter.delete('/users/:id', userCtrl.deleteUser);
+// Users / Accounts Management (Admin + Self Profile Update)
+apiRouter.get('/users', requireAuth, requireRole('officer', 'leader'), userCtrl.listUsers);
+apiRouter.post('/users', requireAuth, requireRole('officer', 'leader'), userCtrl.createUser);
+apiRouter.patch('/users/:id', requireAuth, userCtrl.updateUser);
+apiRouter.delete('/users/:id', requireAuth, requireRole('officer', 'leader'), userCtrl.deleteUser);
 
 // AI Assistant (Chatbot & Direct Audio Voice Command)
 apiRouter.post('/ai/assistant', optionalAuth, aiCtrl.citizenAssistant);

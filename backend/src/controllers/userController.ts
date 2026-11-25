@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { UserModel, type IUser, type UserRoleType } from '../models/User';
 import { UnitModel } from '../models/Unit';
 import { UnitMemberModel } from '../models/UnitMember';
+import type { AuthRequest } from '../middlewares/auth';
 
 const STAFF_ROLES: UserRoleType[] = ['officer', 'leader', 'volunteer'];
 
@@ -124,8 +125,14 @@ export async function createUser(req: Request, res: Response) {
 }
 
 // PATCH /api/users/:id
-export async function updateUser(req: Request, res: Response) {
+export async function updateUser(req: AuthRequest, res: Response) {
   try {
+    const isManager = req.user?.role === 'officer' || req.user?.role === 'leader';
+    const isSelf = req.user?.userId === req.params.id;
+    if (!isManager && !isSelf) {
+      return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa tài khoản của người khác.' });
+    }
+
     const user = await UserModel.findOne({ userId: req.params.id });
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
@@ -143,11 +150,21 @@ export async function updateUser(req: Request, res: Response) {
     };
 
     if (name !== undefined && name.trim()) user.name = name.trim();
-    if (phone !== undefined && phone.trim()) user.phone = phone.replace(/[\s.-]/g, '').trim();
-    if (role !== undefined) user.role = role;
-    if (title !== undefined) user.title = title.trim() || defaultTitleByRole(user.role);
+    if (phone !== undefined && phone.trim()) {
+      const cleanPhone = phone.replace(/[\s.-]/g, '').trim();
+      const dupPhone = await UserModel.findOne({
+        phone: cleanPhone,
+        userId: { $ne: user.userId },
+      });
+      if (dupPhone) {
+        return res.status(409).json({ message: 'Số điện thoại này đã được sử dụng bởi tài khoản khác.' });
+      }
+      user.phone = cleanPhone;
+    }
+    if (isManager && role !== undefined) user.role = role;
+    if (isManager && title !== undefined) user.title = title.trim() || defaultTitleByRole(user.role);
     if (department !== undefined) user.department = department.trim();
-    if (unitId !== undefined) {
+    if (isManager && unitId !== undefined) {
       user.unitId = isStaffRole(user.role) ? unitId.trim() : undefined;
       if (isStaffRole(user.role)) {
         if (unitId.trim()) {
@@ -158,7 +175,7 @@ export async function updateUser(req: Request, res: Response) {
         }
       }
     }
-    if (typeof isActive === 'boolean') user.isActive = isActive;
+    if (isManager && typeof isActive === 'boolean') user.isActive = isActive;
     if (password && password.length >= 6) {
       user.passwordHash = await bcrypt.hash(password, 10);
     }

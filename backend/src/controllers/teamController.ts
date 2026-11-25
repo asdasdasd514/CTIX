@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { UnitModel } from '../models/Unit';
 import { UnitMemberModel } from '../models/UnitMember';
+import { UserModel } from '../models/User';
 
 export async function getTeams(_req: Request, res: Response) {
   try {
@@ -85,8 +86,16 @@ export async function updateUnit(req: Request, res: Response) {
 
 export async function deleteUnit(req: Request, res: Response) {
   try {
-    await UnitModel.deleteOne({ unitId: req.params.id });
-    await UnitMemberModel.deleteMany({ unitId: req.params.id });
+    const unitId = req.params.id;
+    await UnitModel.deleteOne({ unitId });
+    // Không xóa mất nhân sự — chỉ chuyển về trạng thái "Chưa vào nhóm" và đồng bộ sang UserModel
+    await Promise.all([
+      UnitMemberModel.updateMany({ unitId }, { $set: { unitId: '' } }),
+      UserModel.updateMany(
+        { unitId },
+        { $set: { unitId: '', department: 'UBND Phường Trấn Biên' } }
+      ),
+    ]);
     return res.json({ deleted: true });
   } catch (err) {
     console.error('[Teams] deleteUnit error:', err);
@@ -132,6 +141,26 @@ export async function updateMember(req: Request, res: Response) {
       { new: true }
     );
     if (!member) return res.status(404).json({ message: 'Không tìm thấy thành viên.' });
+
+    // Đồng bộ ngược lại sang UserModel nếu thành viên này gắn với tài khoản (acc-<userId>)
+    if (member.memberId.startsWith('acc-')) {
+      const userId = member.memberId.slice(4);
+      const userPatch: Record<string, unknown> = {
+        name: member.name,
+        title: member.role,
+        phone: member.phone,
+        unitId: member.unitId || '',
+        isActive: member.status !== 'off_duty',
+      };
+      if (member.unitId) {
+        const unit = await UnitModel.findOne({ unitId: member.unitId });
+        if (unit) userPatch.department = unit.name;
+      } else {
+        userPatch.department = 'UBND Phường Trấn Biên';
+      }
+      await UserModel.updateOne({ userId }, { $set: userPatch });
+    }
+
     return res.json({
       member: {
         id: member.memberId,

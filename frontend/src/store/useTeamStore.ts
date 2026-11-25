@@ -216,7 +216,9 @@ export const useTeamStore = create<TeamState>((set, get) => ({
 
   removeUnit: (id) => {
     const nextUnits = get().units.filter((u) => u.id !== id);
-    const nextMembers = get().members.filter((m) => m.unitId !== id);
+    const nextMembers = get().members.map((m) =>
+      m.unitId === id ? { ...m, unitId: '' } : m
+    );
     persist(nextUnits, nextMembers);
     set({ units: nextUnits, members: nextMembers });
     teamsApi.deleteUnit(id).catch(() => {});

@@ -50,7 +50,7 @@ export async function listIncidents(req: Request, res: Response) {
       filter.status = status;
     }
     if (onlyUnresolved === 'true') {
-      filter.status = { $nin: ['resolved', 'closed'] };
+      filter.status = { $nin: ['resolved', 'closed', 'rejected', 'pending_review'] };
     }
     if (category && category !== 'all') {
       filter.category = category;
@@ -113,9 +113,16 @@ export async function createIncident(req: AuthRequest, res: Response) {
     const clientIp = getClientIp(req);
 
     if (!isStaffUser) {
+      const cleanupRejectedPhotos = () => {
+        if (Array.isArray(photosBefore) && photosBefore.length > 0) {
+          void deleteCloudinaryUrls(photosBefore);
+        }
+      };
+
       // 1. Giới hạn tần suất gửi theo IP: 2 phút / lần
       const ipCheck = checkIpRateLimit(clientIp);
       if (!ipCheck.ok) {
+        cleanupRejectedPhotos();
         return res.status(429).json({
           message: ipCheck.message,
           retryAfterSec: ipCheck.retryAfterSec,
@@ -125,6 +132,7 @@ export async function createIncident(req: AuthRequest, res: Response) {
       // 2. Bộ lọc nội dung rác / spam / từ khóa quảng cáo
       const contentCheck = validateIncidentContent(description, title);
       if (!contentCheck.ok) {
+        cleanupRejectedPhotos();
         return res.status(400).json({ message: contentCheck.message });
       }
 
@@ -137,6 +145,7 @@ export async function createIncident(req: AuthRequest, res: Response) {
         ).lean();
 
         if (myPendingDocs.length >= 3) {
+          cleanupRejectedPhotos();
           return res.status(429).json({
             message:
               'Bạn hiện có 3 phản ánh đang chờ UBND Phường duyệt. Vui lòng đợi duyệt xong trước khi gửi thêm.',
@@ -151,6 +160,7 @@ export async function createIncident(req: AuthRequest, res: Response) {
             String(d.description || '').trim().toLowerCase() === normalizedNewDesc
         );
         if (isExactDup) {
+          cleanupRejectedPhotos();
           return res.status(409).json({
             message: 'Bạn vừa gửi phản ánh có nội dung tương tự trong 15 phút qua. Không cần gửi lặp lại.',
           });
@@ -309,11 +319,20 @@ export async function deleteIncident(req: AuthRequest, res: Response) {
   }
 }
 
-// POST /api/incidents/:id/upvote (MOD-02: Đồng phản ánh)
-export async function upvoteIncident(req: Request, res: Response) {
+const upvoteTracker = new Set<string>();
+
+// POST /api/incidents/:id/upvote (MOD-02: Đồng phản ánh — mỗi người/IP tối đa 1 lượt/hồ sơ)
+export async function upvoteIncident(req: AuthRequest, res: Response) {
   try {
     const doc = await IncidentModel.findOne({ incidentId: req.params.id });
     if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
+
+    const actorKey = `${req.params.id}:${req.user?.userId || getClientIp(req)}`;
+    if (upvoteTracker.has(actorKey)) {
+      return res.json({ incident: serializeIncident(doc), alreadyUpvoted: true });
+    }
+    if (upvoteTracker.size > 5000) upvoteTracker.clear();
+    upvoteTracker.add(actorKey);
 
     doc.sameReportsCount = (doc.sameReportsCount || 1) + 1;
     doc.updatedAtIso = new Date().toISOString();
@@ -416,18 +435,22 @@ export async function rejectIncident(req: Request, res: Response) {
   }
 }
 
-// POST /api/incidents/:id/assign (MOD-04: Phân công Cá nhân / Tổ đội)
+// POST /api/incidents/:id/assign (MOD-04: Phân công Cá nhân / Tổ đội & Điều chỉnh phân công)
 export async function assignIncident(req: Request, res: Response) {
   try {
     const doc = await IncidentModel.findOne({ incidentId: req.params.id });
     if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
-    if (doc.status === 'resolved' || doc.status === 'closed') {
-      return res.status(400).json({ message: 'Hồ sơ đã hoàn tất, không thể phân công lại.' });
+    if (!['pending', 'assigned', 'in_progress'].includes(doc.status)) {
+      return res.status(400).json({
+        message: 'Chỉ có thể phân công hồ sơ ở trạng thái Chờ phân công, Đã giao hoặc Đang xử lý.',
+      });
     }
 
     const {
       unitName,
-      deadlineDays = 2,
+      deadline,
+      deadlineHours,
+      deadlineDays = 1,
       officerName = 'Nguyễn Thành Long',
       priority,
       category,
@@ -451,8 +474,16 @@ export async function assignIncident(req: Request, res: Response) {
 
     const now = new Date();
     const nowIso = now.toISOString();
-    const days = Math.max(1, Number(deadlineDays) || 2);
-    const deadlineIso = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+    let deadlineIso: string;
+    if (deadline && Number.isFinite(Date.parse(String(deadline))) && Date.parse(String(deadline)) > now.getTime()) {
+      deadlineIso = new Date(Date.parse(String(deadline))).toISOString();
+    } else if (deadlineHours !== undefined && Number(deadlineHours) > 0) {
+      const hrs = Math.min(720, Math.max(1, Number(deadlineHours)));
+      deadlineIso = new Date(now.getTime() + hrs * 60 * 60 * 1000).toISOString();
+    } else {
+      const days = Math.max(1 / 24, Number(deadlineDays) || 1);
+      deadlineIso = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+    }
 
     if (doc.assignedTo) {
       doc.assignmentHistory = doc.assignmentHistory || [];
@@ -481,13 +512,15 @@ export async function assignIncident(req: Request, res: Response) {
 
     if (priority) doc.priority = priority;
     if (category) doc.category = category;
-    doc.status = 'assigned';
+    if (doc.status === 'pending') {
+      doc.status = 'assigned';
+    }
     doc.assignedTo = {
       unitName: unitName.trim(),
       officerName,
       assigneeId: assigneeId || undefined,
       assigneeName: assigneeName?.trim() || undefined,
-      assignedAt: nowIso,
+      assignedAt: doc.assignedTo?.assignedAt || nowIso,
       deadline: deadlineIso,
       notes: notes?.trim() || undefined,
     };
@@ -556,8 +589,10 @@ export async function resolveIncident(req: Request, res: Response) {
   try {
     const doc = await IncidentModel.findOne({ incidentId: req.params.id });
     if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
-    if (doc.status === 'pending') {
-      return res.status(400).json({ message: 'Hồ sơ chưa được phân công, không thể nghiệm thu.' });
+    if (doc.status !== 'assigned' && doc.status !== 'in_progress') {
+      return res.status(400).json({
+        message: 'Chỉ có thể nghiệm thu hồ sơ đang ở trạng thái Đã giao hoặc Đang xử lý.',
+      });
     }
 
     const { notes, photosAfter, officerName = 'Nguyễn Thành Long' } = req.body;

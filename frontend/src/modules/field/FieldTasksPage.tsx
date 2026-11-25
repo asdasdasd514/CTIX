@@ -112,8 +112,8 @@ export function FieldTasksPage() {
         i.assignedTo.assigneeName.trim().toLowerCase() === myName;
       return Boolean(unitMatch || assigneeMatch);
     });
-    // Nếu tài khoản tổ xử lý chưa gắn tên tổ khớp 100% trong demo, fallback hiển thị các hồ sơ đã phân công để không bị màn hình trống
-    return matched.length > 0 ? matched : valid.filter((i) => Boolean(i.assignedTo));
+    // Chỉ hiển thị đúng nhiệm vụ thuộc Tổ hoặc cá nhân phụ trách (không lộ nhiệm vụ của tổ khác)
+    return matched;
   }, [incidents, isFieldStaff, currentUser.department, currentUser.name]);
 
   const unitOptions = useMemo(() => getAllKnownUnits(scopedIncidents), [scopedIncidents]);

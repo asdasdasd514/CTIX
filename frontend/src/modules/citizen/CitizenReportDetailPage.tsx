@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { mediaApi } from '../../services/api';
 import { distanceMeters, isPublicIncident } from '../../lib/incidents';
 import { getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
-import { compressImageFiles } from '../../lib/imageCompress';
+import { compressImageFiles, stampTimestampWatermarks } from '../../lib/imageCompress';
 import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
@@ -83,6 +83,8 @@ export const CitizenReportDetailPage: React.FC = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editCategory, setEditCategory] = useState<IncidentCategory>('street_light');
   const [editPhotos, setEditPhotos] = useState<string[]>([]);
+  const [editPendingFiles, setEditPendingFiles] = useState<Record<string, File>>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editLocation, setEditLocation] = useState<IncidentLocation>({
     lat: 10.9572,
     lng: 106.8184,
@@ -146,6 +148,8 @@ export const CitizenReportDetailPage: React.FC = () => {
   // Mở chế độ Chỉnh sửa hồ sơ (chỉ chính chủ khi đang Chờ duyệt)
   const handleStartEdit = () => {
     if (!isOwner || incident.status !== 'pending_review') return;
+    Object.keys(editPendingFiles).forEach((url) => URL.revokeObjectURL(url));
+    setEditPendingFiles({});
     setEditTitle(incident.title);
     setEditDescription(incident.description);
     setEditCategory(incident.category);
@@ -155,43 +159,38 @@ export const CitizenReportDetailPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Thêm nhiều ảnh khi đang chỉnh sửa hồ sơ (nén ảnh + upload vào đúng thư mục Cloudinary theo category)
+  // Nén & xem trước ảnh mới cục bộ (CHƯA upload Cloudinary cho đến khi bấm Lưu để tránh ảnh rác)
   const handleEditAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const fileList = await compressImageFiles(Array.from(files));
-    try {
-      const uploadedUrls = await mediaApi.uploadFiles(fileList, 'before', editCategory);
-      if (uploadedUrls.length > 0) {
-        setEditPhotos((prev) => [...prev, ...uploadedUrls]);
-        e.target.value = '';
-        return;
-      }
-    } catch {
-      // Fallback sang FileReader khi backend chưa bật
-    }
-
-    const readers = fileList.map(
-      (file) =>
-        new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => resolve((ev.target?.result as string) || '');
-          reader.readAsDataURL(file);
-        })
-    );
-
-    Promise.all(readers).then((urls) => {
-      const valid = urls.filter(Boolean);
-      if (valid.length > 0) {
-        setEditPhotos((prev) => [...prev, ...valid]);
-      }
-      e.target.value = '';
+    const newUrls: string[] = [];
+    const newPending: Record<string, File> = {};
+    fileList.forEach((file) => {
+      const objUrl = URL.createObjectURL(file);
+      newUrls.push(objUrl);
+      newPending[objUrl] = file;
     });
+    setEditPendingFiles((prev) => ({ ...prev, ...newPending }));
+    setEditPhotos((prev) => [...prev, ...newUrls].slice(0, 8));
+    e.target.value = '';
   };
 
   const handleEditRemovePhoto = (idx: number) => {
-    setEditPhotos((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
+    setEditPhotos((prev) => {
+      if (prev.length <= 1) return prev;
+      const removed = prev[idx];
+      if (removed && editPendingFiles[removed]) {
+        URL.revokeObjectURL(removed);
+        setEditPendingFiles((map) => {
+          const next = { ...map };
+          delete next[removed];
+          return next;
+        });
+      }
+      return prev.filter((_, i) => i !== idx);
+    });
   };
 
   // Chọn lại vị trí trên bản đồ khi đang chỉnh sửa hồ sơ
@@ -251,24 +250,61 @@ export const CitizenReportDetailPage: React.FC = () => {
     }
   };
 
-  // Lưu toàn bộ thay đổi hồ sơ (chỉ chính chủ)
-  const handleSaveEdit = (e: React.FormEvent) => {
+  // Lưu toàn bộ thay đổi hồ sơ (chỉ chính chủ — đóng dấu Timestamp & upload ảnh mới đúng lúc Lưu)
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOwner || incident.status !== 'pending_review') return;
+    if (!isOwner || incident.status !== 'pending_review' || isSavingEdit) return;
     if (!editTitle.trim() || !editDescription.trim()) return;
-    updateIncident(
-      incident.id,
-      {
-        title: editTitle.trim(),
-        description: editDescription.trim(),
-        category: editCategory,
-        photosBefore: editPhotos.length > 0 ? editPhotos : incident.photosBefore,
-        location: editLocation,
-      },
-      requesterPhone
-    );
-    setIsEditing(false);
-    showToast('Đã cập nhật toàn bộ hồ sơ phản ánh thành công!');
+
+    setIsSavingEdit(true);
+    try {
+      const existingUrls = editPhotos.filter((u) => !editPendingFiles[u]);
+      const newFiles = editPhotos
+        .map((u) => editPendingFiles[u])
+        .filter((f): f is File => Boolean(f));
+
+      let uploadedNewUrls: string[] = [];
+      if (newFiles.length > 0) {
+        const watermarked = await stampTimestampWatermarks(newFiles, {
+          timestamp: new Date(),
+          address: editLocation.address || incident.location.address,
+        });
+        try {
+          uploadedNewUrls = await mediaApi.uploadFiles(watermarked, 'before', editCategory);
+        } catch {
+          uploadedNewUrls = await Promise.all(
+            watermarked.map(
+              (file) =>
+                new Promise<string>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => resolve((ev.target?.result as string) || '');
+                  reader.readAsDataURL(file);
+                })
+            )
+          );
+        }
+      }
+
+      const finalPhotos = [...existingUrls, ...uploadedNewUrls.filter(Boolean)];
+      Object.keys(editPendingFiles).forEach((url) => URL.revokeObjectURL(url));
+      setEditPendingFiles({});
+
+      updateIncident(
+        incident.id,
+        {
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          category: editCategory,
+          photosBefore: finalPhotos.length > 0 ? finalPhotos : incident.photosBefore,
+          location: editLocation,
+        },
+        requesterPhone
+      );
+      setIsEditing(false);
+      showToast('Đã cập nhật toàn bộ hồ sơ phản ánh thành công!');
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   // Hủy yêu cầu phản ánh này (chỉ chính chủ)

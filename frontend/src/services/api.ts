@@ -191,6 +191,8 @@ export const incidentsApi = {
     payload: {
       unitName: string;
       deadlineDays: number;
+      deadline?: string;
+      deadlineHours?: number;
       officerName?: string;
       priority?: IncidentPriority;
       category?: IncidentCategory;

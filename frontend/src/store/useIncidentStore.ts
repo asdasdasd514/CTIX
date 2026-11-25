@@ -26,6 +26,51 @@ const isBrowserEnv = () =>
   typeof window !== "undefined" &&
   typeof window.location !== "undefined" &&
   typeof fetch === "function";
+
+/**
+ * Tra cứu nhân sự theo đơn vị kết hợp cả dữ liệu mẫu (DEMO_UNITS) lẫn dữ liệu động từ MongoDB (ctix_teams_v1)
+ * để không bị lỗi khi phân công cho tổ đội hoặc tài khoản nhân sự mới tạo.
+ */
+function resolveDynamicStaff(
+  unitName: string,
+  assigneeIdOrName?: string,
+): { found: boolean; member?: { id: string; name: string } } {
+  const key = assigneeIdOrName?.trim();
+  if (!key) return { found: true };
+
+  // 1. Kiểm tra trong danh sách tổ đội động (useTeamStore cache từ MongoDB)
+  try {
+    const rawTeams = localStorage.getItem("ctix_teams_v1");
+    if (rawTeams) {
+      const parsed = JSON.parse(rawTeams) as {
+        units?: { id: string; name: string }[];
+        members?: { id: string; name: string; unitId: string }[];
+      };
+      const matchedUnit = parsed.units?.find((u) => u.name === unitName);
+      if (matchedUnit && Array.isArray(parsed.members)) {
+        const matchedMember = parsed.members.find(
+          (m) => m.unitId === matchedUnit.id && (m.id === key || m.name === key),
+        );
+        if (matchedMember) {
+          return { found: true, member: { id: matchedMember.id, name: matchedMember.name } };
+        }
+        // Nếu đơn vị có trong DB động nhưng nhân sự không thuộc đơn vị này -> vẫn fallback kiểm tra DEMO_UNITS bên dưới
+      }
+    }
+  } catch {
+    // ignore storage parse error
+  }
+
+  // 2. Kiểm tra trong DEMO_UNITS (tương thích unit test & dữ liệu mẫu)
+  if (isStaffInUnit(unitName, key)) {
+    const staticMember = findUnitStaffMember(unitName, key);
+    return {
+      found: true,
+      member: staticMember ? { id: staticMember.id, name: staticMember.name } : undefined,
+    };
+  }
+  return { found: false };
+}
 const dateValid = (value: unknown) =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
 export function parseIncidents(raw: string): Incident[] {
@@ -428,6 +473,15 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       return [incident, ...items];
     });
     set({ selectedIncidentId: result.incident.id });
+    if (isBrowserEnv() && result.isDuplicateGrouped && input.duplicateOf) {
+      incidentsApi
+        .linkDuplicate(input.duplicateOf, {
+          senderName: input.senderName?.trim() || "Người dân",
+          senderPhone: input.senderPhone.replace(/[\s.]/g, ""),
+          photos: input.photosBefore,
+        })
+        .catch(() => {});
+    }
     if (isBrowserEnv() && !result.isDuplicateGrouped) {
       const tempId = result.incident.id;
       incidentsApi
@@ -571,13 +625,12 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
     const trimmedUnit = unitName.trim();
     const trimmedNotes = options.notes?.trim();
     const rawAssignee = options.assigneeName?.trim() || options.assigneeId?.trim() || "";
-    if (rawAssignee && !isStaffInUnit(trimmedUnit, rawAssignee))
+    const resolvedStaff = resolveDynamicStaff(trimmedUnit, rawAssignee);
+    if (rawAssignee && !resolvedStaff.found)
       throw new Error(
         "Cán bộ phụ trách không thuộc đơn vị đã chọn. Vui lòng kiểm tra lại.",
       );
-    const staffMember = rawAssignee
-      ? findUnitStaffMember(trimmedUnit, rawAssignee)
-      : undefined;
+    const staffMember = resolvedStaff.member;
     if (trimmedNotes && trimmedNotes.length > 1500)
       throw new Error("Ghi chú giao việc tối đa 1500 ký tự.");
     const deadline =
@@ -633,6 +686,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         .assign(id, {
           unitName: trimmedUnit,
           deadlineDays: days,
+          deadline,
           officerName,
           priority: options.priority,
           category: options.category,
@@ -652,13 +706,12 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       options.assigneeName?.trim() || options.assigneeId?.trim() || "";
     if (trimmedReason.length < 3 || trimmedReason.length > 500)
       throw new Error("Nhập lý do điều chỉnh phân công (3–500 ký tự).");
-    if (rawAssignee && !isStaffInUnit(trimmedUnit, rawAssignee))
+    const resolvedStaff = resolveDynamicStaff(trimmedUnit, rawAssignee);
+    if (rawAssignee && !resolvedStaff.found)
       throw new Error(
         "Cán bộ phụ trách không thuộc đơn vị đã chọn. Vui lòng kiểm tra lại.",
       );
-    const staffMember = rawAssignee
-      ? findUnitStaffMember(trimmedUnit, rawAssignee)
-      : undefined;
+    const staffMember = resolvedStaff.member;
     if (trimmedNotes && trimmedNotes.length > 1500)
       throw new Error("Ghi chú giao việc tối đa 1500 ký tự.");
     const deadline = options.deadline || "";
@@ -740,6 +793,26 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         assignmentHistory: [record, ...(item.assignmentHistory || [])],
       };
     });
+    if (isBrowserEnv()) {
+      const remainingDays = Math.max(
+        1 / 24,
+        (Date.parse(deadline) - Date.now()) / 86400000,
+      );
+      incidentsApi
+        .assign(id, {
+          unitName: trimmedUnit,
+          deadlineDays: remainingDays,
+          deadline,
+          officerName: options.changedBy?.trim() || "Cán bộ điều phối",
+          priority: options.priority,
+          category: options.category,
+          assigneeId: staffMember?.id || options.assigneeId,
+          assigneeName: staffMember?.name || options.assigneeName,
+          notes: trimmedNotes,
+          reason: trimmedReason,
+        })
+        .catch(() => {});
+    }
   },
   startIncident: (id) => {
     changeIncident(id, (item) => {
@@ -833,6 +906,18 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
     if (isBrowserEnv()) incidentsApi.rate(id, stars, comment, criteria).catch(() => {});
   },
   upvoteIncident: (id) => {
+    if (isBrowserEnv()) {
+      try {
+        const key = "ctix_upvoted_ids_v1";
+        const raw = window.sessionStorage.getItem(key);
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        if (list.includes(id)) return;
+        list.push(id);
+        window.sessionStorage.setItem(key, JSON.stringify(list));
+      } catch {
+        // ignore storage errors
+      }
+    }
     changeIncident(id, (item) => ({
       ...item,
       sameReportsCount: item.sameReportsCount + 1,
@@ -859,20 +944,16 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
     if (isBrowserEnv()) incidentsApi.update(id, { description, ...(title ? { title } : {}) }).catch(() => {});
   },
   updateIncident: (id, patch, requesterPhone) => {
-    const existing = get().incidents.find((item) => item.id === id);
     changeIncident(id, (item) => ({
       ...item,
       ...patch,
     }));
     if (isBrowserEnv()) {
-      incidentsApi
-        .update(id, patch, requesterPhone || existing?.sender?.phone)
-        .catch(() => {});
+      incidentsApi.update(id, patch, requesterPhone).catch(() => {});
     }
   },
   deleteIncident: (id, requesterPhone) => {
     try {
-      const existing = get().incidents.find((item) => item.id === id);
       const updated = get().incidents.filter((item) => item.id !== id);
       save(updated);
       set({
@@ -883,9 +964,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         syncNotice: "Đã hủy một hồ sơ phản ánh.",
       });
       if (isBrowserEnv()) {
-        incidentsApi
-          .remove(id, requesterPhone || existing?.sender?.phone)
-          .catch(() => {});
+        incidentsApi.remove(id, requesterPhone).catch(() => {});
       }
     } catch (error) {
       set({ storageError: (error as Error).message });
