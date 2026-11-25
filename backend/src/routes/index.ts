@@ -32,6 +32,7 @@ apiRouter.post('/incidents/:id/assign', optionalAuth, incidentCtrl.assignInciden
 apiRouter.post('/incidents/:id/verify', optionalAuth, incidentCtrl.verifyIncident);
 apiRouter.post('/incidents/:id/start', optionalAuth, incidentCtrl.startIncident);
 apiRouter.post('/incidents/:id/resolve', optionalAuth, incidentCtrl.resolveIncident);
+apiRouter.patch('/incidents/:id/workflow/:stepId', optionalAuth, incidentCtrl.toggleWorkflowStep);
 
 // Teams & Members (MOD-04)
 apiRouter.get('/teams', teamCtrl.getTeams);

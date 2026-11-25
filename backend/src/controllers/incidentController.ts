@@ -254,6 +254,7 @@ export async function assignIncident(req: Request, res: Response) {
       notes,
       reason,
       expectedUpdatedAt,
+      workflowSteps,
     } = req.body;
 
     if (!unitName?.trim()) {
@@ -308,6 +309,17 @@ export async function assignIncident(req: Request, res: Response) {
       deadline: deadlineIso,
       notes: notes?.trim() || undefined,
     };
+    if (Array.isArray(workflowSteps) && workflowSteps.length > 0) {
+      doc.workflowSteps = workflowSteps
+        .filter((s: any) => s && typeof s.title === 'string' && s.title.trim())
+        .map((s: any, idx: number) => ({
+          id: s.id || `step-${idx + 1}`,
+          title: s.title.trim(),
+          completed: !!s.completed,
+          completedAt: s.completedAt,
+          completedBy: s.completedBy,
+        }));
+    }
     doc.updatedAtIso = nowIso;
     await doc.save();
 
@@ -379,6 +391,18 @@ export async function resolveIncident(req: Request, res: Response) {
       resolvedAt: nowIso,
       officerName,
     };
+    if (doc.workflowSteps && doc.workflowSteps.length > 0) {
+      doc.workflowSteps = doc.workflowSteps.map((s) =>
+        s.completed
+          ? s
+          : {
+              ...s,
+              completed: true,
+              completedAt: nowIso,
+              completedBy: officerName,
+            }
+      );
+    }
     doc.updatedAtIso = nowIso;
     await doc.save();
 
@@ -386,5 +410,45 @@ export async function resolveIncident(req: Request, res: Response) {
   } catch (err) {
     console.error('[Incidents] resolve error:', err);
     return res.status(500).json({ message: 'Không thể nghiệm thu hoàn tất hồ sơ.' });
+  }
+}
+
+// PATCH /api/incidents/:id/workflow/:stepId — Tick hoàn thành / bỏ tick 1 bước quy trình hiện trường
+export async function toggleWorkflowStep(req: Request, res: Response) {
+  try {
+    const doc = await IncidentModel.findOne({ incidentId: req.params.id });
+    if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
+    if (!doc.workflowSteps || doc.workflowSteps.length === 0) {
+      return res.status(400).json({ message: 'Hồ sơ này chưa có quy trình xử lý.' });
+    }
+
+    const stepId = req.params.stepId;
+    const actorName = req.body?.actorName || 'Đội hiện trường';
+    const nowIso = new Date().toISOString();
+
+    let found = false;
+    doc.workflowSteps = doc.workflowSteps.map((s) => {
+      if (s.id !== stepId) return s;
+      found = true;
+      const nextDone = !s.completed;
+      return {
+        id: s.id,
+        title: s.title,
+        completed: nextDone,
+        completedAt: nextDone ? nowIso : undefined,
+        completedBy: nextDone ? actorName : undefined,
+      };
+    });
+
+    if (!found) {
+      return res.status(404).json({ message: 'Không tìm thấy bước quy trình.' });
+    }
+
+    doc.updatedAtIso = nowIso;
+    await doc.save();
+    return res.json({ incident: serializeIncident(doc) });
+  } catch (err) {
+    console.error('[Incidents] toggleWorkflowStep error:', err);
+    return res.status(500).json({ message: 'Không thể cập nhật bước quy trình.' });
   }
 }

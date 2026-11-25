@@ -6,10 +6,11 @@ import { useTeamStore } from '../../store/useTeamStore';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   CATEGORIES,
+  DEFAULT_WORKFLOW_TEMPLATES,
   STATUS_LABELS,
   formatDate,
 } from '../../lib/incidents';
-import { IncidentPriority } from '../../types/incident';
+import type { IncidentPriority, WorkflowStep } from '../../types/incident';
 import {
   ArrowLeft,
   MapPin,
@@ -26,6 +27,10 @@ import {
   Trash2,
   Construction,
   AlertCircle,
+  ListChecks,
+  Plus,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 
 export const DispatchDetailPage: React.FC = () => {
@@ -44,6 +49,12 @@ export const DispatchDetailPage: React.FC = () => {
   const [priority, setPriority] = useState<IncidentPriority>(incident?.priority || 'high');
   const [deadlineDays, setDeadlineDays] = useState<number>(2);
   const [notes, setNotes] = useState<string>('');
+  const [workflowDraft, setWorkflowDraft] = useState<string[]>(() =>
+    incident
+      ? [...(DEFAULT_WORKFLOW_TEMPLATES[incident.category] || DEFAULT_WORKFLOW_TEMPLATES.other)]
+      : [...DEFAULT_WORKFLOW_TEMPLATES.other]
+  );
+  const [newStepText, setNewStepText] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -152,6 +163,15 @@ export const DispatchDetailPage: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
+    const workflowSteps: WorkflowStep[] = workflowDraft
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((title, idx) => ({
+        id: `step-${Date.now().toString(36)}-${idx + 1}`,
+        title,
+        completed: false,
+      }));
+
     try {
       if (assignMode === 'individual') {
         const staff = staffCandidates.find((s) => s.id === effectiveStaffId);
@@ -165,9 +185,10 @@ export const DispatchDetailPage: React.FC = () => {
           assigneeName: staff.name,
           notes: notes.trim() || undefined,
           expectedUpdatedAt: incident.updatedAt,
+          workflowSteps,
         });
         setSuccessMsg(
-          `Đã phân công thành công cho Đ/c ${staff.name} (${staff.unitName}).`
+          `Đã phân công thành công cho Đ/c ${staff.name} (${staff.unitName}) kèm ${workflowSteps.length} bước quy trình.`
         );
       } else {
         const unit = groupCandidates.find((u) => u.name === effectiveUnitName);
@@ -179,9 +200,10 @@ export const DispatchDetailPage: React.FC = () => {
           priority,
           notes: notes.trim() || undefined,
           expectedUpdatedAt: incident.updatedAt,
+          workflowSteps,
         });
         setSuccessMsg(
-          `Đã phân công theo nhóm cho ${unit.name} (${unit.staff.length} thành viên).`
+          `Đã phân công theo nhóm cho ${unit.name} (${unit.staff.length} thành viên) kèm ${workflowSteps.length} bước quy trình.`
         );
       }
     } catch (err) {
@@ -549,6 +571,92 @@ export const DispatchDetailPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Quy trình xử lý riêng cho hiện trường này */}
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <ListChecks className="w-4 h-4 text-blue-700 shrink-0" />
+                    <span>Quy trình xử lý hiện trường ({workflowDraft.length} bước)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setWorkflowDraft([
+                        ...(DEFAULT_WORKFLOW_TEMPLATES[incident.category] ||
+                          DEFAULT_WORKFLOW_TEMPLATES.other),
+                      ])
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:underline"
+                    title="Khôi phục mẫu quy trình chuẩn theo loại sự cố"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Mẫu chuẩn</span>
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {workflowDraft.map((stepText, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-[4px] bg-blue-100 text-blue-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={stepText}
+                        onChange={(e) => {
+                          const next = [...workflowDraft];
+                          next[idx] = e.target.value;
+                          setWorkflowDraft(next);
+                        }}
+                        className="flex-1 h-8 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWorkflowDraft((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        title="Xóa bước này"
+                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    value={newStepText}
+                    onChange={(e) => setNewStepText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newStepText.trim()) {
+                          setWorkflowDraft((prev) => [...prev, newStepText.trim()]);
+                          setNewStepText('');
+                        }
+                      }
+                    }}
+                    placeholder="Nhập thêm bước xử lý riêng..."
+                    className="flex-1 h-8 px-2.5 rounded-[5px] border border-dashed border-slate-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newStepText.trim()) {
+                        setWorkflowDraft((prev) => [...prev, newStepText.trim()]);
+                        setNewStepText('');
+                      }
+                    }}
+                    className="h-8 px-2.5 rounded-[5px] bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 text-xs font-semibold inline-flex items-center gap-1 shrink-0 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Thêm bước</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Ghi chú cho nhân sự */}
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -636,6 +744,52 @@ export const DispatchDetailPage: React.FC = () => {
                   <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 text-xs">
                     <span className="font-bold text-slate-700 block mb-0.5">Chỉ đạo / Ghi chú:</span>
                     <p className="text-slate-600">{incident.assignedTo.notes}</p>
+                  </div>
+                )}
+
+                {incident.workflowSteps && incident.workflowSteps.length > 0 && (
+                  <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 text-xs space-y-2">
+                    <div className="flex items-center justify-between font-bold text-slate-800">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ListChecks className="w-4 h-4 text-blue-700" />
+                        Quy trình xử lý hiện trường
+                      </span>
+                      <span className="text-[11px] font-semibold text-blue-700">
+                        {incident.workflowSteps.filter((s) => s.completed).length}/
+                        {incident.workflowSteps.length} bước
+                      </span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {incident.workflowSteps.map((step, idx) => (
+                        <li key={step.id} className="flex items-start gap-2">
+                          <span
+                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                              step.completed
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {step.completed ? '✓' : idx + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <span
+                              className={
+                                step.completed
+                                  ? 'text-slate-500 line-through'
+                                  : 'text-slate-800 font-medium'
+                              }
+                            >
+                              {step.title}
+                            </span>
+                            {step.completedAt && (
+                              <span className="block text-[10px] text-emerald-700">
+                                Hoàn thành lúc {formatDate(step.completedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 

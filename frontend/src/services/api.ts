@@ -1,4 +1,4 @@
-import type { Incident, NewIncidentInput, IncidentCategory, IncidentPriority } from '../types/incident';
+import type { Incident, NewIncidentInput, IncidentCategory, IncidentPriority, WorkflowStep } from '../types/incident';
 
 export const API_BASE_URL =
   (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ||
@@ -138,12 +138,21 @@ export const incidentsApi = {
       notes?: string;
       reason?: string;
       expectedUpdatedAt?: string;
+      workflowSteps?: WorkflowStep[];
     }
   ) =>
     apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}/assign`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  toggleWorkflowStep: (id: string, stepId: string, actorName?: string) =>
+    apiRequest<{ incident: Incident }>(
+      `/incidents/${encodeURIComponent(id)}/workflow/${encodeURIComponent(stepId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ actorName }),
+      }
+    ),
   verify: (id: string, notes?: string) =>
     apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}/verify`, {
       method: 'POST',

@@ -6,6 +6,7 @@ import type {
   NewIncidentInput,
   UserRole,
   IncidentPriority,
+  WorkflowStep,
 } from "../types/incident.ts";
 import { generateMockIncidents } from "../data/mockIncidents.ts";
 import { incidentsApi } from "../services/api.ts";
@@ -136,6 +137,7 @@ interface DispatchOptions {
   assigneeName?: string;
   notes?: string;
   deadline?: string;
+  workflowSteps?: WorkflowStep[];
 }
 
 interface ReassignOptions extends DispatchOptions {
@@ -183,6 +185,7 @@ interface IncidentStore {
   reassignIncident: (id: string, options: ReassignOptions) => void;
   startIncident: (id: string) => void;
   verifyIncident: (id: string, notes?: string) => void;
+  toggleWorkflowStep: (id: string, stepId: string, actorName?: string) => void;
   resolveIncident: (
     id: string,
     notes: string,
@@ -481,6 +484,9 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
           deadline,
           notes: trimmedNotes,
         },
+        ...(options.workflowSteps && options.workflowSteps.length > 0
+          ? { workflowSteps: options.workflowSteps }
+          : {}),
       };
     });
     if (isBrowserEnv()) {
@@ -494,6 +500,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
           assigneeId: staffMember?.id || options.assigneeId,
           assigneeName: staffMember?.name || options.assigneeName,
           notes: trimmedNotes,
+          workflowSteps: options.workflowSteps,
         })
         .catch(() => {});
     }
@@ -615,6 +622,28 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
     });
     if (isBrowserEnv()) incidentsApi.verify(id, notes).catch(() => {});
   },
+  toggleWorkflowStep: (id, stepId, actorName = "Đội hiện trường") => {
+    const nowIso = new Date().toISOString();
+    changeIncident(id, (item) => {
+      if (!item.workflowSteps?.length) return item;
+      return {
+        ...item,
+        workflowSteps: item.workflowSteps.map((s) => {
+          if (s.id !== stepId) return s;
+          const nextDone = !s.completed;
+          return {
+            ...s,
+            completed: nextDone,
+            completedAt: nextDone ? nowIso : undefined,
+            completedBy: nextDone ? actorName : undefined,
+          };
+        }),
+      };
+    });
+    if (isBrowserEnv()) {
+      incidentsApi.toggleWorkflowStep(id, stepId, actorName).catch(() => {});
+    }
+  },
   resolveIncident: (id, notes, photosAfter, officerName = "Tổ hiện trường") => {
     if (
       !notes.trim() ||
@@ -622,6 +651,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       photosAfter.some((p) => !safeImageUrl(p))
     )
       throw new Error("Cần ảnh sau xử lý và nội dung khắc phục.");
+    const nowIso = new Date().toISOString();
     changeIncident(id, (item) => {
       if (item.status !== "in_progress" || !item.assignedTo)
         throw new Error("Hãy nhận và bắt đầu nhiệm vụ trước khi hoàn tất.");
@@ -632,8 +662,17 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         resolution: {
           notes: notes.trim(),
           officerName,
-          resolvedAt: new Date().toISOString(),
+          resolvedAt: nowIso,
         },
+        ...(item.workflowSteps?.length
+          ? {
+              workflowSteps: item.workflowSteps.map((s) =>
+                s.completed
+                  ? s
+                  : { ...s, completed: true, completedAt: nowIso, completedBy: officerName }
+              ),
+            }
+          : {}),
       };
     });
     if (isBrowserEnv()) {

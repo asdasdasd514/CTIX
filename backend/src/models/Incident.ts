@@ -83,6 +83,13 @@ export interface IIncident extends Document {
     photos: string[];
     reportedAt: string;
   }[];
+  workflowSteps?: {
+    id: string;
+    title: string;
+    completed: boolean;
+    completedAt?: string;
+    completedBy?: string;
+  }[];
   createdAtIso: string;
   updatedAtIso: string;
 }
@@ -180,6 +187,18 @@ const IncidentSchema = new Schema<IIncident>(
       ],
       default: [],
     },
+    workflowSteps: {
+      type: [
+        {
+          id: { type: String, required: true },
+          title: { type: String, required: true },
+          completed: { type: Boolean, default: false },
+          completedAt: String,
+          completedBy: String,
+        },
+      ],
+      default: [],
+    },
     createdAtIso: { type: String, required: true, index: true },
     updatedAtIso: { type: String, required: true },
   },
@@ -219,6 +238,16 @@ export function serializeIncident(doc: IIncident) {
     verificationNotes: doc.verificationNotes || undefined,
     linkedReports:
       doc.linkedReports && doc.linkedReports.length > 0 ? doc.linkedReports : undefined,
+    workflowSteps:
+      doc.workflowSteps && doc.workflowSteps.length > 0
+        ? doc.workflowSteps.map((s) => ({
+            id: s.id,
+            title: s.title,
+            completed: !!s.completed,
+            completedAt: s.completedAt || undefined,
+            completedBy: s.completedBy || undefined,
+          }))
+        : undefined,
     createdAt: doc.createdAtIso,
     updatedAt: doc.updatedAtIso,
   };

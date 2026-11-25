@@ -70,6 +70,14 @@ export interface IncidentRating {
   ratedAt: string;
 }
 
+export interface WorkflowStep {
+  id: string;
+  title: string;
+  completed: boolean;
+  completedAt?: string;
+  completedBy?: string;
+}
+
 export interface Incident {
   id: string;
   code: string; // vd: TB-2026-001
@@ -94,6 +102,7 @@ export interface Incident {
     photos: string[];
     reportedAt: string;
   }[];
+  workflowSteps?: WorkflowStep[];
   createdAt: string;
   updatedAt: string;
 }

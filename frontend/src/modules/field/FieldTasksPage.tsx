@@ -29,7 +29,7 @@ import {
 type FieldTab = "assigned" | "verify" | "completed";
 
 export function FieldTasksPage() {
-  const { incidents, verifyIncident, startIncident } = useIncidentStore();
+  const { incidents, verifyIncident, startIncident, toggleWorkflowStep } = useIncidentStore();
   const { currentUser } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedId = searchParams.get("id");
@@ -318,6 +318,64 @@ export function FieldTasksPage() {
                       {formatDate(item.assignedTo.deadline)}
                     </span>
                     {item.assignedTo.notes && <p>{item.assignedTo.notes}</p>}
+                  </div>
+                )}
+                {item.workflowSteps && item.workflowSteps.length > 0 && (
+                  <div className="mt-2.5 p-3 rounded-[5px] bg-slate-50 border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>Quy trình xử lý hiện trường</span>
+                      <span className="text-[11px] font-semibold text-blue-700">
+                        {item.workflowSteps.filter((s) => s.completed).length}/
+                        {item.workflowSteps.length} bước
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {item.workflowSteps.map((step, idx) => {
+                        const canToggle = item.status === "in_progress";
+                        return (
+                          <label
+                            key={step.id}
+                            className={`flex items-start gap-2 text-xs p-1.5 rounded-[4px] transition ${
+                              canToggle
+                                ? "cursor-pointer hover:bg-white"
+                                : "opacity-80 cursor-default"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={step.completed}
+                              disabled={!canToggle}
+                              onChange={() =>
+                                toggleWorkflowStep(item.id, step.id, currentUser.name)
+                              }
+                              className="mt-0.5 accent-emerald-600 shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span
+                                className={
+                                  step.completed
+                                    ? "line-through text-slate-500"
+                                    : "text-slate-800 font-medium"
+                                }
+                              >
+                                {idx + 1}. {step.title}
+                              </span>
+                              {step.completedAt && (
+                                <span className="block text-[10px] text-emerald-700">
+                                  Xong lúc {formatDate(step.completedAt)}
+                                  {step.completedBy ? ` · ${step.completedBy}` : ""}
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {item.status === "assigned" && (
+                      <p className="text-[11px] text-slate-500">
+                        Bấm &ldquo;Nhận và bắt đầu&rdquo; để tick hoàn thành từng bước quy trình.
+                      </p>
+                    )}
                   </div>
                 )}
                 {item.verificationNotes && (

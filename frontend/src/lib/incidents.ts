@@ -39,6 +39,34 @@ export const UNITS: Record<IncidentCategory, string> = {
   other: "Tổ xử lý sự cố tổng hợp",
 };
 
+export const DEFAULT_WORKFLOW_TEMPLATES: Record<IncidentCategory, string[]> = {
+  street_light: [
+    "Kiểm tra nguồn điện và đảm bảo an toàn cột đèn",
+    "Thay thế bóng đèn, chấn lưu hoặc đấu nối lại dây dẫn",
+    "Bật kiểm tra chiếu sáng và chụp ảnh nghiệm thu",
+  ],
+  flooding: [
+    "Đặt biển cảnh báo khu vực ngập nước cho người dân",
+    "Khơi thông miệng cống và thu gom rác gây tắc nghẽn",
+    "Kiểm tra dòng chảy thoát nước và vệ sinh mặt đường",
+  ],
+  waste: [
+    "Thu gom và phân loại rác thải tồn lưu tại điểm tập kết",
+    "Vệ sinh, xịt rửa khử mùi khu vực xung quanh",
+    "Kiểm tra sạch sẽ và chụp ảnh nghiệm thu hiện trường",
+  ],
+  road_damage: [
+    "Rào chắn và đặt biển cảnh báo an toàn giao thông",
+    "Dọn sạch hố sụt, rải đá cấp phối hoặc nhựa nóng vá ổ gà",
+    "Lu lèn bằng phẳng, thu dọn mặt bằng và nghiệm thu",
+  ],
+  other: [
+    "Tiếp cận hiện trường và đánh giá mức độ an toàn",
+    "Triển khai biện pháp khắc phục chuyên môn",
+    "Kiểm tra hoàn thiện và chụp ảnh nghiệm thu",
+  ],
+};
+
 export interface UnitStaffMember {
   id: string;
   name: string;
