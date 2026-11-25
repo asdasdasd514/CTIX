@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory, IncidentPriority } from '../../types/incident';
 import { isOverdue, PRIORITY_LABELS, STATUS_LABELS } from '../../lib/incidents';
 import {
@@ -20,6 +21,8 @@ import {
   Eye,
   Inbox,
   Truck,
+  ShieldCheck,
+  XCircle,
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 8;
@@ -79,9 +82,15 @@ function getCategoryBadge(category: IncidentCategory) {
 
 export const OfficerInboxPage: React.FC = () => {
   const navigate = useNavigate();
-  const { incidents } = useIncidentStore();
+  const { incidents, approveIncident, rejectIncident } = useIncidentStore();
+  const { currentUser } = useAuthStore();
 
-  const [statusTab, setStatusTab] = useState<'pending' | 'open' | 'all' | 'overdue' | 'resolved'>('pending');
+  const reviewCount = incidents.filter((i) => i.status === 'pending_review').length;
+  const rejectedCount = incidents.filter((i) => i.status === 'rejected').length;
+
+  const [statusTab, setStatusTab] = useState<
+    'pending_review' | 'pending' | 'open' | 'all' | 'overdue' | 'resolved' | 'rejected'
+  >(() => (incidents.some((i) => i.status === 'pending_review') ? 'pending_review' : 'pending'));
   const [selectedCategories, setSelectedCategories] = useState<IncidentCategory[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<'all' | IncidentPriority>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,10 +115,19 @@ export const OfficerInboxPage: React.FC = () => {
 
   const filteredList = incidents
     .filter((item) => {
+      if (statusTab === 'pending_review' && item.status !== 'pending_review') return false;
       if (statusTab === 'pending' && item.status !== 'pending') return false;
-      if (statusTab === 'open' && (item.status === 'resolved' || item.status === 'closed')) return false;
+      if (
+        statusTab === 'open' &&
+        (item.status === 'resolved' ||
+          item.status === 'closed' ||
+          item.status === 'pending_review' ||
+          item.status === 'rejected')
+      )
+        return false;
       if (statusTab === 'overdue' && !isOverdue(item, now)) return false;
       if (statusTab === 'resolved' && item.status !== 'resolved' && item.status !== 'closed') return false;
+      if (statusTab === 'rejected' && item.status !== 'rejected') return false;
 
       if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) return false;
       if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
@@ -168,6 +186,20 @@ export const OfficerInboxPage: React.FC = () => {
       );
     }
     switch (item.status) {
+      case 'pending_review':
+        return (
+          <span className="bg-violet-100 text-violet-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-violet-300 inline-flex items-center gap-1 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-600 animate-pulse" />
+            Chờ duyệt
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="bg-rose-50 text-rose-700 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-rose-200 inline-flex items-center gap-1 whitespace-nowrap">
+            <XCircle className="w-3 h-3" />
+            Từ chối
+          </span>
+        );
       case 'pending':
         return (
           <span className="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-amber-300 inline-flex items-center gap-1 whitespace-nowrap">
@@ -201,8 +233,24 @@ export const OfficerInboxPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* 1. 5 THẺ TỔNG QUAN NHANH (BẤM ĐỂ LỌC NHANH) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* 1. THẺ TỔNG QUAN NHANH (BẤM ĐỂ LỌC NHANH) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <button
+          type="button"
+          onClick={() => setStatusTab('pending_review')}
+          className={`p-3.5 rounded-[5px] border text-left transition shadow-sm bg-white ${
+            statusTab === 'pending_review'
+              ? 'border-violet-600 ring-1 ring-violet-600 bg-violet-50/40'
+              : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+            <span>Chờ duyệt</span>
+            <ShieldCheck className="w-4 h-4 text-violet-600" />
+          </div>
+          <div className="text-2xl font-black text-violet-700 mt-1">{reviewCount}</div>
+        </button>
+
         <button
           type="button"
           onClick={() => setStatusTab('pending')}
@@ -290,10 +338,12 @@ export const OfficerInboxPage: React.FC = () => {
           {/* Tab trạng thái */}
           <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200">
             {[
+              { id: 'pending_review', label: `Chờ duyệt (${reviewCount})` },
               { id: 'pending', label: `Chờ phân công (${pendingCount})` },
               { id: 'open', label: 'Chưa hoàn tất' },
               { id: 'overdue', label: `Quá hạn (${overdueCount})` },
               { id: 'resolved', label: 'Đã xử lý' },
+              { id: 'rejected', label: `Từ chối (${rejectedCount})` },
               { id: 'all', label: `Tất cả (${incidents.length})` },
             ].map((t) => (
               <button
@@ -451,10 +501,18 @@ export const OfficerInboxPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Footer: Chỉ hồ sơ chưa phân công mới hiện nút Giao việc */}
+                  {/* Footer: Chờ duyệt (Duyệt/Từ chối) | Chờ phân công (Giao việc) | Đã giao (Xem) */}
                   <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="text-slate-500 font-medium truncate">
-                      {item.assignedTo ? (
+                      {item.status === 'pending_review' ? (
+                        <span className="text-violet-700 font-semibold">
+                          Mới gửi • Chờ kiểm duyệt tiếp nhận
+                        </span>
+                      ) : item.status === 'rejected' ? (
+                        <span className="text-rose-700 font-semibold">
+                          Lý do: {item.review?.reason || 'Không đủ điều kiện tiếp nhận'}
+                        </span>
+                      ) : item.assignedTo ? (
                         <span className="text-slate-700 font-semibold">
                           Đơn vị: {item.assignedTo.unitName}
                           {item.assignedTo.assigneeName ? ` • ${item.assignedTo.assigneeName}` : ''}
@@ -464,7 +522,38 @@ export const OfficerInboxPage: React.FC = () => {
                       )}
                     </div>
 
-                    {canDispatch ? (
+                    {item.status === 'pending_review' ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const reason = window.prompt(
+                              `Nhập lý do từ chối tiếp nhận hồ sơ ${item.code}:`,
+                              'Ảnh không rõ hiện trường hoặc ngoài phạm vi Phường Trấn Biên'
+                            );
+                            if (reason && reason.trim()) {
+                              rejectIncident(item.id, reason.trim(), currentUser.name);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[5px] bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold transition whitespace-nowrap"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Từ chối</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveIncident(item.id, currentUser.name);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm transition whitespace-nowrap"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Duyệt tiếp nhận</span>
+                        </button>
+                      </div>
+                    ) : canDispatch ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] bg-blue-700 group-hover:bg-blue-800 text-white font-bold text-xs shadow-sm transition whitespace-nowrap">
                         <Send className="w-3.5 h-3.5" />
                         <span>Phân công ngay</span>

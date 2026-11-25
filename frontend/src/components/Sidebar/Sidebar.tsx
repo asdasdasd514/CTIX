@@ -18,7 +18,9 @@ export function Sidebar({
 }) {
   const { sidebarCollapsed, toggleSidebar, incidents } = useIncidentStore();
   const collapsed = sidebarCollapsed && !onCloseMobile;
-  const pending = incidents.filter((i) => i.status === 'pending').length;
+  const pending = incidents.filter(
+    (i) => i.status === 'pending_review' || i.status === 'pending'
+  ).length;
 
   const mainItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },

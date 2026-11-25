@@ -849,8 +849,28 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 2 NÚT HÀNH ĐỘNG CHỈ HIỆN KHI HỒ SƠ CHƯA ĐƯỢC TIẾP NHẬN / PHÂN CÔNG (STATUS === 'pending') */}
-            {incident.status === 'pending' && (
+            {/* THÔNG BÁO CHỜ DUYỆT HOẶC TỪ CHỐI TIẾP NHẬN */}
+            {incident.status === 'pending_review' && (
+              <div className="p-3.5 rounded-[5px] bg-violet-50 border border-violet-200 text-xs text-violet-900 space-y-1">
+                <div className="font-bold">Đang chờ UBND Phường kiểm duyệt tiếp nhận</div>
+                <p className="text-violet-700 leading-relaxed">
+                  Phản ánh của bạn đã được ghi nhận và đang chờ cán bộ xác thực trước khi công khai & phân công xử lý. Bạn vẫn có thể chỉnh sửa hoặc hủy trong thời gian này.
+                </p>
+              </div>
+            )}
+
+            {incident.status === 'rejected' && (
+              <div className="p-3.5 rounded-[5px] bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1">
+                <div className="font-bold">Phản ánh không được tiếp nhận</div>
+                <p className="text-rose-700 leading-relaxed">
+                  <strong>Lý do:</strong>{' '}
+                  {incident.review?.reason || 'Không đủ thông tin hoặc ngoài phạm vi xử lý của Phường Trấn Biên.'}
+                </p>
+              </div>
+            )}
+
+            {/* 2 NÚT HÀNH ĐỘNG CHỈ HIỆN KHI HỒ SƠ ĐANG CHỜ DUYỆT (CHƯA TIẾP NHẬN) */}
+            {incident.status === 'pending_review' && (
               <div className="pt-4 border-t border-slate-200 space-y-2.5">
                 <button
                   type="button"

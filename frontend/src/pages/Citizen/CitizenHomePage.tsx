@@ -22,8 +22,13 @@ export const CitizenHomePage: React.FC = () => {
   const navigate = useNavigate();
   const { incidents, elderlyMode, upvoteIncident } = useIncidentStore();
 
-  // Chỉ hiển thị trên bản đồ các sự cố CHƯA xử lý xong (ẩn các sự cố đã hoàn thành / đã đóng)
-  const activeIncidents = incidents.filter(
+  // Chỉ tính các hồ sơ đã được duyệt tiếp nhận (ẩn Chờ duyệt & Từ chối khỏi trang công khai)
+  const publicIncidents = incidents.filter(
+    (i) => i.status !== 'pending_review' && i.status !== 'rejected'
+  );
+
+  // Chỉ hiển thị trên bản đồ các sự cố ĐÃ DUYỆT và CHƯA xử lý xong
+  const activeIncidents = publicIncidents.filter(
     (i) => i.status !== 'resolved' && i.status !== 'closed'
   );
 
@@ -33,9 +38,9 @@ export const CitizenHomePage: React.FC = () => {
   );
 
   const pendingCount = activeIncidents.length;
-  const resolvedList = incidents.filter((i) => i.status === 'resolved' || i.status === 'closed');
+  const resolvedList = publicIncidents.filter((i) => i.status === 'resolved' || i.status === 'closed');
   const resolvedCount = resolvedList.length;
-  const resolvedRate = incidents.length > 0 ? Math.round((resolvedCount / incidents.length) * 100) : 0;
+  const resolvedRate = publicIncidents.length > 0 ? Math.round((resolvedCount / publicIncidents.length) * 100) : 0;
 
   // Tính thời gian xử lý trung bình (ngày) từ dữ liệu thực tế (chuẩn mẫu 3,2 ngày)
   const resolvedWithTime = resolvedList.filter((i) => i.resolution?.resolvedAt);

@@ -96,7 +96,7 @@ export async function createIncident(req: Request, res: Response) {
         `${CATEGORY_TITLES[category as IncidentCategoryType] || 'Phản ánh hiện trường'} tại ${location.address}`,
       description: description.trim(),
       category,
-      status: 'pending',
+      status: 'pending_review',
       priority: 'normal',
       location: {
         lat,
@@ -133,8 +133,8 @@ export async function updateIncident(req: Request, res: Response) {
     if (!doc) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ phản ánh.' });
     }
-    if (doc.status !== 'pending') {
-      return res.status(400).json({ message: 'Hồ sơ đã được tiếp nhận/phân công xử lý, không thể chỉnh sửa.' });
+    if (doc.status !== 'pending_review') {
+      return res.status(400).json({ message: 'Hồ sơ đã được duyệt tiếp nhận hoặc xử lý, không thể chỉnh sửa.' });
     }
 
     const { title, description, category, location, photosBefore } = req.body;
@@ -174,8 +174,8 @@ export async function deleteIncident(req: Request, res: Response) {
     if (!doc) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ phản ánh.' });
     }
-    if (doc.status !== 'pending') {
-      return res.status(400).json({ message: 'Hồ sơ đã được tiếp nhận/phân công xử lý, không thể hủy.' });
+    if (doc.status !== 'pending_review') {
+      return res.status(400).json({ message: 'Hồ sơ đã được duyệt tiếp nhận hoặc xử lý, không thể hủy.' });
     }
     await IncidentModel.deleteOne({ _id: doc._id });
     return res.json({ deleted: true, id: req.params.id });
@@ -231,6 +231,64 @@ export async function rateIncident(req: Request, res: Response) {
   } catch (err) {
     console.error('[Incidents] rate error:', err);
     return res.status(500).json({ message: 'Không thể lưu đánh giá hài lòng.' });
+  }
+}
+
+// POST /api/incidents/:id/approve — Cán bộ duyệt tiếp nhận phản ánh (pending_review -> pending)
+export async function approveIncident(req: Request, res: Response) {
+  try {
+    const doc = await IncidentModel.findOne({ incidentId: req.params.id });
+    if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
+    if (doc.status !== 'pending_review') {
+      return res.status(400).json({ message: 'Hồ sơ này không ở trạng thái Chờ duyệt.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    doc.status = 'pending';
+    doc.review = {
+      decision: 'approved',
+      reviewedAt: nowIso,
+      reviewedBy: req.body?.officerName || 'Nguyễn Thành Long',
+    };
+    doc.updatedAtIso = nowIso;
+    await doc.save();
+
+    return res.json({ incident: serializeIncident(doc) });
+  } catch (err) {
+    console.error('[Incidents] approve error:', err);
+    return res.status(500).json({ message: 'Không thể duyệt tiếp nhận hồ sơ.' });
+  }
+}
+
+// POST /api/incidents/:id/reject — Cán bộ từ chối tiếp nhận phản ánh (pending_review -> rejected)
+export async function rejectIncident(req: Request, res: Response) {
+  try {
+    const doc = await IncidentModel.findOne({ incidentId: req.params.id });
+    if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
+    if (doc.status !== 'pending_review') {
+      return res.status(400).json({ message: 'Hồ sơ này không ở trạng thái Chờ duyệt.' });
+    }
+
+    const reason = req.body?.reason?.trim();
+    if (!reason) {
+      return res.status(400).json({ message: 'Vui lòng nhập lý do từ chối tiếp nhận.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    doc.status = 'rejected';
+    doc.review = {
+      decision: 'rejected',
+      reviewedAt: nowIso,
+      reviewedBy: req.body?.officerName || 'Nguyễn Thành Long',
+      reason,
+    };
+    doc.updatedAtIso = nowIso;
+    await doc.save();
+
+    return res.json({ incident: serializeIncident(doc) });
+  } catch (err) {
+    console.error('[Incidents] reject error:', err);
+    return res.status(500).json({ message: 'Không thể từ chối hồ sơ.' });
   }
 }
 

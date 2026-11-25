@@ -28,6 +28,8 @@ apiRouter.patch('/incidents/:id', optionalAuth, incidentCtrl.updateIncident);
 apiRouter.delete('/incidents/:id', optionalAuth, incidentCtrl.deleteIncident);
 apiRouter.post('/incidents/:id/upvote', optionalAuth, incidentCtrl.upvoteIncident);
 apiRouter.post('/incidents/:id/rating', optionalAuth, incidentCtrl.rateIncident);
+apiRouter.post('/incidents/:id/approve', optionalAuth, incidentCtrl.approveIncident);
+apiRouter.post('/incidents/:id/reject', optionalAuth, incidentCtrl.rejectIncident);
 apiRouter.post('/incidents/:id/assign', optionalAuth, incidentCtrl.assignIncident);
 apiRouter.post('/incidents/:id/verify', optionalAuth, incidentCtrl.verifyIncident);
 apiRouter.post('/incidents/:id/start', optionalAuth, incidentCtrl.startIncident);

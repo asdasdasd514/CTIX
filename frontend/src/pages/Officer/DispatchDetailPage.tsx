@@ -36,11 +36,13 @@ import {
 export const DispatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { incidents, assignIncident } = useIncidentStore();
+  const { incidents, assignIncident, approveIncident, rejectIncident } = useIncidentStore();
   const { currentUser } = useAuthStore();
   const { units, members } = useTeamStore();
 
   const incident = incidents.find((item) => item.id === id);
+  const [rejectReason, setRejectReason] = useState<string>('');
+  const [showRejectBox, setShowRejectBox] = useState<boolean>(false);
 
   // Chế độ phân công: 'individual' (Cá nhân) hoặc 'group' (Tổ đội / Nhóm)
   const [assignMode, setAssignMode] = useState<'individual' | 'group'>('individual');
@@ -371,9 +373,112 @@ export const DispatchDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI (5/12): PHÂN CÔNG NHÂN LỰC (CHỈ CHO GIAO KHI CHƯA PHÂN CÔNG) */}
+        {/* CỘT PHẢI (5/12): KIỂM DUYỆT HOẶC PHÂN CÔNG NHÂN LỰC */}
         <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4 min-w-0">
-          {canAssign ? (
+          {incident.status === 'pending_review' ? (
+            <div className="bg-white rounded-[5px] border border-violet-200 border-t-2 border-t-violet-600 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  Kiểm duyệt trước khi tiếp nhận
+                </h2>
+                <span className="text-[11px] font-bold bg-violet-50 text-violet-800 px-2.5 py-0.5 rounded-[5px] border border-violet-200">
+                  Chờ duyệt
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Kiểm tra hình ảnh, mô tả và vị trí phản ánh bên trái. Sau khi <strong>Duyệt tiếp nhận</strong>, hồ sơ sẽ công khai lên Bản đồ và mở giao diện phân công nhân lực.
+              </p>
+
+              {errorMsg && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded-[5px] text-xs font-semibold">
+                  {errorMsg}
+                </div>
+              )}
+
+              {showRejectBox ? (
+                <div className="space-y-2.5 p-3 rounded-[5px] bg-rose-50/70 border border-rose-200">
+                  <label className="block text-xs font-bold text-rose-900">
+                    Lý do từ chối tiếp nhận: *
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="VD: Ảnh mờ không rõ hiện trường, hoặc vị trí nằm ngoài địa bàn Phường Trấn Biên..."
+                    className="w-full px-3 py-2 rounded-[5px] border border-rose-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowRejectBox(false)}
+                      className="px-3 py-2 rounded-[5px] bg-white border border-slate-300 text-xs font-semibold text-slate-700"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!rejectReason.trim()) {
+                          setErrorMsg('Vui lòng nhập lý do từ chối.');
+                          return;
+                        }
+                        setErrorMsg(null);
+                        rejectIncident(incident.id, rejectReason.trim(), currentUser.name);
+                        setSuccessMsg('Đã từ chối tiếp nhận hồ sơ và gửi lý do tới người dân.');
+                      }}
+                      className="flex-1 py-2 px-3 rounded-[5px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
+                    >
+                      Xác nhận từ chối
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectBox(true)}
+                    className="px-4 py-2.5 rounded-[5px] bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition"
+                  >
+                    Từ chối
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg(null);
+                      approveIncident(incident.id, currentUser.name);
+                      setSuccessMsg('Đã duyệt tiếp nhận! Bạn có thể phân công nhân lực ngay bên dưới.');
+                    }}
+                    className="flex-1 py-2.5 px-4 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition inline-flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Duyệt tiếp nhận ngay</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : incident.status === 'rejected' ? (
+            <div className="bg-white rounded-[5px] border border-rose-200 border-t-2 border-t-rose-600 shadow-sm p-5 space-y-3">
+              <h2 className="text-sm sm:text-base font-bold text-rose-900">
+                Hồ sơ đã bị từ chối tiếp nhận
+              </h2>
+              <div className="p-3 rounded-[5px] bg-rose-50 border border-rose-200 text-xs text-rose-800">
+                <strong>Lý do:</strong> {incident.review?.reason || 'Không đủ điều kiện tiếp nhận'}
+              </div>
+              {incident.review?.reviewedAt && (
+                <div className="text-[11px] text-slate-500">
+                  Kiểm duyệt bởi {incident.review.reviewedBy} lúc {formatDate(incident.review.reviewedAt)}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate('/inbox')}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-[5px] text-xs font-bold transition inline-flex items-center justify-center gap-1.5"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Quay lại hàng đợi tiếp nhận</span>
+              </button>
+            </div>
+          ) : canAssign ? (
             <form
               onSubmit={handleConfirmDispatch}
               className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4"

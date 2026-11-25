@@ -125,6 +125,16 @@ export const incidentsApi = {
       method: 'POST',
       body: JSON.stringify({ stars, comment, criteria }),
     }),
+  approve: (id: string, officerName?: string) =>
+    apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ officerName }),
+    }),
+  reject: (id: string, reason: string, officerName?: string) =>
+    apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, officerName }),
+    }),
   assign: (
     id: string,
     payload: {

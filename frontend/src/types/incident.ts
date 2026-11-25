@@ -6,11 +6,13 @@ export type IncidentCategory =
   | "other";
 
 export type IncidentStatus =
+  | "pending_review"
   | "pending"
   | "assigned"
   | "in_progress"
   | "resolved"
-  | "closed";
+  | "closed"
+  | "rejected";
 
 export type IncidentPriority = "normal" | "high" | "urgent";
 
@@ -70,6 +72,13 @@ export interface IncidentRating {
   ratedAt: string;
 }
 
+export interface IncidentReview {
+  decision: "approved" | "rejected";
+  reviewedAt: string;
+  reviewedBy: string;
+  reason?: string;
+}
+
 export interface WorkflowStep {
   id: string;
   title: string;
@@ -103,6 +112,7 @@ export interface Incident {
     reportedAt: string;
   }[];
   workflowSteps?: WorkflowStep[];
+  review?: IncidentReview;
   createdAt: string;
   updatedAt: string;
 }
@@ -116,6 +126,7 @@ export interface NewIncidentInput {
   senderName?: string;
   photosBefore: string[];
   duplicateOf?: string;
+  status?: IncidentStatus;
 }
 
 export interface CategoryInfo {

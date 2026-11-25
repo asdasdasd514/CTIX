@@ -10,6 +10,7 @@ import type {
 } from "../types/incident.ts";
 import { generateMockIncidents } from "../data/mockIncidents.ts";
 import { incidentsApi } from "../services/api.ts";
+import { replaceGuestReportId } from "../lib/guestReports.ts";
 import {
   CATEGORIES,
   distanceMeters,
@@ -39,9 +40,15 @@ export function parseIncidents(raw: string): Incident[] {
         typeof i.title === "string" &&
         typeof i.description === "string" &&
         Object.hasOwn(CATEGORIES, i.category) &&
-        ["pending", "assigned", "in_progress", "resolved", "closed"].includes(
-          i.status,
-        ) &&
+        [
+          "pending_review",
+          "pending",
+          "assigned",
+          "in_progress",
+          "resolved",
+          "closed",
+          "rejected",
+        ].includes(i.status) &&
         ["normal", "high", "urgent"].includes(i.priority) &&
         i.location &&
         validCoordinates(i.location.lat, i.location.lng) &&
@@ -182,6 +189,8 @@ interface IncidentStore {
     officer?: string,
     options?: DispatchOptions,
   ) => void;
+  approveIncident: (id: string, officerName?: string) => void;
+  rejectIncident: (id: string, reason: string, officerName?: string) => void;
   reassignIncident: (id: string, options: ReassignOptions) => void;
   startIncident: (id: string) => void;
   verifyIncident: (id: string, notes?: string) => void;
@@ -382,7 +391,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
           `${CATEGORIES[input.category]}: ${input.description.slice(0, 65)}`,
         description: input.description.trim(),
         category: input.category,
-        status: "pending",
+        status: input.status || "pending",
         priority: "normal",
         location: input.location,
         sender,
@@ -409,6 +418,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         })
         .then((res) => {
           if (res?.incident) {
+            replaceGuestReportId(tempId, res.incident.id);
             const synced = get().incidents.map((i) => (i.id === tempId ? res.incident : i));
             save(synced);
             set({
@@ -421,6 +431,47 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         .catch(() => {});
     }
     return result;
+  },
+  approveIncident: (id, officerName = "Nguyễn Thành Long") => {
+    const nowIso = new Date().toISOString();
+    changeIncident(id, (item) => {
+      if (item.status !== "pending_review")
+        throw new Error("Hồ sơ này không ở trạng thái Chờ duyệt.");
+      return {
+        ...item,
+        status: "pending",
+        review: {
+          decision: "approved",
+          reviewedAt: nowIso,
+          reviewedBy: officerName,
+        },
+      };
+    });
+    if (isBrowserEnv()) {
+      incidentsApi.approve(id, officerName).catch(() => {});
+    }
+  },
+  rejectIncident: (id, reason, officerName = "Nguyễn Thành Long") => {
+    const trimmed = reason.trim();
+    if (!trimmed) throw new Error("Vui lòng nhập lý do từ chối tiếp nhận.");
+    const nowIso = new Date().toISOString();
+    changeIncident(id, (item) => {
+      if (item.status !== "pending_review")
+        throw new Error("Hồ sơ này không ở trạng thái Chờ duyệt.");
+      return {
+        ...item,
+        status: "rejected",
+        review: {
+          decision: "rejected",
+          reviewedAt: nowIso,
+          reviewedBy: officerName,
+          reason: trimmed,
+        },
+      };
+    });
+    if (isBrowserEnv()) {
+      incidentsApi.reject(id, trimmed, officerName).catch(() => {});
+    }
   },
   assignIncident: (
     id,

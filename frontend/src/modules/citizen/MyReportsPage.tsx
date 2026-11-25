@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory } from '../../types/incident';
+import { getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
 import {
   CheckCircle2,
   Clock,
@@ -77,23 +78,33 @@ function getCategoryBadge(category: IncidentCategory) {
 export const MyReportsPage: React.FC = () => {
   const navigate = useNavigate();
   const { incidents } = useIncidentStore();
-  const { currentUser } = useAuthStore();
+  const { isAuthenticated, currentUser } = useAuthStore();
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('all');
   const [onlyMyReports, setOnlyMyReports] = useState<boolean>(false);
+  const [guestLookupPhone, setGuestLookupPhone] = useState<string>(() => getGuestPhone());
   // Cho phép chọn NHIỀU loại sự cố cùng lúc để lọc
   const [selectedCategories, setSelectedCategories] = useState<IncidentCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
 
+  const guestIds = getGuestReportIds();
+
   const isMyIncident = (item: Incident) => {
-    const senderName = (item.sender?.name || '').toLowerCase();
-    const myCitizenName = currentUser.role === 'citizen' ? currentUser.name.toLowerCase() : 'bác hai trấn biên';
+    const itemPhone = normalizePhone(item.sender?.phone);
+    if (isAuthenticated) {
+      const myPhone = normalizePhone(currentUser.phone);
+      const senderName = (item.sender?.name || '').toLowerCase();
+      return (
+        (myPhone && itemPhone === myPhone) ||
+        senderName === currentUser.name.toLowerCase() ||
+        guestIds.includes(item.id)
+      );
+    }
+    const lookupClean = normalizePhone(guestLookupPhone);
     return (
-      senderName === myCitizenName ||
-      senderName === 'bác hai trấn biên' ||
-      senderName === 'bác ba' ||
-      senderName === 'công dân ẩn danh'
+      guestIds.includes(item.id) ||
+      (lookupClean.length >= 9 && itemPhone === lookupClean)
     );
   };
 
@@ -107,14 +118,17 @@ export const MyReportsPage: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, onlyMyReports, selectedCategories, searchTerm]);
+  }, [statusFilter, onlyMyReports, selectedCategories, searchTerm, guestLookupPhone]);
 
   const filteredList = incidents.filter((item) => {
-    if (onlyMyReports && !isMyIncident(item)) {
-      return false;
+    if (onlyMyReports) {
+      if (!isMyIncident(item)) return false;
+    } else {
+      // Danh sách công khai chỉ hiển thị hồ sơ đã được duyệt tiếp nhận (ẩn Chờ duyệt & Từ chối)
+      if (item.status === 'pending_review' || item.status === 'rejected') return false;
     }
     if (statusFilter === 'pending') {
-      if (item.status === 'resolved' || item.status === 'closed') return false;
+      if (item.status === 'resolved' || item.status === 'closed' || item.status === 'rejected') return false;
     }
     if (statusFilter === 'resolved') {
       if (item.status !== 'resolved' && item.status !== 'closed') return false;
@@ -160,11 +174,24 @@ export const MyReportsPage: React.FC = () => {
 
   const getStatusBadge = (status: Incident['status']) => {
     switch (status) {
+      case 'pending_review':
+        return (
+          <span className="bg-violet-100 text-violet-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-violet-300 inline-flex items-center gap-1 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-600 animate-pulse" />
+            Chờ duyệt
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="bg-rose-50 text-rose-700 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-rose-200 whitespace-nowrap">
+            Từ chối tiếp nhận
+          </span>
+        );
       case 'pending':
         return (
           <span className="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-[5px] border border-amber-300 inline-flex items-center gap-1 whitespace-nowrap">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            Chờ tiếp nhận
+            Đã tiếp nhận
           </span>
         );
       case 'assigned':
@@ -225,6 +252,21 @@ export const MyReportsPage: React.FC = () => {
 
       {/* 2. THANH CÔNG CỤ: PHẢN ÁNH CỦA TÔI + TRẠNG THÁI + CHỌN NHIỀU LOẠI SỰ CỐ + TÌM KIẾM */}
       <div className="bg-white p-3.5 sm:p-4 rounded-[5px] border border-slate-200 shadow-sm space-y-3">
+        {/* Ô tra cứu theo SĐT khi khách chưa đăng nhập bật "Phản ánh của tôi" */}
+        {onlyMyReports && !isAuthenticated && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-[5px] bg-blue-50/70 border border-blue-200">
+            <div className="text-xs text-blue-900 font-medium">
+              Hiển thị phản ánh bạn gửi trên máy này hoặc tra cứu nhanh theo <strong>Số điện thoại</strong> đã nhập lúc gửi:
+            </div>
+            <input
+              type="tel"
+              value={guestLookupPhone}
+              onChange={(e) => setGuestLookupPhone(e.target.value)}
+              placeholder="Nhập SĐT để tra cứu (VD: 0912345678)"
+              className="w-full sm:w-64 px-3 py-1.5 rounded-[5px] border border-blue-300 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            />
+          </div>
+        )}
         {/* Hàng 1: Trạng thái + Phản ánh của tôi + Tìm kiếm */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { mediaApi } from '../../services/api';
+import { saveGuestReport } from '../../lib/guestReports';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
@@ -286,7 +287,11 @@ export const SubmitIncidentWizard: React.FC = () => {
       photosBefore: photos.map((p) => p.url),
       senderPhone: cleanPhone,
       senderName: senderName.trim(),
+      status: 'pending_review',
     });
+
+    // Lưu dấu phản ánh trên thiết bị để khách chưa đăng nhập vẫn xem được mục "Phản ánh của tôi"
+    saveGuestReport(result.incident.id, cleanPhone);
 
     if (result.isDuplicateGrouped) {
       setNotification({
@@ -297,7 +302,7 @@ export const SubmitIncidentWizard: React.FC = () => {
     } else {
       setNotification({
         type: 'success',
-        message: `Gửi phản ánh thành công kèm ${photos.length} ảnh hiện trường! Mã hồ sơ của bạn là ${result.incident.code}. UBND Phường Trấn Biên tiếp nhận xử lý trong thời gian cam kết.`,
+        message: `Đã gửi phản ánh thành công kèm ${photos.length} ảnh hiện trường! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`,
         code: result.incident.code,
       });
     }

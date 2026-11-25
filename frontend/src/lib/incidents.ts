@@ -25,11 +25,13 @@ export const PRIORITY_LABELS: Record<IncidentPriority, string> = {
   urgent: "Khẩn cấp",
 };
 export const STATUS_LABELS: Record<IncidentStatus, string> = {
+  pending_review: "Chờ duyệt",
   pending: "Chờ phân công",
   assigned: "Đã giao xử lý",
   in_progress: "Đang xử lý",
   resolved: "Đã xử lý",
   closed: "Đã đánh giá",
+  rejected: "Từ chối tiếp nhận",
 };
 export const UNITS: Record<IncidentCategory, string> = {
   street_light: "Tổ bảo trì chiếu sáng",

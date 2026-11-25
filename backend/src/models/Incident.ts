@@ -2,11 +2,13 @@ import mongoose, { Schema, type Document } from 'mongoose';
 import type { IncidentCategoryType } from './Unit';
 
 export type IncidentStatusType =
+  | 'pending_review'
   | 'pending'
   | 'assigned'
   | 'in_progress'
   | 'resolved'
-  | 'closed';
+  | 'closed'
+  | 'rejected';
 
 export type IncidentPriorityType = 'normal' | 'high' | 'urgent';
 
@@ -90,6 +92,12 @@ export interface IIncident extends Document {
     completedAt?: string;
     completedBy?: string;
   }[];
+  review?: {
+    decision: 'approved' | 'rejected';
+    reviewedAt: string;
+    reviewedBy: string;
+    reason?: string;
+  };
   createdAtIso: string;
   updatedAtIso: string;
 }
@@ -108,8 +116,8 @@ const IncidentSchema = new Schema<IIncident>(
     },
     status: {
       type: String,
-      enum: ['pending', 'assigned', 'in_progress', 'resolved', 'closed'],
-      default: 'pending',
+      enum: ['pending_review', 'pending', 'assigned', 'in_progress', 'resolved', 'closed', 'rejected'],
+      default: 'pending_review',
       index: true,
     },
     priority: {
@@ -199,6 +207,15 @@ const IncidentSchema = new Schema<IIncident>(
       ],
       default: [],
     },
+    review: {
+      type: {
+        decision: { type: String, enum: ['approved', 'rejected'], required: true },
+        reviewedAt: { type: String, required: true },
+        reviewedBy: { type: String, required: true },
+        reason: String,
+      },
+      default: undefined,
+    },
     createdAtIso: { type: String, required: true, index: true },
     updatedAtIso: { type: String, required: true },
   },
@@ -248,6 +265,7 @@ export function serializeIncident(doc: IIncident) {
             completedBy: s.completedBy || undefined,
           }))
         : undefined,
+    review: doc.review || undefined,
     createdAt: doc.createdAtIso,
     updatedAt: doc.updatedAtIso,
   };
