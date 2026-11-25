@@ -22,6 +22,8 @@ import {
 } from "../lib/incidents.ts";
 
 export const STORAGE_KEY = "tran_bien_smart_incidents_v1";
+let lastBackendFetchMs = 0;
+let inFlightRefresh: Promise<void> | null = null;
 const isBrowserEnv = () =>
   typeof window !== "undefined" &&
   typeof window.location !== "undefined" &&
@@ -270,7 +272,7 @@ interface IncidentStore {
     requesterPhone?: string,
   ) => void;
   deleteIncident: (id: string, requesterPhone?: string) => void;
-  refreshIncidents: () => Promise<void>;
+  refreshIncidents: (force?: boolean) => Promise<void>;
   resetToDefaultData: () => void;
 }
 let initial: Incident[] = [];
@@ -970,24 +972,38 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       set({ storageError: (error as Error).message });
     }
   },
-  refreshIncidents: async () => {
+  refreshIncidents: async (force = false) => {
     if (!isBrowserEnv()) return;
-    try {
-      const res = await incidentsApi.list();
-      if (Array.isArray(res?.incidents)) {
-        try {
-          save(res.incidents);
-        } catch {}
-        set({
-          incidents: res.incidents,
-          storageError: null,
-          lastSyncedAt: new Date().toISOString(),
-          syncNotice: "Đã đồng bộ dữ liệu từ MongoDB Atlas.",
-        });
-      }
-    } catch {
-      // Giữ cache hiện có khi mất mạng
+    const nowMs = Date.now();
+    // Chống gọi đúp API khi chuyển trang liên tục trong 15 giây (trừ khi bấm Làm mới thủ công)
+    if (!force && lastBackendFetchMs > 0 && nowMs - lastBackendFetchMs < 15000) {
+      return;
     }
+    if (inFlightRefresh) {
+      return inFlightRefresh;
+    }
+    inFlightRefresh = (async () => {
+      try {
+        const res = await incidentsApi.list();
+        lastBackendFetchMs = Date.now();
+        if (Array.isArray(res?.incidents)) {
+          try {
+            save(res.incidents);
+          } catch {}
+          set({
+            incidents: res.incidents,
+            storageError: null,
+            lastSyncedAt: new Date().toISOString(),
+            syncNotice: "Đã đồng bộ dữ liệu từ MongoDB Atlas.",
+          });
+        }
+      } catch {
+        // Giữ cache hiện có khi mất mạng
+      } finally {
+        inFlightRefresh = null;
+      }
+    })();
+    return inFlightRefresh;
   },
   resetToDefaultData: () => {
     try {
@@ -1045,6 +1061,7 @@ if (isBrowserEnv()) {
   incidentsApi
     .list()
     .then((res) => {
+      lastBackendFetchMs = Date.now();
       if (Array.isArray(res?.incidents) && res.incidents.length > 0) {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(res.incidents));

@@ -261,3 +261,22 @@ export async function stampTimestampWatermarks(
 ): Promise<File[]> {
   return Promise.all(files.map((f) => stampTimestampWatermark(f, options)));
 }
+
+/**
+ * Tối ưu URL ảnh Cloudinary miễn phí bằng tham số tự động nén WebP/AVIF & thu nhỏ đúng kích thước hiển thị
+ * (giảm 70–85% dung lượng khi tải thumbnail / popup / chi tiết).
+ */
+export function optimizeCloudinaryUrl(url?: string, maxWidth = 400): string {
+  if (!url || typeof url !== 'string') return '';
+  if (!url.includes('res.cloudinary.com') || !url.includes('/image/upload/')) {
+    return url;
+  }
+  // Tránh chèn trùng nếu URL đã có transform f_auto / w_
+  if (/\/image\/upload\/[^/]*(f_auto|w_\d+)/i.test(url)) {
+    return url;
+  }
+  return url.replace(
+    '/image/upload/',
+    `/image/upload/f_auto,q_auto,w_${maxWidth},c_limit/`
+  );
+}

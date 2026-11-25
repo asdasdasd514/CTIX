@@ -10,6 +10,7 @@ import {
   STATUS_LABELS,
   UNASSIGNED_UNIT_FILTER,
 } from '../../lib/incidents';
+import { optimizeCloudinaryUrl } from '../../lib/imageCompress';
 import {
   Search,
   MapPin,
@@ -478,7 +479,9 @@ export const OfficerInboxPage: React.FC = () => {
                     <div className="flex items-start gap-3.5">
                       <div className="w-20 h-20 rounded-[5px] overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                         <img
-                          src={item.photosBefore[0]}
+                          src={optimizeCloudinaryUrl(item.photosBefore[0], 320)}
+                          loading="lazy"
+                          decoding="async"
                           alt=""
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         />

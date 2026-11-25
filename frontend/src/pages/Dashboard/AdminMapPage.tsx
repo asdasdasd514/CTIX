@@ -46,7 +46,6 @@ const VALID_FILTERS: AdminMapFilter[] = [
 export function AdminMapPage() {
   const {
     incidents,
-    syncNotice,
     selectedIncidentId,
     setSelectedIncidentId,
     mapScreenState,
@@ -217,21 +216,6 @@ export function AdminMapPage() {
           Mở Tiếp nhận & phân công <ArrowUpRight size={16} aria-hidden="true" />
         </Link>
       </div>
-
-      {syncNotice && (
-        <div className="work-notice" role="status">
-          <span>{syncNotice} Ghim bản đồ đã đồng bộ (giữ nguyên góc nhìn).</span>
-          <button
-            type="button"
-            onClick={() => {
-              clearFilters();
-              setSelectedIncidentId(incidents[0]?.id || null);
-            }}
-          >
-            Xem hồ sơ mới nhất <ArrowUpRight size={15} aria-hidden="true" />
-          </button>
-        </div>
-      )}
 
       <section className="work-surface" aria-label="Bộ lọc và bản đồ phản ánh">
         <div className="work-toolbar">

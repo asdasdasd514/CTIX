@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Columns2, MoveHorizontal, SlidersHorizontal } from 'lucide-react';
 import { TimestampWatermark } from './TimestampWatermark';
+import { optimizeCloudinaryUrl } from '../../lib/imageCompress';
 
 interface BeforeAfterSliderProps {
   photosBefore: string[];
@@ -32,8 +33,10 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
   if (!photosBefore.length || !photosAfter.length) return null;
 
-  const beforeUrl = photosBefore[Math.min(beforeIdx, photosBefore.length - 1)];
-  const afterUrl = photosAfter[Math.min(afterIdx, photosAfter.length - 1)];
+  const beforeRawUrl = photosBefore[Math.min(beforeIdx, photosBefore.length - 1)];
+  const afterRawUrl = photosAfter[Math.min(afterIdx, photosAfter.length - 1)];
+  const beforeUrl = optimizeCloudinaryUrl(beforeRawUrl, 1000);
+  const afterUrl = optimizeCloudinaryUrl(afterRawUrl, 1000);
 
   const updateFromClientX = (clientX: number) => {
     const el = containerRef.current;

@@ -1,10 +1,48 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X, Camera, Upload, CheckCircle2, ImagePlus, AlertCircle } from 'lucide-react';
-import type { Incident } from '../../types/incident';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  X,
+  Camera,
+  Upload,
+  CheckCircle2,
+  ImagePlus,
+  AlertCircle,
+  MapPin,
+  RefreshCw,
+} from 'lucide-react';
+import type { Incident, IncidentCategory } from '../../types/incident';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { compressImageFile, stampTimestampWatermark } from '../../lib/imageCompress';
+import { distanceMeters } from '../../lib/incidents';
 import { mediaApi } from '../../services/api';
+
+const QUICK_RESOLUTION_NOTES: Record<IncidentCategory, string[]> = {
+  street_light: [
+    'Đã thay mới bóng LED và kiểm tra chiếu sáng ổn định.',
+    'Đã đấu nối lại nguồn điện tủ chiếu sáng, đèn hoạt động bình thường.',
+    'Đã khắc phục sự cố cột đèn và đảm bảo an toàn điện khu vực.',
+  ],
+  flooding: [
+    'Đã khơi thông miệng cống, thu gom rác chắn dòng và thoát nước hoàn toàn.',
+    'Đã nạo vét hố ga và vệ sinh sạch mặt đường sau ngập.',
+    'Đã lắp đặt lại nắp cống an toàn, kiểm tra dòng chảy thông suốt.',
+  ],
+  waste: [
+    'Đã thu gom toàn bộ rác thải tồn lưu và vệ sinh sạch sẽ khu vực.',
+    'Đã dọn sạch điểm rác tự phát, xịt rửa khử mùi và trả lại mỹ quan.',
+    'Đã vận chuyển rác về nơi quy định và nhắc nhở giữ vệ sinh chung.',
+  ],
+  road_damage: [
+    'Đã dọn hố sụt, vá nhựa nóng bằng phẳng và thu dọn rào chắn an toàn.',
+    'Đã gia cố mặt đường hư hỏng, đảm bảo phương tiện lưu thông êm thuận.',
+    'Đã chỉnh trang vỉa hè, biển báo và vệ sinh sạch mặt bằng.',
+  ],
+  other: [
+    'Đã kiểm tra, xử lý triệt để sự cố và đảm bảo an toàn hiện trường.',
+    'Đã phối hợp đơn vị chuyên môn khắc phục hoàn tất theo phản ánh.',
+    'Đã dọn dẹp, hoàn trả hiện trường sạch sẽ và an toàn cho người dân.',
+  ],
+};
 
 export function IncidentResolutionModal({
   incident,
@@ -23,6 +61,47 @@ export function IncidentResolutionModal({
   const [notes, setNotes] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [gpsStatus, setGpsStatus] = useState<'checking' | 'verified' | 'far' | 'unavailable'>(
+    'checking'
+  );
+  const [gpsDistanceM, setGpsDistanceM] = useState<number | null>(null);
+
+  const checkFieldGps = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setGpsStatus('unavailable');
+      setGpsDistanceM(null);
+      return;
+    }
+    setGpsStatus('checking');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const dist = Math.round(
+          distanceMeters(
+            {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              address: '',
+            },
+            incident.location
+          )
+        );
+        setGpsDistanceM(dist);
+        setGpsStatus(dist <= 150 ? 'verified' : 'far');
+      },
+      () => {
+        setGpsStatus('unavailable');
+        setGpsDistanceM(null);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  }, [incident.location]);
+
+  useEffect(() => {
+    checkFieldGps();
+  }, [checkFieldGps]);
+
+  const quickNotes =
+    QUICK_RESOLUTION_NOTES[incident.category] || QUICK_RESOLUTION_NOTES.other;
 
   // Dọn objectURL cục bộ nếu người dùng đóng modal không gửi (chống rác Cloudinary)
   useEffect(() => {
@@ -127,6 +206,42 @@ export function IncidentResolutionModal({
         </div>
 
         <form onSubmit={handleConfirmResolve} className="p-5 space-y-4">
+          {/* Đối chiếu GPS hiện trường tự động */}
+          <div
+            className={`px-3 py-2 rounded-[5px] border text-xs flex items-center justify-between gap-2 ${
+              gpsStatus === 'verified'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : gpsStatus === 'checking'
+                ? 'bg-slate-50 border-slate-200 text-slate-600'
+                : 'bg-amber-50 border-amber-200 text-amber-800'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 font-semibold min-w-0">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {gpsStatus === 'checking'
+                  ? 'Đang đối chiếu vị trí GPS hiện trường...'
+                  : gpsStatus === 'verified'
+                  ? `✓ Đang ở hiện trường (cách điểm sự cố ${gpsDistanceM ?? 0}m)`
+                  : gpsStatus === 'far'
+                  ? `Cách điểm sự cố ${
+                      gpsDistanceM && gpsDistanceM >= 1000
+                        ? `${(gpsDistanceM / 1000).toFixed(1)}km`
+                        : `${gpsDistanceM ?? 0}m`
+                    } (vẫn có thể nộp nghiệm thu)`
+                  : 'Chưa lấy được GPS thiết bị (vẫn có thể nộp nghiệm thu)'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={checkFieldGps}
+              className="text-[11px] font-bold inline-flex items-center gap-1 hover:underline shrink-0"
+            >
+              <RefreshCw className={`w-3 h-3 ${gpsStatus === 'checking' ? 'animate-spin' : ''}`} />
+              <span>Đo lại</span>
+            </button>
+          </div>
+
           {error && (
             <div className="p-3 rounded-[5px] bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -230,18 +345,34 @@ export function IncidentResolutionModal({
             Ảnh nghiệm thu sẽ tự động được nén và đóng dấu ngày giờ hoàn thành + địa chỉ hiện trường khi bấm xác nhận.
           </p>
 
-          {/* Ghi chú kết quả */}
-          <div className="space-y-1.5">
+          {/* Ghi chú kết quả + Mẫu điền nhanh 1 chạm */}
+          <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-700 uppercase">
               Nội dung kết quả khắc phục *
             </label>
+            <div className="flex flex-wrap gap-1.5">
+              {quickNotes.map((sample) => (
+                <button
+                  key={sample}
+                  type="button"
+                  onClick={() => setNotes(sample)}
+                  className={`px-2.5 py-1 rounded-[5px] text-[11px] font-semibold border transition text-left ${
+                    notes === sample
+                      ? 'bg-blue-700 text-white border-blue-700'
+                      : 'bg-slate-50 hover:bg-blue-50 text-slate-700 border-slate-200 hover:border-blue-300'
+                  }`}
+                >
+                  {sample}
+                </button>
+              ))}
+            </div>
             <textarea
               required
               rows={3}
               maxLength={2000}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ví dụ: Đã thay mới bóng LED 100W tại cột đèn số 14, kiểm tra chiếu sáng ổn định và dọn dẹp sạch hiện trường..."
+              placeholder="Chọn mẫu nhanh ở trên hoặc nhập kết quả khắc phục thực tế..."
               className="w-full p-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600 bg-white"
             />
           </div>

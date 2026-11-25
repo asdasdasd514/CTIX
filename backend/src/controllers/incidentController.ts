@@ -65,9 +65,9 @@ export async function listIncidents(req: Request, res: Response) {
       ];
     }
 
-    const docs = await IncidentModel.find(filter).sort({ createdAtIso: -1 });
+    const docs = await IncidentModel.find(filter).sort({ createdAtIso: -1 }).lean();
     return res.json({
-      incidents: docs.map(serializeIncident),
+      incidents: docs.map((d) => serializeIncident(d as any)),
       total: docs.length,
     });
   } catch (err) {

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Incident } from '../../types/incident';
+import { optimizeCloudinaryUrl } from '../../lib/imageCompress';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Locate } from 'lucide-react';
 
@@ -83,12 +84,15 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         attributionControl: false,
       });
 
-      // Bản đồ nền đường phố độ nét cao (hiển thị chi tiết tên đường tiếng Việt, không yêu cầu API key)
+      // Bản đồ nền đường phố độ nét cao (tối ưu tải tile mượt khi kéo/zoom)
       const streetLayer = L.tileLayer(
         'https://mt{s}.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}',
         {
           subdomains: ['0', '1', '2', '3'],
           maxZoom: 20,
+          keepBuffer: 4,
+          updateWhenZooming: false,
+          updateWhenIdle: true,
         }
       ).addTo(map);
 
@@ -112,26 +116,28 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
       mapInstanceRef.current = map;
 
-      // Ép cập nhật kích thước nhiều mốc để chống lỗi xám tile khi chuyển trang
-      const t1 = window.setTimeout(() => map.invalidateSize(), 100);
-      const t2 = window.setTimeout(() => map.invalidateSize(), 350);
-      const t3 = window.setTimeout(() => map.invalidateSize(), 700);
+      // Cập nhật kích thước 1 lần mượt sau khi mount + debounce ResizeObserver chống gọi dồn
+      const rafId = window.requestAnimationFrame(() => map.invalidateSize());
+      const t1 = window.setTimeout(() => map.invalidateSize(), 200);
+      let resizeTimer: number | null = null;
 
-      // Theo dõi thay đổi kích thước khung chứa (responsive PC/Mobile)
       let resizeObserver: ResizeObserver | null = null;
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.invalidateSize();
-          }
+          if (resizeTimer !== null) window.clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(() => {
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.invalidateSize();
+            }
+          }, 120);
         });
         resizeObserver.observe(container);
       }
 
       return () => {
+        window.cancelAnimationFrame(rafId);
         window.clearTimeout(t1);
-        window.clearTimeout(t2);
-        window.clearTimeout(t3);
+        if (resizeTimer !== null) window.clearTimeout(resizeTimer);
         if (resizeObserver) resizeObserver.disconnect();
         if (mapInstanceRef.current) {
           mapInstanceRef.current.remove();
@@ -163,6 +169,9 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         {
           subdomains: ['0', '1', '2', '3'],
           maxZoom: 20,
+          keepBuffer: 4,
+          updateWhenZooming: false,
+          updateWhenIdle: true,
         }
       ).addTo(mapInstanceRef.current);
     } else {
@@ -172,6 +181,9 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         {
           subdomains: ['0', '1', '2', '3'],
           maxZoom: 20,
+          keepBuffer: 4,
+          updateWhenZooming: false,
+          updateWhenIdle: true,
         }
       ).addTo(mapInstanceRef.current);
     }
@@ -361,26 +373,31 @@ export const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
       const popupHeaderLeft = isCitizenMode ? categoryDisplayName : item.code;
 
-      const popupHtml = `
-        <div class="p-3 max-w-[240px] text-xs font-sans text-slate-800">
-          <div class="flex items-center justify-between border-b pb-1 mb-1.5">
-            <span class="font-extrabold text-blue-700">${popupHeaderLeft}</span>
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${
-              isResolved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-            }">${statusLabel}</span>
-          </div>
-          <div class="font-bold text-slate-900 text-xs line-clamp-1 mb-1">${item.title}</div>
-          <div class="text-[11px] text-slate-500 line-clamp-2 mb-2">📍 ${item.location.address}</div>
-          <div class="aspect-video w-full rounded-[4px] overflow-hidden mb-2 bg-slate-100 border">
-            <img src="${item.photosBefore[0]}" alt="" class="w-full h-full object-cover" />
-          </div>
-          <button id="btn-action-${item.id}" class="w-full py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[4px] font-bold text-[11px] text-center transition block">
-            ${popupButtonLabel}
-          </button>
-        </div>
-      `;
-
-      marker.bindPopup(popupHtml, { className: 'smartcity-osm-popup' });
+      // Lazy Popup: chỉ tạo HTML & tải ảnh thumbnail nhẹ (w_360) đúng lúc bấm vào ghim
+      marker.bindPopup(
+        () => {
+          const thumbUrl = optimizeCloudinaryUrl(item.photosBefore[0], 360);
+          return `
+            <div class="p-3 max-w-[240px] text-xs font-sans text-slate-800">
+              <div class="flex items-center justify-between border-b pb-1 mb-1.5">
+                <span class="font-extrabold text-blue-700">${popupHeaderLeft}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${
+                  isResolved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }">${statusLabel}</span>
+              </div>
+              <div class="font-bold text-slate-900 text-xs line-clamp-1 mb-1">${item.title}</div>
+              <div class="text-[11px] text-slate-500 line-clamp-2 mb-2">📍 ${item.location.address}</div>
+              <div class="aspect-video w-full rounded-[4px] overflow-hidden mb-2 bg-slate-100 border">
+                <img src="${thumbUrl}" loading="lazy" decoding="async" alt="" class="w-full h-full object-cover" />
+              </div>
+              <button id="btn-action-${item.id}" class="w-full py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[4px] font-bold text-[11px] text-center transition block">
+                ${popupButtonLabel}
+              </button>
+            </div>
+          `;
+        },
+        { className: 'smartcity-osm-popup' }
+      );
 
       marker.on('click', () => {
         if (onMarkerClickRef.current) onMarkerClickRef.current(item);

@@ -4,6 +4,7 @@ import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory } from '../../types/incident';
 import { isPublicIncident } from '../../lib/incidents';
+import { optimizeCloudinaryUrl } from '../../lib/imageCompress';
 import { clearGuestReports, getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
 import {
   CheckCircle2,
@@ -484,7 +485,9 @@ export const MyReportsPage: React.FC = () => {
                     <div className="flex items-start gap-3.5">
                       <div className="w-20 h-20 rounded-[5px] overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                         <img
-                          src={item.photosBefore[0]}
+                          src={optimizeCloudinaryUrl(item.photosBefore[0], 320)}
+                          loading="lazy"
+                          decoding="async"
                           alt=""
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         />

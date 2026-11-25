@@ -85,6 +85,7 @@ export function FieldTaskDetailPage() {
   const completed = isComplete(item);
   const steps = item.workflowSteps || [];
   const doneSteps = steps.filter((s) => s.completed).length;
+  const allStepsDone = steps.length === 0 || doneSteps === steps.length;
   const progressPct = steps.length > 0 ? Math.round((doneSteps / steps.length) * 100) : 0;
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${item.location.lat},${item.location.lng}`;
   const activeBeforePhoto =
@@ -364,14 +365,22 @@ export function FieldTaskDetailPage() {
                   )}
 
                   {item.status === 'in_progress' && (
-                    <button
-                      type="button"
-                      onClick={() => setShowResolveModal(true)}
-                      className="w-full py-2.5 px-4 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-2 shadow-sm transition"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Hoàn thành & Tải ảnh nghiệm thu</span>
-                    </button>
+                    <div className="space-y-1.5">
+                      <button
+                        type="button"
+                        disabled={!allStepsDone}
+                        onClick={() => setShowResolveModal(true)}
+                        className="w-full py-2.5 px-4 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-2 shadow-sm transition"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span>Hoàn thành & Tải ảnh nghiệm thu</span>
+                      </button>
+                      {!allStepsDone && (
+                        <p className="text-[11px] font-semibold text-amber-800 text-center">
+                          Hoàn thành đủ {doneSteps}/{steps.length} bước SOP bên dưới để mở nghiệm thu
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {!item.verifiedByVolunteer && !showVerifyForm && (
@@ -505,19 +514,35 @@ export function FieldTaskDetailPage() {
           )}
 
           {/* Kết quả nghiệm thu khi đã hoàn thành */}
-          {completed && item.resolution && (
-            <div className="bg-emerald-50 rounded-[5px] border border-emerald-200 p-4 space-y-1.5 text-xs">
-              <div className="font-extrabold text-emerald-900 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Kết quả nghiệm thu hoàn thành</span>
+          {completed && item.resolution && (() => {
+            const onTime = item.assignedTo
+              ? Date.parse(item.resolution.resolvedAt) <= Date.parse(item.assignedTo.deadline)
+              : true;
+            return (
+              <div className="bg-emerald-50 rounded-[5px] border border-emerald-200 p-4 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Kết quả nghiệm thu hoàn thành</span>
+                  </div>
+                  <span
+                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-[4px] border shrink-0 ${
+                      onTime
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-rose-100 text-rose-700 border-rose-300'
+                    }`}
+                  >
+                    {onTime ? '✓ Đạt SLA' : 'Quá hạn SLA'}
+                  </span>
+                </div>
+                <p className="text-emerald-800 leading-relaxed">{item.resolution.notes}</p>
+                <div className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 pt-0.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Hoàn thành lúc: {formatDate(item.resolution.resolvedAt)}</span>
+                </div>
               </div>
-              <p className="text-emerald-800 leading-relaxed">{item.resolution.notes}</p>
-              <div className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 pt-0.5">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Hoàn thành lúc: {formatDate(item.resolution.resolvedAt)}</span>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

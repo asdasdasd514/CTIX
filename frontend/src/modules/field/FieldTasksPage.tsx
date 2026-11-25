@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { optimizeCloudinaryUrl } from '../../lib/imageCompress';
 import type { IncidentPriority } from '../../types/incident';
 import {
   CATEGORIES,
@@ -157,7 +158,7 @@ export function FieldTasksPage() {
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
-    await refreshIncidents();
+    await refreshIncidents(true);
     setRefreshing(false);
   };
 
@@ -433,7 +434,12 @@ export function FieldTasksPage() {
                   <div className="flex items-start gap-3">
                     {item.photosBefore[0] && (
                       <img
-                        src={completed && item.photosAfter?.[0] ? item.photosAfter[0] : item.photosBefore[0]}
+                        src={optimizeCloudinaryUrl(
+                          completed && item.photosAfter?.[0] ? item.photosAfter[0] : item.photosBefore[0],
+                          320
+                        )}
+                        loading="lazy"
+                        decoding="async"
                         alt={item.title}
                         className="w-20 h-20 sm:w-24 sm:h-24 rounded-[5px] object-cover border border-slate-200 shrink-0"
                       />

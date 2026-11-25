@@ -1,29 +1,61 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { RegisterPage } from './pages/Auth/RegisterPage';
-import { DashboardLayout } from './layouts/DashboardLayout';
 import { CitizenLayout } from './layouts/CitizenLayout';
-import { IocDashboardPage } from './pages/Dashboard/IocDashboardPage';
-import { AdminMapPage } from './pages/Dashboard/AdminMapPage';
-import { StatisticsPage } from './pages/Dashboard/StatisticsPage';
-import { AdminSettingsPage } from './pages/Dashboard/AdminSettingsPage';
 import { useIncidentStore } from './store/useIncidentStore';
 import { useAuthStore } from './store/useAuthStore';
-import { OfficerInboxPage } from './pages/Officer/OfficerInboxPage';
-import { DispatchDetailPage } from './pages/Officer/DispatchDetailPage';
-import { MembersPage } from './pages/Officer/MembersPage';
-import { AccountsPage } from './pages/Officer/AccountsPage';
-import { AdminFeedbacksPage } from './pages/Officer/AdminFeedbacksPage';
 import { NearbyIncidentsMapPage } from './modules/map/NearbyIncidentsMapPage';
 import { SubmitIncidentWizard } from './modules/citizen/SubmitIncidentWizard';
 import { MyReportsPage } from './modules/citizen/MyReportsPage';
 import { CitizenReportDetailPage } from './modules/citizen/CitizenReportDetailPage';
-import { FieldTasksPage } from './modules/field/FieldTasksPage';
-import { FieldTaskDetailPage } from './modules/field/FieldTaskDetailPage';
 import { CitizenHomePage } from './pages/Citizen/CitizenHomePage';
 import { CitizenHelpPage } from './pages/Citizen/CitizenHelpPage';
 import { CitizenAccountPage } from './pages/Citizen/CitizenAccountPage';
+
+// Tách gói JS cho toàn bộ phân hệ Quản trị & Hiện trường (giảm ~40% dung lượng tải lần đầu cho Công dân)
+const DashboardLayout = lazy(() =>
+  import('./layouts/DashboardLayout').then((m) => ({ default: m.DashboardLayout }))
+);
+const IocDashboardPage = lazy(() =>
+  import('./pages/Dashboard/IocDashboardPage').then((m) => ({ default: m.IocDashboardPage }))
+);
+const AdminMapPage = lazy(() =>
+  import('./pages/Dashboard/AdminMapPage').then((m) => ({ default: m.AdminMapPage }))
+);
+const StatisticsPage = lazy(() =>
+  import('./pages/Dashboard/StatisticsPage').then((m) => ({ default: m.StatisticsPage }))
+);
+const AdminSettingsPage = lazy(() =>
+  import('./pages/Dashboard/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage }))
+);
+const OfficerInboxPage = lazy(() =>
+  import('./pages/Officer/OfficerInboxPage').then((m) => ({ default: m.OfficerInboxPage }))
+);
+const DispatchDetailPage = lazy(() =>
+  import('./pages/Officer/DispatchDetailPage').then((m) => ({ default: m.DispatchDetailPage }))
+);
+const MembersPage = lazy(() =>
+  import('./pages/Officer/MembersPage').then((m) => ({ default: m.MembersPage }))
+);
+const AccountsPage = lazy(() =>
+  import('./pages/Officer/AccountsPage').then((m) => ({ default: m.AccountsPage }))
+);
+const AdminFeedbacksPage = lazy(() =>
+  import('./pages/Officer/AdminFeedbacksPage').then((m) => ({ default: m.AdminFeedbacksPage }))
+);
+const FieldTasksPage = lazy(() =>
+  import('./modules/field/FieldTasksPage').then((m) => ({ default: m.FieldTasksPage }))
+);
+const FieldTaskDetailPage = lazy(() =>
+  import('./modules/field/FieldTaskDetailPage').then((m) => ({ default: m.FieldTaskDetailPage }))
+);
+
+const PageLoader: React.FC = () => (
+  <div className="min-h-[40vh] flex items-center justify-center text-xs font-semibold text-slate-500">
+    Đang tải giao diện...
+  </div>
+);
 
 // Bảo vệ phân hệ Quản trị: Chưa đăng nhập -> /login | Công dân cố đổi URL -> /citizen/home
 const RequireAdmin: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -96,6 +128,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Trang chủ mặc định: Khách & Công dân -> /citizen/home | Admin đang đăng nhập -> /admin/dashboard */}
         <Route path="/" element={<Navigate to={defaultHomePath} replace />} />
@@ -230,6 +263,7 @@ export const App: React.FC = () => {
         {/* Fallback mọi đường dẫn sai -> về đúng trang chủ theo vai trò */}
         <Route path="*" element={<Navigate to={defaultHomePath} replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };
