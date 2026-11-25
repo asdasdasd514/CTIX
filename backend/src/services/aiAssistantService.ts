@@ -98,9 +98,62 @@ function inferCategoryFallback(norm: string): IncidentCategoryType | null {
 }
 
 function looksLikeQuestion(norm: string): boolean {
-  return /(\?|lam sao|nhu the nao|la gi|bao lau|may ngay|quy trinh|co duoc khong|o dau|ban lam duoc gi|chuc nang|co the lam gi|huong dan)/.test(
+  return /(\?|lam sao|nhu the nao|the nao|ra sao|la gi|bao lau|may ngay|quy trinh|co duoc khong|o dau|ban lam duoc gi|chuc nang|co the lam gi|huong dan|duoc xu ly|xe duoc xu ly|se duoc xu ly|tai sao|vi sao|khi nao|co mat phi|can dang nhap)/.test(
     norm
   );
+}
+
+/**
+ * Bộ tri thức hỏi đáp thông minh (dùng khi người dùng hỏi thông tin mà Gemini tạm bận / chạm quota).
+ * Phân biệt rạch ròi với lệnh điều khiển để không bao giờ trả lời lạc đề.
+ */
+function answerFaqFallback(norm: string): string | null {
+  // 1. Quy trình xử lý phản ánh
+  if (/(quy trinh|xu ly nhu the nao|duoc xu ly|xe duoc xu ly|se duoc xu ly|cac buoc|tien trinh)/.test(norm)) {
+    return 'Phản ánh bạn gửi sẽ đi qua 4 bước: (1) UBND Phường Trấn Biên kiểm duyệt tiếp nhận trong vòng 2 giờ → (2) Phân công đội chuyên môn xử lý kèm quy trình từng bước → (3) Đội hiện trường khắc phục & tải ảnh nghiệm thu Trước – Sau → (4) Công dân kiểm tra và đánh giá 1–5 sao.';
+  }
+
+  // 2. Thời gian xử lý bao lâu / SLA
+  if (/(bao lau|may ngay|may gio|thoi gian xu ly|sla|nhanh khong)/.test(norm)) {
+    return 'UBND Phường tiếp nhận và duyệt phản ánh trong vòng 2 giờ. Thời gian khắc phục hiện trường thông thường từ 24–48 giờ (trung bình ~3,2 ngày tùy mức độ sự cố). Sự cố khẩn cấp có nhiều người đồng phản ánh sẽ được ưu tiên xử lý trước.';
+  }
+
+  // 3. Cách gửi phản ánh / có cần đăng nhập không
+  if (/(cach gui|lam sao.*gui|can dang nhap|khong dang nhap|chua dang nhap)/.test(norm)) {
+    return 'Bạn có thể gửi phản ánh ngay mà không cần đăng nhập: bấm "+ Thêm phản ánh", chụp/tải ảnh hiện trường, chọn loại sự cố, nhập mô tả (hoặc bấm micro để nói), điền Họ tên + SĐT và chọn vị trí trên bản đồ. Sau này nếu đăng ký tài khoản bằng đúng SĐT đó, toàn bộ bài đã gửi sẽ tự động đồng bộ về tài khoản.';
+  }
+
+  // 4. Chỉnh sửa / Hủy phản ánh
+  if (/(chinh sua|sua phan anh|huy phan anh|xoa phan anh)/.test(norm)) {
+    return 'Bạn chỉ có thể chỉnh sửa hoặc hủy phản ánh của chính mình khi hồ sơ đang ở trạng thái "Chờ duyệt" (trong mục Phản ánh của tôi). Khi UBND Phường đã duyệt tiếp nhận và chuyển sang xử lý, hồ sơ sẽ khóa chỉnh sửa để đảm bảo tính chính xác.';
+  }
+
+  // 5. Vì sao chưa hiện công khai / Chờ duyệt
+  if (/(chua hien|khong thay|cho duyet|cong khai)/.test(norm)) {
+    return 'Phản ánh mới gửi sẽ ở trạng thái "Chờ duyệt" và hiển thị ngay trong mục "Phản ánh của tôi" để chính bạn theo dõi hoặc chỉnh sửa. Sau khi Cán bộ Phường kiểm duyệt tiếp nhận, bài sẽ hiển thị công khai trên Trang chủ, Bản đồ và Danh sách toàn phường.';
+  }
+
+  // 6. Đồng phản ánh (+1) & gộp trùng
+  if (/(dong phan anh|trung lap|gop phan anh|cong 1|\+1)/.test(norm)) {
+    return 'Khi nhiều người cùng gặp 1 sự cố trong bán kính 50m, hệ thống tự động gợi ý "Đồng phản ánh (+1)" để gộp ảnh hiện trường và tăng mức độ ưu tiên, giúp UBND Phường điều phối xử lý nhanh hơn.';
+  }
+
+  // 7. Đánh giá sao & so sánh trước sau
+  if (/(danh gia|cham diem|sao|truoc sau|nghiem thu)/.test(norm)) {
+    return 'Khi sự cố được xử lý xong, bạn có thể kéo thanh trượt so sánh ảnh Trước – Sau ngay trên trang chi tiết hồ sơ và chấm điểm từ 1–5 sao cùng nhận xét về chất lượng phục vụ.';
+  }
+
+  // 8. Tổng đài / liên hệ khẩn cấp / địa chỉ UBND
+  if (/(tong dai|1022|duong day nong|hotline|lien he|dia chi ubnd)/.test(norm)) {
+    return 'Tổng đài hỗ trợ khẩn cấp 24/7 của Phường Trấn Biên là 1022. Địa chỉ trụ sở UBND Phường Trấn Biên: Số 128 Đường Nguyễn Ái Quốc, Khu phố 2, Phường Trấn Biên, TP. Biên Hòa, Đồng Nai.';
+  }
+
+  // 9. Hỏi AI làm được những gì
+  if (/(ban lam duoc gi|co the lam gi|chuc nang|ho tro gi|lenh nao)/.test(norm)) {
+    return 'Tôi vừa có thể giải đáp thông tin (quy trình xử lý, thời gian SLA, hướng dẫn gửi/sửa/hủy, tổng đài 1022) vừa thực hiện lệnh điều khiển trang: mở Trang chủ, Bản đồ, Phản ánh của tôi, lọc phản ánh, bật chữ lớn, mở Camera chụp ảnh hoặc tự điền phản ánh bằng giọng nói.';
+  }
+
+  return null;
 }
 
 function isMeaningfulIncidentDescription(text: string): boolean {
@@ -120,9 +173,21 @@ function fallbackAssistant(message: string): AssistantResponse {
     return {
       action: 'chat_reply',
       reply:
-        'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Bạn có thể ra lệnh mở trang, lọc phản ánh, bật chữ to, mở camera chụp ảnh hoặc báo cáo sự cố hiện trường.',
+        'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Bạn có thể hỏi thông tin về quy trình xử lý phản ánh, hoặc ra lệnh mở trang, lọc phản ánh, bật chữ to, mở camera chụp ảnh và gửi phản ánh sự cố.',
       analyzedBy: 'fallback',
     };
+  }
+
+  // 1b. Ưu tiên trả lời HỎI ĐÁP THÔNG TIN trước khi xét lệnh điều khiển
+  if (looksLikeQuestion(norm)) {
+    const faq = answerFaqFallback(norm);
+    if (faq) {
+      return {
+        action: 'chat_reply',
+        reply: faq,
+        analyzedBy: 'fallback',
+      };
+    }
   }
 
   // 2. Quay lại trang trước
@@ -541,7 +606,7 @@ Trả về JSON duy nhất đúng cấu trúc:
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 9000);
+    const timer = setTimeout(() => controller.abort(), 16000);
 
     const res = await fetch(url, {
       method: 'POST',
@@ -558,6 +623,8 @@ Trả về JSON duy nhất đúng cấu trúc:
     clearTimeout(timer);
 
     if (!res.ok) {
+      const errTxt = await res.text().catch(() => '');
+      console.warn(`[AI Assistant] Gemini HTTP ${res.status}:`, errTxt.slice(0, 180));
       return fallbackAssistant(trimmed);
     }
 
