@@ -20,6 +20,7 @@ const VI_WEEKDAYS = [
 export interface WatermarkOptions {
   timestamp?: Date;
   address?: string;
+  align?: 'left' | 'right';
 }
 
 export async function compressImageFile(
@@ -70,7 +71,7 @@ export async function compressImageFile(
               return;
             }
             const baseName = file.name.replace(/\.[^.]+$/, '') || 'hien-truong';
-            resolve(new File([blob], `${baseName}_wm.jpg`, { type: 'image/jpeg' }));
+            resolve(new File([blob], `${baseName}_cmp.jpg`, { type: 'image/jpeg' }));
           },
           'image/jpeg',
           quality
@@ -192,36 +193,55 @@ export async function stampTimestampWatermark(
           ctx.restore();
         };
 
-        // Vẽ dòng địa chỉ ở đáy
+        const isRight = options.align === 'right';
+
+        // Vẽ dòng địa chỉ ở đáy (cùng font, cỡ chữ, định dạng — căn trái cho TRƯỚC, căn phải cho SAU)
         ctx.font = `600 ${addrFontSize}px "Segoe UI", Roboto, Arial, sans-serif`;
         ctx.textBaseline = 'bottom';
+        ctx.textAlign = isRight ? 'right' : 'left';
+        const addrX = isRight ? width - padX : padX;
         let cursorY = height - padBottom;
         for (let i = finalAddrLines.length - 1; i >= 0; i--) {
-          drawOutlinedText(finalAddrLines[i], padX, cursorY, Math.max(2, addrFontSize * 0.1));
+          drawOutlinedText(finalAddrLines[i], addrX, cursorY, Math.max(2, addrFontSize * 0.1));
           cursorY -= addrLineHeight;
         }
 
         const timeBottomY = cursorY - Math.round(base * 0.012);
 
+        // Đo kích thước khối trên (HH:mm | Ngày tháng / Thứ) để đặt trái hoặc phải với CÙNG cỡ chữ & định dạng
+        ctx.textAlign = 'left';
+        ctx.font = `700 ${timeFontSize}px "Segoe UI", Roboto, Arial, sans-serif`;
+        const timeWidth = ctx.measureText(timeText).width;
+        const gapBeforeDiv = Math.round(base * 0.022);
+        const dividerW = Math.max(2.5, Math.round(base * 0.0055));
+        const gapAfterDiv = Math.round(base * 0.024);
+
+        ctx.font = `600 ${metaFontSize}px "Segoe UI", Roboto, Arial, sans-serif`;
+        const metaWidth = Math.max(
+          ctx.measureText(dateText).width,
+          ctx.measureText(weekdayText).width
+        );
+        const topRowWidth = timeWidth + gapBeforeDiv + dividerW + gapAfterDiv + metaWidth;
+        const startX = isRight ? Math.max(padX, width - padX - topRowWidth) : padX;
+
         // Vẽ Giờ lớn (HH:mm)
         ctx.font = `700 ${timeFontSize}px "Segoe UI", Roboto, Arial, sans-serif`;
         ctx.textBaseline = 'bottom';
-        drawOutlinedText(timeText, padX, timeBottomY, Math.max(2.5, timeFontSize * 0.065));
-        const timeWidth = ctx.measureText(timeText).width;
+        drawOutlinedText(timeText, startX, timeBottomY, Math.max(2.5, timeFontSize * 0.065));
 
         // Vẽ vạch chia dọc cạnh giờ
-        const dividerX = padX + timeWidth + Math.round(base * 0.022);
+        const dividerX = startX + timeWidth + gapBeforeDiv;
         const dividerTop = timeBottomY - Math.round(timeFontSize * 0.84);
         const dividerHeight = Math.round(timeFontSize * 0.76);
         ctx.save();
         ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
         ctx.shadowBlur = 4;
-        ctx.fillRect(dividerX, dividerTop, Math.max(2.5, Math.round(base * 0.0055)), dividerHeight);
+        ctx.fillRect(dividerX, dividerTop, dividerW, dividerHeight);
         ctx.restore();
 
         // Vẽ Ngày tháng & Thứ bên phải vạch chia
-        const metaX = dividerX + Math.round(base * 0.024);
+        const metaX = dividerX + dividerW + gapAfterDiv;
         ctx.font = `600 ${metaFontSize}px "Segoe UI", Roboto, Arial, sans-serif`;
         ctx.textBaseline = 'top';
         drawOutlinedText(dateText, metaX, dividerTop, Math.max(2, metaFontSize * 0.1));
@@ -237,7 +257,8 @@ export async function stampTimestampWatermark(
               return;
             }
             const baseName = file.name.replace(/\.[^.]+$/, '') || 'hien-truong';
-            resolve(new File([blob], `${baseName}_wm.jpg`, { type: 'image/jpeg' }));
+            const suffix = isRight ? '_wmr' : '_wm';
+            resolve(new File([blob], `${baseName}${suffix}.jpg`, { type: 'image/jpeg' }));
           },
           'image/jpeg',
           quality

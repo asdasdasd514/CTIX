@@ -141,10 +141,11 @@ export function IncidentResolutionModal({
 
     setSubmitting(true);
     try {
-      // Đóng dấu Thời gian hoàn thành + Địa chỉ sự cố kiểu Timestamp Camera ngay lúc xác nhận
+      // Đóng dấu Thời gian hoàn thành + Địa chỉ ở góc dưới-PHẢI (đồng đều với ảnh TRƯỚC bên trái)
       const watermarked = await stampTimestampWatermark(stagedFile, {
         timestamp: new Date(),
         address: incident.location.address,
+        align: 'right',
       });
 
       let finalPhotoUrl = '';

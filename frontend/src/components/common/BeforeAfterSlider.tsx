@@ -143,7 +143,6 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                   timestamp={afterTimestamp}
                   address={address}
                   imageUrl={afterUrl}
-                  compact
                   align="right"
                   visible={position <= 62}
                 />
@@ -166,7 +165,6 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                   timestamp={beforeTimestamp}
                   address={address}
                   imageUrl={beforeUrl}
-                  compact
                   align="left"
                   visible={position >= 38}
                 />
@@ -224,6 +222,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 address={address}
                 imageUrl={beforeUrl}
                 compact
+                align="left"
               />
             )}
           </div>
@@ -238,6 +237,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 address={address}
                 imageUrl={afterUrl}
                 compact
+                align="right"
               />
             )}
           </div>
