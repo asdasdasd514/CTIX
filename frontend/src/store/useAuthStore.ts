@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { authApi, setAuthToken } from "../services/api";
+import { clearGuestReports, clearGuestReportsIfDifferentPhone } from "../lib/guestReports";
 
 export interface UserProfile {
   id: string;
@@ -118,6 +119,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   loginWithCredentials: async (identifier, password) => {
     const res = await authApi.login(identifier, password);
     setAuthToken(res.token);
+    clearGuestReportsIfDifferentPhone(res.user?.phone);
     try {
       sessionStorage.setItem(SESSION_KEY, res.user.role);
       sessionStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -129,6 +131,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   registerCitizen: async (payload) => {
     const res = await authApi.register(payload);
     setAuthToken(res.token);
+    clearGuestReportsIfDifferentPhone(res.user?.phone);
     try {
       sessionStorage.setItem(SESSION_KEY, res.user.role);
       sessionStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -149,6 +152,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     setAuthToken(null);
+    clearGuestReports();
     try {
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(USER_KEY);

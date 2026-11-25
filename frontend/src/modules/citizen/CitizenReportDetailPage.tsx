@@ -58,19 +58,18 @@ export const CitizenReportDetailPage: React.FC = () => {
 
   const incident = incidents.find((item) => item.id === id);
 
-  // Kiểm tra chính chủ hồ sơ: chỉ người tạo mới được chỉnh sửa hoặc hủy khi đang Chờ duyệt
+  // Kiểm tra chính chủ hồ sơ:
+  // - Đã đăng nhập: chỉ khớp DUY NHẤT bằng SĐT tài khoản (tách bạch hoàn toàn với phiên khách)
+  // - Chưa đăng nhập (Khách): chỉ khớp khi bài được gửi từ chính thiết bị này
   const isOwner = (() => {
     if (!incident) return false;
-    const guestIds = getGuestReportIds();
     const senderPhone = normalizePhone(incident.sender?.phone);
     if (isAuthenticated) {
       if (currentUser.role !== 'citizen') return true;
       const myPhone = normalizePhone(currentUser.phone);
-      return Boolean(
-        (myPhone && senderPhone && myPhone === senderPhone) ||
-          guestIds.includes(incident.id)
-      );
+      return Boolean(myPhone && senderPhone && myPhone === senderPhone);
     }
+    const guestIds = getGuestReportIds();
     return guestIds.includes(incident.id);
   })();
   const requesterPhone = isAuthenticated

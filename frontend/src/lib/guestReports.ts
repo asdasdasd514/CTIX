@@ -50,3 +50,25 @@ export function replaceGuestReportId(oldId: string, newId: string) {
     window.localStorage.setItem(GUEST_IDS_KEY, JSON.stringify(next));
   } catch {}
 }
+
+/**
+ * Xóa sạch dấu vết phiên khách trên trình duyệt (dùng khi đăng nhập tài khoản khác hoặc khách tự xóa).
+ */
+export function clearGuestReports() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(GUEST_IDS_KEY);
+    window.localStorage.removeItem(GUEST_PHONE_KEY);
+  } catch {}
+}
+
+/**
+ * Khi đăng nhập vào một tài khoản, nếu phiên khách trước đó thuộc SĐT khác thì tự dọn sạch.
+ */
+export function clearGuestReportsIfDifferentPhone(accountPhone?: string) {
+  const cleanAccount = normalizePhone(accountPhone);
+  const cleanGuest = normalizePhone(getGuestPhone());
+  if (!cleanAccount || (cleanGuest && cleanGuest !== cleanAccount)) {
+    clearGuestReports();
+  }
+}

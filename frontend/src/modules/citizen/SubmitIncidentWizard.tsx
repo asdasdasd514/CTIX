@@ -416,8 +416,10 @@ export const SubmitIncidentWizard: React.FC = () => {
         status: 'pending_review',
       });
 
-      // Lưu dấu phản ánh trên thiết bị để khách chưa đăng nhập vẫn xem được mục "Phản ánh của tôi"
-      saveGuestReport(result.incident.id, cleanPhone);
+      // Chỉ lưu dấu trên thiết bị khi là KHÁCH chưa đăng nhập (tài khoản đã đăng nhập khớp trực tiếp qua SĐT)
+      if (!isAuthenticated) {
+        saveGuestReport(result.incident.id, cleanPhone);
+      }
 
       if (result.isDuplicateGrouped) {
         setNotification({

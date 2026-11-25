@@ -4,7 +4,7 @@ import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory } from '../../types/incident';
 import { isPublicIncident } from '../../lib/incidents';
-import { getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
+import { clearGuestReports, getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
 import {
   CheckCircle2,
   Clock,
@@ -128,18 +128,14 @@ export const MyReportsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const guestIds = getGuestReportIds();
+  const [guestIds, setGuestIds] = useState<string[]>(() => getGuestReportIds());
 
   const isMyIncident = (item: Incident) => {
     const itemPhone = normalizePhone(item.sender?.phone);
     if (isAuthenticated) {
+      // Khi ĐÃ ĐĂNG NHẬP: chỉ khớp DUY NHẤT theo SĐT tài khoản (không trộn guestIds hay tên)
       const myPhone = normalizePhone(currentUser.phone);
-      const senderName = (item.sender?.name || '').toLowerCase();
-      return (
-        (myPhone && itemPhone === myPhone) ||
-        senderName === currentUser.name.toLowerCase() ||
-        guestIds.includes(item.id)
-      );
+      return Boolean(myPhone && itemPhone && itemPhone === myPhone);
     }
     const lookupClean = normalizePhone(guestLookupPhone);
     return (
@@ -317,13 +313,28 @@ export const MyReportsPage: React.FC = () => {
             <div className="text-xs text-blue-900 font-medium">
               Hiển thị phản ánh bạn gửi trên máy này hoặc tra cứu nhanh theo <strong>Số điện thoại</strong> đã nhập lúc gửi:
             </div>
-            <input
-              type="tel"
-              value={guestLookupPhone}
-              onChange={(e) => setGuestLookupPhone(e.target.value)}
-              placeholder="Nhập SĐT để tra cứu (VD: 0912345678)"
-              className="w-full sm:w-64 px-3 py-1.5 rounded-[5px] border border-blue-300 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
-            />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="tel"
+                value={guestLookupPhone}
+                onChange={(e) => setGuestLookupPhone(e.target.value)}
+                placeholder="Nhập SĐT để tra cứu (VD: 0912345678)"
+                className="w-full sm:w-60 px-3 py-1.5 rounded-[5px] border border-blue-300 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+              {(guestIds.length > 0 || guestLookupPhone) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearGuestReports();
+                    setGuestIds([]);
+                    setGuestLookupPhone('');
+                  }}
+                  className="px-3 py-1.5 rounded-[5px] border border-slate-300 bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-slate-600 text-[11px] font-bold transition whitespace-nowrap"
+                >
+                  Xóa lịch sử khách
+                </button>
+              )}
+            </div>
           </div>
         )}
         {/* Hàng 1: Trạng thái + Phản ánh của tôi + Tìm kiếm */}

@@ -11,6 +11,8 @@ import {
   Clock,
   Save,
   MapPin,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useIncidentStore } from '../../store/useIncidentStore';
@@ -21,6 +23,7 @@ export const CitizenAccountPage: React.FC = () => {
   const { isAuthenticated, currentUser, logout, updateCurrentUser } = useAuthStore();
   const { incidents } = useIncidentStore();
 
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(currentUser.name);
   const [phone, setPhone] = useState(currentUser.phone);
   const [newPassword, setNewPassword] = useState('');
@@ -29,13 +32,31 @@ export const CitizenAccountPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const handleStartEdit = () => {
+    setName(currentUser.name);
+    setPhone(currentUser.phone);
+    setNewPassword('');
+    setConfirmPassword('');
+    setError(null);
+    setSuccess(null);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setName(currentUser.name);
+    setPhone(currentUser.phone);
+    setNewPassword('');
+    setConfirmPassword('');
+    setError(null);
+    setIsEditing(false);
+  };
+
   const myStats = useMemo(() => {
-    const cleanPhone = (currentUser.phone || '').replace(/[\s.-]/g, '');
-    const mine = incidents.filter(
-      (i) =>
-        i.sender.name === currentUser.name ||
-        i.sender.phone.replace(/[\s.-]/g, '') === cleanPhone
-    );
+    const cleanPhone = (currentUser.phone || '').replace(/[\s.-]/g, '').trim();
+    const mine = incidents.filter((i) => {
+      const itemPhone = (i.sender.phone || '').replace(/[\s.-]/g, '').trim();
+      return Boolean(cleanPhone && itemPhone && itemPhone === cleanPhone);
+    });
     const resolved = mine.filter((i) => i.status === 'resolved' || i.status === 'closed').length;
     const inProgress = mine.length - resolved;
     return { total: mine.length, resolved, inProgress };
@@ -100,12 +121,14 @@ export const CitizenAccountPage: React.FC = () => {
       });
       setNewPassword('');
       setConfirmPassword('');
+      setIsEditing(false);
       setSuccess('Đã cập nhật thông tin tài khoản thành công.');
     } catch (err) {
       updateCurrentUser({
         name: name.trim(),
         phone: phone.trim(),
       });
+      setIsEditing(false);
       setSuccess(
         err instanceof Error
           ? 'Đã lưu thông tin tài khoản trên thiết bị.'
@@ -182,102 +205,166 @@ export const CitizenAccountPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Form chỉnh sửa thông tin cá nhân & đổi mật khẩu */}
+      {/* Thông tin cá nhân (chế độ chỉ xem mặc định; bấm "Chỉnh sửa" mới mở form sửa) */}
       <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100">
-          <h2 className="text-sm font-bold text-slate-800">Chỉnh sửa thông tin tài khoản</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Cập nhật họ tên, số điện thoại liên hệ hoặc đổi mật khẩu đăng nhập
-          </p>
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-800">
+              {isEditing ? 'Chỉnh sửa thông tin tài khoản' : 'Thông tin tài khoản'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isEditing
+                ? 'Cập nhật họ tên, số điện thoại liên hệ hoặc đổi mật khẩu rồi bấm Lưu'
+                : 'Thông tin cá nhân đang hiển thị ở chế độ chỉ xem'}
+            </p>
+          </div>
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[5px] bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Chỉnh sửa</span>
+            </button>
+          )}
         </div>
 
-        <form onSubmit={handleSaveProfile} className="p-5 space-y-4">
-          {error && (
-            <div className="p-3 rounded-[5px] bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-          {success && (
-            <div className="p-3 rounded-[5px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{success}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Họ và tên *
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
+        {!isEditing ? (
+          <div className="p-5 space-y-4">
+            {success && (
+              <div className="p-3 rounded-[5px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{success}</span>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Số điện thoại *
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs sm:text-sm">
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200">
+                <div className="text-[11px] font-semibold text-slate-500 mb-1">Họ và tên</div>
+                <div className="font-bold text-slate-800 flex items-center gap-2">
+                  <User className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>{currentUser.name}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200">
+                <div className="text-[11px] font-semibold text-slate-500 mb-1">Số điện thoại</div>
+                <div className="font-bold text-slate-800 font-mono flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>{currentUser.phone}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200">
+                <div className="text-[11px] font-semibold text-slate-500 mb-1">Khu vực</div>
+                <div className="font-semibold text-slate-700 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span>{currentUser.department || 'Phường Trấn Biên'}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200">
+                <div className="text-[11px] font-semibold text-slate-500 mb-1">Mật khẩu</div>
+                <div className="font-semibold text-slate-700 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span>••••••••</span>
+                </div>
               </div>
             </div>
           </div>
+        ) : (
+          <form onSubmit={handleSaveProfile} className="p-5 space-y-4">
+            {error && (
+              <div className="p-3 rounded-[5px] bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          <div className="pt-3 border-t border-slate-100">
-            <div className="text-xs font-semibold text-slate-600 mb-2.5">
-              Đổi mật khẩu (để trống nếu không thay đổi)
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
-                  className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Họ và tên *
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Xác nhận mật khẩu mới"
-                  className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Số điện thoại *
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-end pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-white text-xs sm:text-sm font-semibold shadow-sm transition"
-            >
-              <Save className="w-4 h-4" />
-              <span>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
-            </button>
-          </div>
-        </form>
+            <div className="pt-3 border-t border-slate-100">
+              <div className="text-xs font-semibold text-slate-600 mb-2.5">
+                Đổi mật khẩu (để trống nếu không thay đổi)
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+                    className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                </div>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Xác nhận mật khẩu mới"
+                    className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[5px] bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs sm:text-sm font-semibold transition"
+              >
+                <X className="w-4 h-4" />
+                <span>Hủy</span>
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-white text-xs sm:text-sm font-semibold shadow-sm transition"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
