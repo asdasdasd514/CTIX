@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { incidentsApi, mediaApi, type DuplicateCandidate } from '../../services/api';
+import { incidentsApi, mediaApi, type AiReportDraft, type DuplicateCandidate } from '../../services/api';
 import { saveGuestReport } from '../../lib/guestReports';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
@@ -93,10 +93,12 @@ const CATEGORIES: {
 
 export const SubmitIncidentWizard: React.FC = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { addIncident, linkDuplicateIncident, elderlyMode } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [aiPrefillNotice, setAiPrefillNotice] = useState<boolean>(false);
   const [step, setStep] = useState<1 | 2>(1);
 
   // Hỗ trợ tải lên NHIỀU ẢNH hiện trường
@@ -125,6 +127,21 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
+
+  // Nhận dữ liệu điền tự động từ Trợ lý AI (Chatbot / Ra lệnh giọng nói)
+  useEffect(() => {
+    const state = routerLocation.state as { aiPrefill?: AiReportDraft; aiPrefillAt?: number } | null;
+    if (!state?.aiPrefill) return;
+    const draft = state.aiPrefill;
+    if (draft.category) setSelectedCategory(draft.category);
+    if (draft.customCategoryName) setCustomCategoryName(draft.customCategoryName);
+    if (draft.description) setDescription(draft.description);
+    if (draft.addressHint) {
+      setLocation((prev) => ({ ...prev, address: draft.addressHint! }));
+    }
+    setStep(1);
+    setAiPrefillNotice(true);
+  }, [routerLocation.state]);
 
   // AI Gemini kiểm tra phản ánh tương tự trong bán kính 50m tại Bước 2
   const [checkingDup, setCheckingDup] = useState<boolean>(false);
@@ -472,6 +489,20 @@ export const SubmitIncidentWizard: React.FC = () => {
           <div className="lg:col-span-8 bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 min-w-0">
             {step === 1 && (
               <div className="space-y-5">
+                {aiPrefillNotice && (
+                  <div className="p-3 rounded-[5px] bg-blue-50 border border-blue-200 text-xs text-blue-900 font-medium flex items-center justify-between gap-2">
+                    <span>
+                      ✨ Trợ lý AI đã tự động chọn loại sự cố và điền mô tả từ yêu cầu của bạn. Vui lòng chụp thêm ảnh hiện trường và kiểm tra lại thông tin!
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAiPrefillNotice(false)}
+                      className="text-blue-700 font-bold shrink-0"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
                   <div className="min-w-0">
                     <h2 className="text-base sm:text-lg font-extrabold text-slate-900">

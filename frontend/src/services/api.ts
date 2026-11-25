@@ -306,3 +306,32 @@ export const usersApi = {
       method: 'DELETE',
     }),
 };
+
+// 6. Citizen AI Assistant API (Chatbot & Voice Command)
+export interface AiReportDraft {
+  category: IncidentCategory;
+  customCategoryName?: string;
+  description: string;
+  addressHint?: string;
+}
+
+export interface AiAssistantResponse {
+  action: 'create_report' | 'open_my_reports' | 'navigate' | 'toggle_elderly' | 'chat_reply';
+  reply: string;
+  reportDraft?: AiReportDraft;
+  route?: string;
+  elderlyEnabled?: boolean;
+  analyzedBy: 'gemini' | 'fallback';
+}
+
+export const aiApi = {
+  assistant: (
+    message: string,
+    mode: 'chat' | 'voice' = 'chat',
+    history: { role: 'user' | 'assistant'; text: string }[] = []
+  ) =>
+    apiRequest<AiAssistantResponse>('/ai/assistant', {
+      method: 'POST',
+      body: JSON.stringify({ message, mode, history }),
+    }),
+};

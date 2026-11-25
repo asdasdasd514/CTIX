@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory } from '../../types/incident';
@@ -77,11 +77,21 @@ function getCategoryBadge(category: IncidentCategory) {
 
 export const MyReportsPage: React.FC = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { incidents } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('all');
-  const [onlyMyReports, setOnlyMyReports] = useState<boolean>(false);
+  const [onlyMyReports, setOnlyMyReports] = useState<boolean>(
+    () => Boolean((routerLocation.state as { onlyMyReports?: boolean } | null)?.onlyMyReports)
+  );
+
+  useEffect(() => {
+    const st = routerLocation.state as { onlyMyReports?: boolean } | null;
+    if (st?.onlyMyReports) {
+      setOnlyMyReports(true);
+    }
+  }, [routerLocation.state]);
   const [guestLookupPhone, setGuestLookupPhone] = useState<string>(() => getGuestPhone());
   // Cho phép chọn NHIỀU loại sự cố cùng lúc để lọc
   const [selectedCategories, setSelectedCategories] = useState<IncidentCategory[]>([]);

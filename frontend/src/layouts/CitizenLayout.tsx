@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { CitizenTopNav } from '../components/Navigation/CitizenTopNav';
+import { CitizenAiAssistant } from '../components/Citizen/CitizenAiAssistant';
 import { useIncidentStore } from '../store/useIncidentStore';
 import { MapPin, Phone, ShieldCheck } from 'lucide-react';
 
@@ -57,6 +58,8 @@ export const CitizenLayout: React.FC = () => {
           </div>
         </div>
       </footer>
+      {/* 4. TRỢ LÝ AI NỔI (CHẠM = CHATBOT | GIỮ 1S = RA LỆNH GIỌNG NÓI) */}
+      <CitizenAiAssistant />
     </div>
   );
 };
