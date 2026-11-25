@@ -209,30 +209,48 @@ Trả về JSON duy nhất đúng cấu trúc:
   ]
 }`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 9000);
+    const dupModels = [
+      'gemini-3.5-flash-lite',
+      'gemini-3.5-flash',
+      'gemini-flash-lite-latest',
+      'gemini-2.5-flash',
+    ];
+    const keys = env.GEMINI_API_KEYS.length ? env.GEMINI_API_KEYS : [env.GEMINI_API_KEY];
+    let rawText: string | undefined;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
-    clearTimeout(timer);
-
-    if (!res.ok) {
-      return fallbackAnalyze(input, nearby);
+    outer: for (const model of dupModels) {
+      for (const apiKey of keys) {
+        if (!apiKey) continue;
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 9000);
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json',
+              },
+            }),
+          });
+          clearTimeout(timer);
+          if (!res.ok) continue;
+          const data = (await res.json()) as any;
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            rawText = text;
+            break outer;
+          }
+        } catch {
+          continue;
+        }
+      }
     }
 
-    const data = (await res.json()) as any;
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) {
       return fallbackAnalyze(input, nearby);
     }

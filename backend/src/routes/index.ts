@@ -56,9 +56,10 @@ apiRouter.post('/users', requireAuth, requireRole('officer', 'leader'), userCtrl
 apiRouter.patch('/users/:id', requireAuth, userCtrl.updateUser);
 apiRouter.delete('/users/:id', requireAuth, requireRole('officer', 'leader'), userCtrl.deleteUser);
 
-// AI Assistant (Chatbot & Direct Audio Voice Command)
+// AI Assistant (Chatbot, Direct Audio Voice Command & Image Vision Classifier)
 apiRouter.post('/ai/assistant', optionalAuth, aiCtrl.citizenAssistant);
 apiRouter.post('/ai/voice-command', optionalAuth, uploadAudio.single('audio'), aiCtrl.citizenVoiceCommand);
+apiRouter.post('/ai/classify-image', optionalAuth, uploadImages.single('image'), aiCtrl.classifyImage);
 
 // Feedbacks (Góp ý công dân -> Admin xem)
 apiRouter.post('/feedbacks', optionalAuth, feedbackCtrl.createFeedback);

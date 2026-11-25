@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { RegisterPage } from './pages/Auth/RegisterPage';
 import { CitizenLayout } from './layouts/CitizenLayout';
@@ -57,6 +57,15 @@ const PageLoader: React.FC = () => (
   </div>
 );
 
+// Tự động cuộn lên đầu trang mỗi khi chuyển tab / chuyển trang (đặc biệt trên điện thoại)
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+  return null;
+};
+
 // Bảo vệ phân hệ Quản trị: Chưa đăng nhập -> /login | Công dân cố đổi URL -> /citizen/home
 const RequireAdmin: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isAuthenticated, currentUser } = useAuthStore();
@@ -109,6 +118,7 @@ export const App: React.FC = () => {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       {storageError && (
         <div className="storage-alert" role="alert">
           <span>{storageError}</span>

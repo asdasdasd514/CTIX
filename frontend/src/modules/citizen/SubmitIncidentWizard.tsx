@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { incidentsApi, mediaApi, type AiReportDraft, type DuplicateCandidate } from '../../services/api';
+import { aiApi, incidentsApi, mediaApi, type AiReportDraft, type DuplicateCandidate } from '../../services/api';
 import { saveGuestReport } from '../../lib/guestReports';
-import { compressImageFiles, stampTimestampWatermarks } from '../../lib/imageCompress';
+import { compressImageFile, compressImageFiles, stampTimestampWatermarks } from '../../lib/imageCompress';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
@@ -24,12 +24,12 @@ import {
   Clock,
   ShieldCheck,
   PhoneCall,
-  Plus,
   X,
   AlertCircle,
   Mic,
   MicOff,
   ImagePlus,
+  Sparkles,
 } from 'lucide-react';
 
 interface UploadedPhoto {
@@ -234,9 +234,70 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const activePhoto = photos[activePhotoIndex] || photos[0];
 
+  const [isClassifyingImage, setIsClassifyingImage] = useState<boolean>(false);
+  const [aiImageNotice, setAiImageNotice] = useState<string | null>(null);
+
+  // AI Gemini Vision phân loại loại sự cố & điền mô tả từ ảnh:
+  // - mode 'auto': chỉ điền các ô đang trống (KHÔNG ghi đè nội dung đã nói bằng Giọng nói / Chat AI)
+  // - mode 'manual': người dùng chủ động bấm nút "AI phân loại từ ảnh" -> áp dụng trực tiếp
+  const classifyPhotoWithAi = async (file: File, mode: 'auto' | 'manual') => {
+    if (isClassifyingImage) return;
+    setIsClassifyingImage(true);
+    setAiImageNotice(null);
+    try {
+      const tinyFile = await compressImageFile(file, 512, 0.72);
+      const res = await aiApi.classifyImage(tinyFile);
+      const catName =
+        res.category === 'other'
+          ? res.customCategoryName || 'Sự cố khác'
+          : CATEGORIES.find((c) => c.id === res.category)?.name || 'Sự cố hiện trường';
+
+      if (mode === 'manual') {
+        setSelectedCategory(res.category);
+        if (res.category === 'other') {
+          setCustomCategoryName(res.customCategoryName || 'Sự cố hiện trường khác');
+        }
+        if (res.description) {
+          setDescription(res.description);
+        }
+        setAiImageNotice(`AI đã nhận diện ảnh: ${catName} và cập nhật mô tả.`);
+      } else {
+        let filledAnything = false;
+        setSelectedCategory((prev) => {
+          if (prev) return prev;
+          filledAnything = true;
+          return res.category;
+        });
+        if (res.category === 'other') {
+          setCustomCategoryName((prev) =>
+            prev.trim() ? prev : res.customCategoryName || 'Sự cố hiện trường khác'
+          );
+        }
+        setDescription((prev) => {
+          if (prev.trim()) return prev;
+          filledAnything = true;
+          return res.description || prev;
+        });
+        if (filledAnything) {
+          setAiImageNotice(`AI đã tự phân loại từ ảnh: ${catName} (bạn có thể chỉnh lại nếu cần).`);
+        }
+      }
+    } catch {
+      if (mode === 'manual') {
+        setAiImageNotice('AI nhận diện ảnh tạm thời bận. Bạn vui lòng chọn loại sự cố thủ công.');
+      }
+    } finally {
+      setIsClassifyingImage(false);
+    }
+  };
+
   // Nén ảnh & tạo bản xem trước cục bộ (CHƯA upload Cloudinary — tránh tạo ảnh rác khi hủy/xóa)
   const stageLocalFiles = async (fileList: File[]) => {
     if (fileList.length === 0) return;
+    const hadPhotosBefore = photos.length > 0;
+    const needsAutoClassify =
+      !hadPhotosBefore && (!selectedCategory || !description.trim());
+
     setIsProcessingPhotos(true);
     try {
       const compressed = await compressImageFiles(fileList);
@@ -251,6 +312,12 @@ export const SubmitIncidentWizard: React.FC = () => {
         setActivePhotoIndex(next.length - 1);
         return next;
       });
+
+      // Chỉ tự động gọi AI cho ảnh đầu tiên khi người dùng chưa điền đủ Loại + Mô tả
+      // (Nếu đã điền sẵn từ lệnh Giọng nói / Chat AI thì không tự gọi để tránh ghi đè & tiết kiệm quota)
+      if (needsAutoClassify && compressed[0]) {
+        void classifyPhotoWithAi(compressed[0], 'auto');
+      }
     } finally {
       setIsProcessingPhotos(false);
     }
@@ -658,22 +725,17 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-700 uppercase">
                       Ảnh chụp hiện trường sự cố ({photos.length} ảnh):
                     </label>
-                    <div className="flex items-center gap-3">
+                    {activePhoto?.file && (
                       <button
                         type="button"
-                        onClick={openPhoneCamera}
-                        className="text-xs font-bold text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1"
+                        disabled={isClassifyingImage}
+                        onClick={() => void classifyPhotoWithAi(activePhoto.file!, 'manual')}
+                        className="text-xs font-bold text-violet-700 hover:text-violet-900 disabled:opacity-50 inline-flex items-center gap-1"
                       >
-                        <Camera className="w-3.5 h-3.5" /> Chụp ảnh
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{isClassifyingImage ? 'AI đang đọc ảnh...' : 'AI phân loại từ ảnh'}</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Tải ảnh lên
-                      </button>
-                    </div>
+                    )}
                   </div>
 
                   {/* Input multiple chọn ảnh từ máy */}
@@ -702,33 +764,37 @@ export const SubmitIncidentWizard: React.FC = () => {
                     </div>
                   )}
 
+                  {isClassifyingImage && (
+                    <div className="p-2.5 rounded-[5px] bg-violet-50 border border-violet-200 text-xs text-violet-900 font-semibold flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-violet-600 animate-pulse shrink-0" />
+                      <span>AI đang nhận diện sự cố từ ảnh hiện trường...</span>
+                    </div>
+                  )}
+
+                  {aiImageNotice && !isClassifyingImage && (
+                    <div className="p-2.5 rounded-[5px] bg-violet-50 border border-violet-200 text-xs text-violet-900 font-semibold flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                        <span>{aiImageNotice}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAiImageNotice(null)}
+                        className="text-violet-700 font-bold shrink-0 px-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+
                   {/* Khung xem trước hoặc khung trống khi chưa có ảnh */}
                   {activePhoto ? (
-                    <div className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center group">
+                    <div className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 flex items-center justify-center">
                       <img
                         src={activePhoto.url}
                         alt="Hiện trường"
                         className="w-full h-full object-cover"
                       />
-
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-wrap items-center justify-center gap-2 p-3">
-                        <button
-                          type="button"
-                          onClick={openPhoneCamera}
-                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[5px] text-xs font-bold shadow-lg transition flex items-center gap-2"
-                        >
-                          <Camera className="w-4 h-4 shrink-0" />
-                          <span>Chụp thêm ảnh</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold shadow-lg transition flex items-center gap-2"
-                        >
-                          <Upload className="w-4 h-4 shrink-0" />
-                          <span>Tải thêm ảnh từ máy</span>
-                        </button>
-                      </div>
 
                       <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto max-w-[90%] bg-slate-900/85 text-white text-xs px-2.5 py-1.5 rounded-[5px] flex items-center gap-2">
                         <Camera className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
@@ -798,26 +864,6 @@ export const SubmitIncidentWizard: React.FC = () => {
                           </button>
                         </div>
                       ))}
-
-                      {/* Ô bấm chụp ảnh mới */}
-                      <button
-                        type="button"
-                        onClick={openPhoneCamera}
-                        className="aspect-square rounded-[5px] border-2 border-dashed border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-700 flex flex-col items-center justify-center gap-1 transition"
-                      >
-                        <Camera className="w-5 h-5" />
-                        <span className="text-[10px] font-bold">Chụp ảnh</span>
-                      </button>
-
-                      {/* Ô bấm tải ảnh mới */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="aspect-square rounded-[5px] border-2 border-dashed border-blue-300 bg-blue-50/60 hover:bg-blue-100/80 text-blue-700 flex flex-col items-center justify-center gap-1 transition"
-                      >
-                        <Plus className="w-5 h-5" />
-                        <span className="text-[10px] font-bold">Tải ảnh</span>
-                      </button>
                     </div>
                   )}
 

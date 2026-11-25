@@ -10,6 +10,151 @@ export class AiServiceError extends Error {
   }
 }
 
+export interface ImageClassifyResult {
+  category: IncidentCategoryType;
+  customCategoryName?: string;
+  description: string;
+  analyzedBy: 'gemini';
+  modelUsed: string;
+}
+
+/**
+ * Phân loại sự cố đô thị trực tiếp từ ảnh hiện trường bằng Gemini Vision (xoay vòng Multi-Key & Model Cascade).
+ */
+export async function classifyIncidentImage(
+  imageBuffer: Buffer,
+  mimeType: string
+): Promise<ImageClassifyResult> {
+  const keys = env.GEMINI_API_KEYS;
+  if (!keys.length) {
+    throw new AiServiceError(503, 'Chưa cấu hình khóa Gemini AI.');
+  }
+
+  const prompt = `Bạn là trợ lý AI phân loại sự cố đô thị cho UBND Phường Trấn Biên (TP. Biên Hòa, Đồng Nai).
+Hãy quan sát ảnh hiện trường này và trả về DUY NHẤT 1 JSON hợp lệ (không markdown, không giải thích thêm):
+{
+  "category": "street_light" | "flooding" | "waste" | "road_damage" | "other",
+  "customCategoryName": "Tên ngắn gọn nếu category là other (VD: Cây xanh ngã đổ, Nắp cống vỡ, Dây điện võng, Sự cố hiện trường khác)",
+  "description": "Mô tả ngắn gọn 1 câu tiếng Việt (15-35 từ) về tình trạng thấy trong ảnh"
+}
+Quy tắc phân loại:
+- "street_light": đèn đường tắt/hỏng/nghiêng/chập điện, cột đèn chiếu sáng.
+- "flooding": ngập nước, đọng nước mưa, cống thoát nước nghẹt/tràn.
+- "waste": rác thải tự phát, bãi rác bừa bãi, phế thải, ô nhiễm vệ sinh.
+- "road_damage": ổ gà, mặt đường nứt/sụt lún, vỉa hè hư hỏng.
+- "other": các sự cố đô thị khác (cây đổ, dây điện võng, biển báo hỏng...) HOẶC ảnh không thuộc 4 nhóm trên (khi đó điền customCategoryName ngắn gọn phù hợp với nội dung ảnh và description ngắn gọn, khách quan).`;
+
+  const base64Image = imageBuffer.toString('base64');
+  const models = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-2.5-flash',
+  ];
+  const validCategories: IncidentCategoryType[] = [
+    'street_light',
+    'flooding',
+    'waste',
+    'road_damage',
+    'other',
+  ];
+
+  let lastStatus = 500;
+  for (const model of models) {
+    for (const apiKey of keys) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 18000);
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [
+                    { text: prompt },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || 'image/jpeg',
+                        data: base64Image,
+                      },
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.15,
+                maxOutputTokens: 256,
+                responseMimeType: 'application/json',
+              },
+            }),
+          }
+        );
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+          lastStatus = res.status;
+          if (res.status === 429 || res.status === 503 || res.status === 404) {
+            continue;
+          }
+          continue;
+        }
+
+        const data = (await res.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+        };
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const cleaned = rawText
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```$/i, '')
+          .trim();
+        const parsed = JSON.parse(cleaned) as {
+          category?: string;
+          customCategoryName?: string;
+          description?: string;
+        };
+
+        const category: IncidentCategoryType = validCategories.includes(
+          parsed.category as IncidentCategoryType
+        )
+          ? (parsed.category as IncidentCategoryType)
+          : 'other';
+
+        const customCategoryName =
+          category === 'other'
+            ? String(parsed.customCategoryName || '').trim() || 'Sự cố hiện trường khác'
+            : undefined;
+
+        const description =
+          String(parsed.description || '').trim() ||
+          (category === 'other'
+            ? 'Ghi nhận tình trạng hiện trường cần kiểm tra và xử lý.'
+            : `Phát hiện sự cố ${CATEGORY_LABELS[category].toLowerCase()} tại hiện trường cần kiểm tra xử lý.`);
+
+        return {
+          category,
+          customCategoryName,
+          description,
+          analyzedBy: 'gemini',
+          modelUsed: model,
+        };
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  throw new AiServiceError(
+    lastStatus === 429 ? 429 : 503,
+    'AI nhận diện ảnh tạm thời bận. Bạn có thể chọn loại sự cố thủ công.'
+  );
+}
+
 export type AssistantAction =
   | 'create_report'
   | 'open_my_reports'
@@ -111,18 +256,19 @@ const STATIC_CITIZEN_ROUTES = new Set([
   '/register',
 ]);
 
-// Chuỗi model ưu tiên (mỗi model có quota miễn phí riêng trên Google AI Studio)
+// Chuỗi model ưu tiên đang hoạt động ổn định trên Google AI Studio (mỗi model có quota miễn phí riêng)
 const CHAT_MODELS = [
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-flash-lite-latest',
   'gemini-2.5-flash',
 ];
 
 const VOICE_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-latest',
   'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
 ];
 
 function isValidCitizenRoute(route: string): boolean {

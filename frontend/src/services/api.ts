@@ -352,6 +352,14 @@ export interface AiAssistantResponse {
   analyzedBy: 'gemini' | 'fallback';
 }
 
+export interface AiImageClassifyResponse {
+  category: IncidentCategory;
+  customCategoryName?: string;
+  description: string;
+  analyzedBy: 'gemini';
+  modelUsed?: string;
+}
+
 export const aiApi = {
   assistant: (
     message: string,
@@ -367,6 +375,14 @@ export const aiApi = {
     const ext = audioBlob.type.includes('mp4') ? 'm4a' : 'webm';
     formData.append('audio', audioBlob, `voice-command.${ext}`);
     return apiRequest<AiAssistantResponse>('/ai/voice-command', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  classifyImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file, file.name || 'incident.jpg');
+    return apiRequest<AiImageClassifyResponse>('/ai/classify-image', {
       method: 'POST',
       body: formData,
     });

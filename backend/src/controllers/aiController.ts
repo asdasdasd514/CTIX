@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import type { AuthRequest } from '../middlewares/auth';
 import {
   AiServiceError,
+  classifyIncidentImage,
   runCitizenAssistant,
   runCitizenVoiceAudio,
   type AssistantMessage,
@@ -53,6 +54,27 @@ export async function citizenVoiceCommand(req: AuthRequest, res: Response) {
     }
     return res.status(500).json({
       message: 'Không thể xử lý âm thanh lúc này. Vui lòng thử lại sau vài giây.',
+    });
+  }
+}
+
+// POST /api/ai/classify-image — AI Gemini Vision phân loại sự cố & gợi ý mô tả từ ảnh hiện trường
+export async function classifyImage(req: AuthRequest, res: Response) {
+  try {
+    const file = req.file;
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      return res.status(400).json({ message: 'Vui lòng gửi tệp ảnh để AI nhận diện.' });
+    }
+
+    const result = await classifyIncidentImage(file.buffer, file.mimetype || 'image/jpeg');
+    return res.json(result);
+  } catch (err) {
+    console.error('[AI Controller] classifyImage error:', err);
+    if (err instanceof AiServiceError) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    return res.status(500).json({
+      message: 'Không thể nhận diện ảnh lúc này. Bạn có thể chọn loại sự cố thủ công.',
     });
   }
 }
