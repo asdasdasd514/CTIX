@@ -15,6 +15,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useIncidentStore } from "../../store/useIncidentStore";
+import { MonthPicker } from "../../components/common/MonthPicker";
 import {
   CATEGORIES,
   PRIORITY_LABELS,
@@ -41,6 +42,15 @@ export function StatisticsPage() {
   const [now] = useState(() => Date.now());
 
   const unitOptions = useMemo(() => getAllKnownUnits(incidents), [incidents]);
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of incidents) {
+      if (item.status !== "rejected") {
+        set.add(incidentMonthKey(item.createdAt));
+      }
+    }
+    return Array.from(set);
+  }, [incidents]);
   const assigneeOptions = useMemo(
     () => getAllKnownAssignees(incidents),
     [incidents],
@@ -248,19 +258,18 @@ export function StatisticsPage() {
             assigneeOptions.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-2"
           } gap-3`}
         >
-          <label className="block">
+          <div className="block">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               Tháng tiếp nhận
             </span>
-            <input
-              aria-label="Tháng tiếp nhận"
-              type="month"
+            <MonthPicker
               value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="w-full h-10 px-3 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+              onChange={setMonth}
+              availableMonths={availableMonths}
+              ariaLabel="Tháng tiếp nhận"
             />
-          </label>
+          </div>
 
           <label className="block">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
