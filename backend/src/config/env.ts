@@ -2,6 +2,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const parsedGeminiKeys = Array.from(
+  new Set(
+    [process.env.GEMINI_API_KEY || '', process.env.GEMINI_API_KEY_BACKUP || '']
+      .join(',')
+      .split(/[,;\s]+/)
+      .map((k) => k.trim())
+      .filter(Boolean)
+  )
+);
+
 export const env = {
   PORT: Number(process.env.PORT || 4000),
   MONGODB_URI:
@@ -12,5 +22,6 @@ export const env = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
   JWT_SECRET: process.env.JWT_SECRET || 'ctix_dev_secret_change_in_prod',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  GEMINI_API_KEY: parsedGeminiKeys[0] || '',
+  GEMINI_API_KEYS: parsedGeminiKeys,
 };

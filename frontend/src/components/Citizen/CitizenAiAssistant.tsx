@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Mic, Send, X, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { Bot, Mic, Send, X, Volume2, VolumeX, Loader2, Trash2 } from 'lucide-react';
 import { aiApi, type AiAssistantResponse } from '../../services/api';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -12,6 +12,34 @@ interface ChatMsg {
 }
 
 const HOLD_DURATION_MS = 1000;
+const CHAT_MESSAGES_KEY = 'ctix_ai_chat_messages_v1';
+const CHAT_OPEN_KEY = 'ctix_ai_chat_open_v1';
+
+const WELCOME_MSG: ChatMsg = {
+  id: 'welcome',
+  role: 'assistant',
+  text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Chạm để hỏi đáp thông tin thực tế hoặc ra lệnh điều khiển trang; giữ nút AI 1 giây để nói trực tiếp.',
+};
+
+function loadSavedMessages(): ChatMsg[] {
+  if (typeof window === 'undefined') return [WELCOME_MSG];
+  try {
+    const raw = window.sessionStorage.getItem(CHAT_MESSAGES_KEY);
+    if (!raw) return [WELCOME_MSG];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {}
+  return [WELCOME_MSG];
+}
+
+function loadSavedChatOpen(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.sessionStorage.getItem(CHAT_OPEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function pickSupportedAudioMime(): string {
   if (typeof MediaRecorder === 'undefined') return '';
@@ -32,15 +60,28 @@ export const CitizenAiAssistant: React.FC = () => {
   const { setElderlyMode } = useIncidentStore();
   const { isAuthenticated, logout } = useAuthStore();
 
-  // Chatbot tối giản (không có nút gợi ý nhanh)
-  const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Chạm để hỏi đáp, hoặc giữ nút AI 1 giây để ra lệnh điều khiển trang (mở bản đồ, lọc phản ánh, bật chữ to, mở camera, gửi phản ánh...).',
-    },
-  ]);
+  // Chatbot tối giản — giữ nguyên khung chat & lịch sử khi chuyển trang (Persistent Chat)
+  const [chatOpen, setChatOpen] = useState<boolean>(() => loadSavedChatOpen());
+  const [messages, setMessages] = useState<ChatMsg[]>(() => loadSavedMessages());
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(CHAT_OPEN_KEY, chatOpen ? '1' : '0');
+    } catch {}
+  }, [chatOpen]);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(messages.slice(-30)));
+    } catch {}
+  }, [messages]);
+
+  const handleClearChat = () => {
+    setMessages([WELCOME_MSG]);
+    try {
+      window.sessionStorage.removeItem(CHAT_MESSAGES_KEY);
+    } catch {}
+  };
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [voiceFeedback, setVoiceFeedback] = useState(true);
@@ -122,8 +163,9 @@ export const CitizenAiAssistant: React.FC = () => {
 
     let didNavigate = false;
 
+    // Khi đang chat bằng văn bản (!fromVoice): GIỮ NGUYÊN KHUNG CHAT mở khi chuyển trang nền!
     if (res.action === 'create_report' && res.reportDraft) {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       navigate('/citizen/submit', {
         state: {
           aiPrefill: res.reportDraft,
@@ -133,7 +175,7 @@ export const CitizenAiAssistant: React.FC = () => {
       });
       didNavigate = true;
     } else if (res.action === 'open_camera') {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       navigate('/citizen/submit', {
         state: {
           openCamera: true,
@@ -142,30 +184,30 @@ export const CitizenAiAssistant: React.FC = () => {
       });
       didNavigate = true;
     } else if (res.action === 'open_my_reports') {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       navigate('/citizen/reports', {
         state: { onlyMyReports: true, aiNavAt: Date.now() },
       });
       didNavigate = true;
     } else if (res.action === 'filter_reports') {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       navigate('/citizen/reports', {
         state: { aiFilter: res.reportFilter || {}, aiNavAt: Date.now() },
       });
       didNavigate = true;
     } else if (res.action === 'go_back') {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       navigate(-1);
       didNavigate = true;
     } else if (res.action === 'call_hotline') {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       navigate('/citizen/help');
       setToast('Tổng đài hỗ trợ khẩn cấp 24/7 Phường Trấn Biên: 1022');
       didNavigate = true;
     } else if (res.action === 'logout') {
       if (isAuthenticated) {
         logout();
-        setChatOpen(false);
+        if (fromVoice) setChatOpen(false);
         navigate('/citizen/home');
         setToast('Đã đăng xuất tài khoản thành công.');
       } else {
@@ -173,7 +215,7 @@ export const CitizenAiAssistant: React.FC = () => {
       }
       didNavigate = true;
     } else if (res.action === 'navigate' && res.route) {
-      setChatOpen(false);
+      if (fromVoice) setChatOpen(false);
       if (res.route === '/citizen/account' && !isAuthenticated) {
         navigate('/login');
         setToast('Bạn cần đăng nhập để xem trang Tài khoản cá nhân.');
@@ -500,6 +542,15 @@ export const CitizenAiAssistant: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleClearChat}
+                title="Xóa lịch sử trò chuyện"
+                aria-label="Xóa lịch sử trò chuyện"
+                className="p-1.5 rounded hover:bg-white/10 text-blue-200 hover:text-white transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
               <button
                 type="button"
                 onClick={() => setVoiceFeedback((v) => !v)}

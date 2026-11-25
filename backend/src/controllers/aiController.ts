@@ -1,4 +1,5 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import type { AuthRequest } from '../middlewares/auth';
 import {
   AiServiceError,
   runCitizenAssistant,
@@ -6,8 +7,8 @@ import {
   type AssistantMessage,
 } from '../services/aiAssistantService';
 
-// POST /api/ai/assistant — Trợ lý AI Công dân (Chatbot văn bản)
-export async function citizenAssistant(req: Request, res: Response) {
+// POST /api/ai/assistant — Trợ lý AI Công dân (Chatbot văn bản kèm ngữ cảnh dữ liệu thật từ MongoDB)
+export async function citizenAssistant(req: AuthRequest, res: Response) {
   try {
     const { message, mode = 'chat', history = [] } = req.body as {
       message?: string;
@@ -19,7 +20,12 @@ export async function citizenAssistant(req: Request, res: Response) {
       return res.status(400).json({ message: 'Vui lòng nhập nội dung hoặc nói yêu cầu.' });
     }
 
-    const result = await runCitizenAssistant(message, mode, Array.isArray(history) ? history : []);
+    const result = await runCitizenAssistant(
+      message,
+      mode,
+      Array.isArray(history) ? history : [],
+      req.user?.phone
+    );
     return res.json(result);
   } catch (err) {
     console.error('[AI Controller] assistant error:', err);
@@ -30,8 +36,8 @@ export async function citizenAssistant(req: Request, res: Response) {
   }
 }
 
-// POST /api/ai/voice-command — Nhận trực tiếp file Audio cho Gemini 2.5 Flash nghe & chép nguyên văn
-export async function citizenVoiceCommand(req: Request, res: Response) {
+// POST /api/ai/voice-command — Nhận trực tiếp file Audio cho Gemini nghe & chép nguyên văn
+export async function citizenVoiceCommand(req: AuthRequest, res: Response) {
   try {
     const file = req.file;
     if (!file || !file.buffer || file.buffer.length === 0) {
