@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { mediaApi } from '../../services/api';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
@@ -92,6 +93,7 @@ const CATEGORIES: {
 export const SubmitIncidentWizard: React.FC = () => {
   const navigate = useNavigate();
   const { addIncident, elderlyMode } = useIncidentStore();
+  const { isAuthenticated, currentUser } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -110,8 +112,9 @@ export const SubmitIncidentWizard: React.FC = () => {
   const [description, setDescription] = useState<string>(
     'Bóng đèn cao áp tại ngõ 2 bị chập chờn và tắt hẳn 3 ngày nay, ban đêm rất tối và nguy hiểm.'
   );
-  const [phone, setPhone] = useState<string>('0912.345.678');
-  const [senderName, setSenderName] = useState<string>('Bác Hai Trấn Biên');
+  const [phone, setPhone] = useState<string>(isAuthenticated ? currentUser.phone : '');
+  const [senderName, setSenderName] = useState<string>(isAuthenticated ? currentUser.name : '');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [location, setLocation] = useState<IncidentLocation>({
     lat: 10.9572,
@@ -264,6 +267,13 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+    const cleanPhone = phone.replace(/[\s.-]/g, '').trim();
+    if (!senderName.trim() || !cleanPhone) {
+      setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại để UBND Phường liên hệ khi cần.');
+      setStep(1);
+      return;
+    }
     const categoryLabel =
       selectedCategory === 'other'
         ? customCategoryName.trim() || 'Sự cố khác'
@@ -274,8 +284,8 @@ export const SubmitIncidentWizard: React.FC = () => {
       category: selectedCategory,
       location,
       photosBefore: photos.map((p) => p.url),
-      senderPhone: phone,
-      senderName: senderName || 'Công dân ẩn danh',
+      senderPhone: cleanPhone,
+      senderName: senderName.trim(),
     });
 
     if (result.isDuplicateGrouped) {
@@ -653,32 +663,51 @@ export const SubmitIncidentWizard: React.FC = () => {
                   />
                 </div>
 
-                {/* THÔNG TIN NGƯỜI GỬI */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-[5px] border border-slate-200">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Số điện thoại nhận thông báo: <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="09xx xxx xxx"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-bold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Họ tên người gửi (không bắt buộc):
-                    </label>
-                    <input
-                      type="text"
-                      value={senderName}
-                      onChange={(e) => setSenderName(e.target.value)}
-                      placeholder="Ví dụ: Bác Hai Trấn Biên"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
-                    />
+                {/* THÔNG TIN NGƯỜI GỬI (Bắt buộc Họ tên + SĐT khi chưa đăng nhập) */}
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-[5px] border border-slate-200 space-y-3">
+                  {!isAuthenticated && (
+                    <div className="p-2.5 rounded-[5px] bg-blue-50 border border-blue-200 text-xs text-blue-800 font-medium">
+                      Bạn đang gửi phản ánh nhanh không cần đăng nhập — vui lòng nhập <strong>Họ và tên</strong> cùng <strong>Số điện thoại</strong> để UBND Phường liên hệ khi cần.
+                    </div>
+                  )}
+                  {formError && (
+                    <div className="p-2.5 rounded-[5px] bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold">
+                      {formError}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Họ và tên người gửi: <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={senderName}
+                        onChange={(e) => {
+                          setSenderName(e.target.value);
+                          if (formError) setFormError(null);
+                        }}
+                        placeholder="Ví dụ: Nguyễn Văn An"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Số điện thoại liên hệ: <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => {
+                          setPhone(e.target.value);
+                          if (formError) setFormError(null);
+                        }}
+                        placeholder="09xx xxx xxx"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-semibold focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -686,7 +715,14 @@ export const SubmitIncidentWizard: React.FC = () => {
                 <div className="pt-2 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      if (!senderName.trim() || !phone.replace(/[\s.-]/g, '').trim()) {
+                        setFormError('Vui lòng nhập đầy đủ Họ và tên và Số điện thoại trước khi tiếp tục.');
+                        return;
+                      }
+                      setFormError(null);
+                      setStep(2);
+                    }}
                     className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] font-bold transition shadow-sm active:scale-[0.99] border border-blue-900 ${
                       elderlyMode ? 'text-base' : 'text-xs sm:text-sm'
                     }`}

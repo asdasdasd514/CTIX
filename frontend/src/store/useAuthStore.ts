@@ -61,6 +61,7 @@ interface AuthState {
     password: string;
     confirmPassword: string;
   }) => Promise<UserProfile>;
+  updateCurrentUser: (patch: Partial<UserProfile>) => void;
   logout: () => void;
 }
 
@@ -134,6 +135,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {}
     set({ isAuthenticated: true, currentUser: res.user });
     return res.user as UserProfile;
+  },
+
+  updateCurrentUser: (patch) => {
+    set((state) => {
+      const nextUser = { ...state.currentUser, ...patch };
+      try {
+        sessionStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+      } catch {}
+      return { currentUser: nextUser };
+    });
   },
 
   logout: () => {

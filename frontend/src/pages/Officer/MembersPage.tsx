@@ -46,6 +46,10 @@ export const MembersPage: React.FC = () => {
   const [uHotline, setUHotline] = useState('');
   const [uDescription, setUDescription] = useState('');
 
+  // Modal chọn thành viên từ danh sách hiện có để phân vào Nhóm / Tổ đội
+  const [assignUnitTarget, setAssignUnitTarget] = useState<TeamUnit | null>(null);
+  const [assignSearch, setAssignSearch] = useState('');
+
   // Tính khối lượng hồ sơ thực tế của từng thành viên & tổ đội
   const memberWorkload = useMemo(() => {
     const map = new Map<string, { active: number; completed: number }>();
@@ -586,10 +590,13 @@ export const MembersPage: React.FC = () => {
                       <span>Thành viên ({unitMembers.length})</span>
                       <button
                         type="button"
-                        onClick={() => openAddMember(unit.id)}
+                        onClick={() => {
+                          setAssignSearch('');
+                          setAssignUnitTarget(unit);
+                        }}
                         className="text-blue-700 hover:underline normal-case font-semibold inline-flex items-center gap-0.5"
                       >
-                        <Plus className="w-3 h-3" /> Thêm người
+                        <Plus className="w-3 h-3" /> Chọn từ DS thành viên
                       </button>
                     </div>
                     {unitMembers.length === 0 ? (
@@ -614,9 +621,19 @@ export const MembersPage: React.FC = () => {
                                 <div className="text-[10px] text-slate-500 truncate">{m.role}</div>
                               </div>
                             </div>
-                            <span className="text-[11px] font-mono text-slate-500 shrink-0">
-                              {m.phone}
-                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[11px] font-mono text-slate-500">
+                                {m.phone}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateMember(m.id, { unitId: '' })}
+                                title="Gỡ khỏi nhóm này"
+                                className="p-0.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -626,6 +643,116 @@ export const MembersPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL CHỌN THÀNH VIÊN HIỆN CÓ ĐỂ PHÂN VÀO NHÓM */}
+      {assignUnitTarget && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-[5px] border border-slate-200 shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Phân công thành viên vào {assignUnitTarget.name}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Chọn từ danh sách thành viên hiện có trong hệ thống
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssignUnitTarget(null)}
+                className="p-1 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={assignSearch}
+                  onChange={(e) => setAssignSearch(e.target.value)}
+                  placeholder="Tìm nhanh theo tên hoặc SĐT thành viên..."
+                  className="w-full h-9 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-[5px]">
+                {members
+                  .filter((m) => {
+                    const q = assignSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      m.name.toLowerCase().includes(q) ||
+                      m.phone.toLowerCase().includes(q) ||
+                      m.role.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((m) => {
+                    const inThisUnit = m.unitId === assignUnitTarget.id;
+                    const currentUnitName = m.unitId ? unitById.get(m.unitId)?.name : '';
+                    return (
+                      <div
+                        key={m.id}
+                        className={`flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs ${
+                          inThisUnit ? 'bg-blue-50/50' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-8 h-8 rounded-[5px] bg-slate-800 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                            {getInitials(m.name)}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-800 truncate">{m.name}</div>
+                            <div className="text-[11px] text-slate-500 truncate">
+                              {m.phone} •{' '}
+                              {inThisUnit
+                                ? 'Đang thuộc nhóm này'
+                                : currentUnitName
+                                  ? `Đang ở: ${currentUnitName}`
+                                  : 'Chưa phân tổ'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateMember(m.id, {
+                              unitId: inThisUnit ? '' : assignUnitTarget.id,
+                            })
+                          }
+                          className={`px-3 py-1.5 rounded-[5px] text-xs font-semibold border transition shrink-0 ${
+                            inThisUnit
+                              ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                              : 'bg-blue-700 text-white border-blue-700 hover:bg-blue-800'
+                          }`}
+                        >
+                          {inThisUnit ? 'Gỡ ra' : 'Thêm vào nhóm'}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignUnitTarget(null)}
+                  className="px-4 py-2 rounded-[5px] bg-slate-800 hover:bg-slate-900 text-xs font-semibold text-white"
+                >
+                  Xong
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

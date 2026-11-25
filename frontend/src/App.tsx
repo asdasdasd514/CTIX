@@ -21,14 +21,7 @@ import { CitizenReportDetailPage } from './modules/citizen/CitizenReportDetailPa
 import { FieldTasksPage } from './modules/field/FieldTasksPage';
 import { CitizenHomePage } from './pages/Citizen/CitizenHomePage';
 import { CitizenHelpPage } from './pages/Citizen/CitizenHelpPage';
-
-const RequireAuth: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
+import { CitizenAccountPage } from './pages/Citizen/CitizenAccountPage';
 
 export const App: React.FC = () => {
   const { storageError, resetToDefaultData } = useIncidentStore();
@@ -61,16 +54,9 @@ export const App: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
 
         {/* ========================================================
-            1. PHÂN HỆ CÔNG DÂN (Citizen Portal)
+            1. PHÂN HỆ CÔNG DÂN (Cho phép khách chưa đăng nhập vẫn xem & gửi phản ánh)
             ======================================================== */}
-        <Route
-          path="/citizen"
-          element={
-            <RequireAuth>
-              <CitizenLayout />
-            </RequireAuth>
-          }
-        >
+        <Route path="/citizen" element={<CitizenLayout />}>
           <Route index element={<CitizenHomePage />} />
           <Route path="home" element={<CitizenHomePage />} />
           <Route path="reports" element={<MyReportsPage />} />
@@ -79,6 +65,7 @@ export const App: React.FC = () => {
           <Route path="submit" element={<SubmitIncidentWizard />} />
           <Route path="map" element={<NearbyIncidentsMapPage />} />
           <Route path="help" element={<CitizenHelpPage />} />
+          <Route path="account" element={<CitizenAccountPage />} />
         </Route>
 
         {/* ========================================================

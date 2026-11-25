@@ -3,28 +3,25 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
-  Shield,
   Home,
   ClipboardList,
   HelpCircle,
   Eye,
-  ShieldAlert,
   PhoneCall,
   User,
-  ArrowRight,
-  Megaphone,
+  LogIn,
 } from 'lucide-react';
 
 export const CitizenTopNav: React.FC = () => {
   const navigate = useNavigate();
   const { elderlyMode, toggleElderlyMode, incidents } = useIncidentStore();
-  const { currentUser, loginAs } = useAuthStore();
+  const { isAuthenticated, currentUser } = useAuthStore();
 
   const activeReportsCount = incidents.filter(
     (i) => i.status === 'pending' || i.status === 'assigned' || i.status === 'in_progress'
   ).length;
 
-  // 3 MỤC CHUẨN (Đã bỏ Bản đồ khỏi thanh điều hướng và chuyển xuống Trang chủ)
+  // 3 mục khi chưa đăng nhập; 4 mục (thêm Tài khoản) khi đã đăng nhập
   const navLinks = [
     {
       to: '/citizen/home',
@@ -42,16 +39,25 @@ export const CitizenTopNav: React.FC = () => {
       label: 'Trợ giúp',
       icon: HelpCircle,
     },
+    ...(isAuthenticated
+      ? [
+          {
+            to: '/citizen/account',
+            label: 'Tài khoản',
+            icon: User,
+          },
+        ]
+      : []),
   ];
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 shadow-sm select-none">
-        {/* 1. THANH TIỆN ÍCH TRÊN CÙNG */}
+        {/* 1. THANH TIỆN ÍCH TRÊN CÙNG (Đã xóa nút chuyển qua Admin) */}
         <div className="bg-blue-950 text-white text-[11px] sm:text-xs py-1.5">
           <div className="max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 min-w-0">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
+              <span className="bg-amber-400 text-slate-900 text-[10px] font-bold px-2 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
                 CỔNG DÂN SINH
               </span>
               <span className="font-medium truncate text-blue-100 hidden md:inline">
@@ -59,7 +65,7 @@ export const CitizenTopNav: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0 font-bold">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 font-semibold">
               <a
                 href="tel:1022"
                 className="flex items-center gap-1 text-white hover:text-amber-300 transition whitespace-nowrap"
@@ -69,25 +75,11 @@ export const CitizenTopNav: React.FC = () => {
                 <span className="hidden sm:inline">Hotline:</span>
                 <span>1022</span>
               </a>
-              <span className="text-white/30">|</span>
-              <button
-                onClick={() => {
-                  loginAs('officer');
-                  navigate('/dashboard');
-                }}
-                className="flex items-center gap-1 text-white hover:text-cyan-200 bg-white/10 hover:bg-white/20 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-[5px] transition border border-white/20 whitespace-nowrap"
-                title="Chuyển sang Bàn làm việc Cán bộ / Admin"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-                <span className="hidden sm:inline">Bàn Cán Bộ /</span>
-                <span>Admin</span>
-                <ArrowRight className="w-3 h-3 shrink-0" />
-              </button>
             </div>
           </div>
         </div>
 
-        {/* 2. THANH ĐIỀU HƯỚNG CHÍNH (PC: THANH XANH GẠCH CHÂN BÊN DƯỚI KHI ACTIVE) */}
+        {/* 2. THANH ĐIỀU HƯỚNG CHÍNH */}
         <div className="max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-[72px] gap-2 sm:gap-4 min-w-0">
             {/* Logo & Tên Cổng Dịch Vụ */}
@@ -105,10 +97,10 @@ export const CitizenTopNav: React.FC = () => {
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm sm:text-base lg:text-lg font-black text-slate-900 tracking-tight leading-none truncate">
+                  <span className="text-sm sm:text-base lg:text-lg font-bold text-slate-800 tracking-tight leading-none truncate">
                     Trấn Biên SmartCity
                   </span>
-                  <span className="hidden sm:inline-block bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold px-1.5 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
+                  <span className="hidden sm:inline-block bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
                     Dân Sinh
                   </span>
                 </div>
@@ -118,7 +110,7 @@ export const CitizenTopNav: React.FC = () => {
               </div>
             </button>
 
-            {/* 3 Navigation Links trên PC/Tablet (Gạch chân thanh xanh bên dưới thay vì khung xanh bao quanh) */}
+            {/* Navigation Links trên PC/Tablet */}
             <nav className="hidden md:flex items-stretch h-full gap-1 lg:gap-2 shrink-0">
               {navLinks.map((item) => {
                 const Icon = item.icon;
@@ -127,22 +119,26 @@ export const CitizenTopNav: React.FC = () => {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `relative flex items-center gap-2 px-3.5 lg:px-5 text-sm font-bold transition whitespace-nowrap ${isActive
-                        ? 'text-blue-700'
-                        : 'text-slate-600 hover:text-blue-700 hover:bg-slate-50/80'
+                      `relative flex items-center gap-2 px-3.5 lg:px-5 text-sm font-semibold transition whitespace-nowrap ${
+                        isActive
+                          ? 'text-blue-700'
+                          : 'text-slate-600 hover:text-blue-700 hover:bg-slate-50/80'
                       }`
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-700' : 'text-slate-500'}`} />
+                        <Icon
+                          className={`w-4 h-4 shrink-0 ${
+                            isActive ? 'text-blue-700' : 'text-slate-500'
+                          }`}
+                        />
                         <span>{item.label}</span>
                         {item.badge && (
-                          <span className="ml-0.5 px-1.5 py-0.5 rounded-[5px] text-[10px] font-black bg-rose-600 text-white leading-none">
+                          <span className="ml-0.5 px-1.5 py-0.5 rounded-[5px] text-[10px] font-bold bg-rose-600 text-white leading-none">
                             {item.badge}
                           </span>
                         )}
-                        {/* Thanh xanh bên dưới mục đang chọn */}
                         {isActive && (
                           <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-blue-700 rounded-t-[2px]" />
                         )}
@@ -155,14 +151,15 @@ export const CitizenTopNav: React.FC = () => {
 
             {/* Tiện ích Phía Phải */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Chế độ Người cao tuổi (Tối giản + Tương phản cao + Chữ lớn) */}
+              {/* Chế độ Người cao tuổi */}
               <button
                 onClick={toggleElderlyMode}
                 type="button"
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[5px] text-xs font-bold transition border whitespace-nowrap ${elderlyMode
-                  ? 'bg-amber-400 text-slate-950 border-slate-900 font-black shadow-sm'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
-                  }`}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[5px] text-xs font-semibold transition border whitespace-nowrap ${
+                  elderlyMode
+                    ? 'bg-amber-400 text-slate-950 border-slate-900 font-bold shadow-sm'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
+                }`}
                 title="Bật giao diện tối giản, chữ lớn và tương phản cao cho người cao tuổi"
               >
                 <Eye className="w-4 h-4 shrink-0" />
@@ -172,92 +169,91 @@ export const CitizenTopNav: React.FC = () => {
                 <span className="sm:hidden">{elderlyMode ? '✓ A+' : 'A+'}</span>
               </button>
 
-              {/* Profile Người Dân */}
-              <div className="hidden xl:flex items-center gap-2.5 pl-3 border-l border-slate-200 shrink-0">
-                <div className="w-8 h-8 rounded-[5px] bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
-                  <User className="w-4 h-4" />
-                </div>
-                <div className="text-left text-xs whitespace-nowrap">
-                  <div className="font-extrabold text-slate-900 leading-none">
-                    {currentUser.role === 'citizen' ? currentUser.name : 'Bác Hai Trấn Biên'}
+              {/* Đã đăng nhập: hiện tên tài khoản dẫn tới /citizen/account | Chưa đăng nhập: nút Đăng nhập */}
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/citizen/account')}
+                  className="hidden xl:flex items-center gap-2.5 pl-3 border-l border-slate-200 shrink-0 hover:opacity-85 transition"
+                  title="Xem & chỉnh sửa thông tin tài khoản"
+                >
+                  <div className="w-8 h-8 rounded-[5px] bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4" />
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-1 font-medium">
-                    Công dân KP.2
+                  <div className="text-left text-xs whitespace-nowrap">
+                    <div className="font-semibold text-slate-800 leading-none">
+                      {currentUser.name}
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-1 font-medium">
+                      {currentUser.phone}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition whitespace-nowrap shadow-sm"
+                >
+                  <LogIn className="w-3.5 h-3.5 shrink-0" />
+                  <span>Đăng nhập</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* 3. MOBILE BOTTOM NAVIGATION BAR (HIỂN THỊ DƯỚI CÙNG TRÊN ĐIỆN THOẠI NHƯ APP CHUYÊN NGHIỆP) */}
+      {/* 3. MOBILE BOTTOM NAVIGATION BAR — ĐƠN GIẢN, ĐẸP, KHUNG ACTIVE CHẠY THEO TRANG ĐANG CHỌN */}
       <nav
         aria-label="Điều hướng công dân trên điện thoại"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-4px_18px_rgba(15,23,42,0.08)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-2px_12px_rgba(15,23,42,0.06)]"
       >
-        <div className="grid grid-cols-3 items-end h-[64px] max-w-md mx-auto px-2 pb-1.5">
-          {/* Mục 1: Trang chủ */}
-          <NavLink
-            to="/citizen/home"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-1 transition ${isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Home className={`w-5 h-5 ${isActive ? 'stroke-[2.4]' : 'stroke-[1.9]'}`} />
-                <span className="text-[11px] leading-none">Trang chủ</span>
-              </>
-            )}
-          </NavLink>
-
-          {/* Mục 2 (Giữa - Nổi bật màu xanh như ảnh mẫu): Phản ánh */}
-          <NavLink
-            to="/citizen/reports"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-end gap-1 pb-1 transition ${isActive ? 'text-blue-700 font-bold' : 'text-slate-600 font-semibold'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <div className="relative -mt-7">
-                  <div
-                    className={`w-13 h-13 w-[54px] h-[54px] rounded-[14px] flex items-center justify-center shadow-lg transition-transform active:scale-95 ${isActive
-                      ? 'bg-blue-700 text-white shadow-blue-700/40 ring-4 ring-white'
-                      : 'bg-blue-700 hover:bg-blue-800 text-white shadow-blue-700/30 ring-4 ring-white'
-                      }`}
-                  >
-                    <Megaphone className="w-6 h-6 text-white" />
-                  </div>
-                  {activeReportsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] text-center rounded-[5px] text-[10px] font-black bg-rose-600 text-white border border-white leading-none">
-                      {activeReportsCount}
+        <div
+          className={`grid ${
+            isAuthenticated ? 'grid-cols-4' : 'grid-cols-3'
+          } items-center h-[62px] max-w-md mx-auto px-1.5 gap-1`}
+        >
+          {navLinks.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `relative flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-[8px] transition-all duration-150 ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-700 font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 font-medium'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {/* Thanh mảnh trên cùng đánh dấu tab đang chọn */}
+                    {isActive && (
+                      <span className="absolute top-0 left-3 right-3 h-[2.5px] bg-blue-700 rounded-b-full" />
+                    )}
+                    <div className="relative">
+                      <Icon
+                        className={`w-[20px] h-[20px] ${
+                          isActive ? 'stroke-[2.3]' : 'stroke-[1.8]'
+                        }`}
+                      />
+                      {item.badge && (
+                        <span className="absolute -top-1.5 -right-2.5 px-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold bg-rose-600 text-white border border-white leading-none">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] leading-none truncate max-w-full">
+                      {item.label}
                     </span>
-                  )}
-                </div>
-                <span className="text-[11px] leading-none">Phản ánh</span>
-              </>
-            )}
-          </NavLink>
-
-          {/* Mục 3: Trợ giúp */}
-          <NavLink
-            to="/citizen/help"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-1 transition ${isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <HelpCircle className={`w-5 h-5 ${isActive ? 'stroke-[2.4]' : 'stroke-[1.9]'}`} />
-                <span className="text-[11px] leading-none">Trợ giúp</span>
-              </>
-            )}
-          </NavLink>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </div>
       </nav>
     </>
