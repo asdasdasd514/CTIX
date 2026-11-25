@@ -94,7 +94,7 @@ export const DispatchDetailPage: React.FC = () => {
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [selectedUnitName, setSelectedUnitName] = useState<string>('');
   const [priority, setPriority] = useState<IncidentPriority>(incident?.priority || 'high');
-  const [deadlineDays, setDeadlineDays] = useState<number>(2);
+  const [deadlineHours, setDeadlineHours] = useState<number>(24);
   const [notes, setNotes] = useState<string>('');
   const [workflowDraft, setWorkflowDraft] = useState<string[]>(() =>
     incident
@@ -219,6 +219,10 @@ export const DispatchDetailPage: React.FC = () => {
         completed: false,
       }));
 
+    const safeHours = Math.max(1, Math.min(720, Math.round(Number(deadlineHours) || 24)));
+    const computedDeadlineIso = new Date(Date.now() + safeHours * 60 * 60 * 1000).toISOString();
+    const computedDays = Math.max(1, Math.ceil(safeHours / 24));
+
     try {
       if (assignMode === 'individual') {
         const staff = staffCandidates.find((s) => s.id === effectiveStaffId);
@@ -226,16 +230,17 @@ export const DispatchDetailPage: React.FC = () => {
           setErrorMsg('Vui lòng chọn một nhân sự phụ trách.');
           return;
         }
-        assignIncident(incident.id, staff.unitName, deadlineDays, currentUser.name, {
+        assignIncident(incident.id, staff.unitName, computedDays, currentUser.name, {
           priority,
           assigneeId: staff.id,
           assigneeName: staff.name,
           notes: notes.trim() || undefined,
           expectedUpdatedAt: incident.updatedAt,
+          deadline: computedDeadlineIso,
           workflowSteps,
         });
         setSuccessMsg(
-          `Đã phân công thành công cho Đ/c ${staff.name} (${staff.unitName}) kèm ${workflowSteps.length} bước quy trình.`
+          `Đã phân công thành công cho Đ/c ${staff.name} (${staff.unitName}) • Hạn xử lý ${safeHours} giờ kèm ${workflowSteps.length} bước quy trình.`
         );
       } else {
         const unit = groupCandidates.find((u) => u.name === effectiveUnitName);
@@ -243,14 +248,15 @@ export const DispatchDetailPage: React.FC = () => {
           setErrorMsg('Vui lòng chọn một tổ đội tiếp ứng.');
           return;
         }
-        assignIncident(incident.id, unit.name, deadlineDays, currentUser.name, {
+        assignIncident(incident.id, unit.name, computedDays, currentUser.name, {
           priority,
           notes: notes.trim() || undefined,
           expectedUpdatedAt: incident.updatedAt,
+          deadline: computedDeadlineIso,
           workflowSteps,
         });
         setSuccessMsg(
-          `Đã phân công theo nhóm cho ${unit.name} (${unit.staff.length} thành viên) kèm ${workflowSteps.length} bước quy trình.`
+          `Đã phân công theo nhóm cho ${unit.name} (${unit.staff.length} thành viên) • Hạn xử lý ${safeHours} giờ kèm ${workflowSteps.length} bước quy trình.`
         );
       }
     } catch (err) {
@@ -878,18 +884,25 @@ export const DispatchDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    Hạn xử lý (SLA):
+                    Hạn xử lý (SLA — mặc định 24h):
                   </label>
-                  <select
-                    value={deadlineDays}
-                    onChange={(e) => setDeadlineDays(Number(e.target.value))}
-                    className="w-full px-2.5 py-2 border border-slate-300 rounded-[5px] text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  >
-                    <option value={1}>Trong 24 giờ (1 ngày)</option>
-                    <option value={2}>Tiêu chuẩn (2 ngày)</option>
-                    <option value={3}>3 ngày làm việc</option>
-                    <option value={5}>5 ngày làm việc</option>
-                  </select>
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      min={1}
+                      max={720}
+                      step={1}
+                      value={deadlineHours}
+                      onChange={(e) => setDeadlineHours(Math.max(1, Number(e.target.value) || 24))}
+                      className="w-full pl-2.5 pr-12 py-2 border border-slate-300 rounded-[5px] text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    />
+                    <span className="absolute right-2.5 text-[11px] font-bold text-slate-500 pointer-events-none">
+                      giờ
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    ≈ {(Math.max(1, Number(deadlineHours) || 24) / 24).toFixed(1).replace('.0', '')} ngày
+                  </div>
                 </div>
               </div>
 
