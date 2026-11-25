@@ -36,11 +36,7 @@ function serializeAccount(u: IUser) {
 async function syncUserToTeamMember(user: IUser) {
   const memberId = `acc-${user.userId}`;
   if (isStaffRole(user.role)) {
-    let targetUnitId = user.unitId;
-    if (!targetUnitId) {
-      const fallbackUnit = await UnitModel.findOne({ unitId: 'unit-other' }) || (await UnitModel.findOne());
-      targetUnitId = fallbackUnit?.unitId || 'unit-other';
-    }
+    const targetUnitId = user.unitId?.trim() || '';
 
     await UnitMemberModel.findOneAndUpdate(
       { memberId },
@@ -122,7 +118,7 @@ export async function createUser(req: Request, res: Response) {
       role: finalRole,
       title: title?.trim() || defaultTitleByRole(finalRole),
       department: finalRole === 'citizen' ? 'Phường Trấn Biên, TP. Biên Hòa' : resolvedDepartment,
-      unitId: isStaffRole(finalRole) ? unitId || 'unit-other' : undefined,
+      unitId: isStaffRole(finalRole) ? unitId?.trim() || '' : undefined,
       isActive: true,
     });
 
@@ -162,7 +158,17 @@ export async function updateUser(req: Request, res: Response) {
     if (role !== undefined) user.role = role;
     if (title !== undefined) user.title = title.trim() || defaultTitleByRole(user.role);
     if (department !== undefined) user.department = department.trim();
-    if (unitId !== undefined) user.unitId = isStaffRole(user.role) ? unitId || 'unit-other' : undefined;
+    if (unitId !== undefined) {
+      user.unitId = isStaffRole(user.role) ? unitId.trim() : undefined;
+      if (isStaffRole(user.role)) {
+        if (unitId.trim()) {
+          const unit = await UnitModel.findOne({ unitId: unitId.trim() });
+          if (unit) user.department = unit.name;
+        } else {
+          user.department = 'UBND Phường Trấn Biên';
+        }
+      }
+    }
     if (typeof isActive === 'boolean') user.isActive = isActive;
     if (password && password.length >= 6) {
       user.passwordHash = await bcrypt.hash(password, 10);

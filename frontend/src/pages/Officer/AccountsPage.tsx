@@ -68,8 +68,7 @@ export const AccountsPage: React.FC = () => {
   const [fEmail, setFEmail] = useState('');
   const [fPassword, setFPassword] = useState('');
   const [fRole, setFRole] = useState<RoleOption>('citizen');
-  const [fTitle, setFTitle] = useState('');
-  const [fUnitId, setFUnitId] = useState(units[0]?.id || 'unit-other');
+  const [fUnitId, setFUnitId] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -139,8 +138,7 @@ export const AccountsPage: React.FC = () => {
     setFEmail('');
     setFPassword('');
     setFRole('volunteer');
-    setFTitle('');
-    setFUnitId(units[0]?.id || 'unit-other');
+    setFUnitId('');
     setFormError(null);
     setModalOpen(true);
   };
@@ -152,8 +150,7 @@ export const AccountsPage: React.FC = () => {
     setFEmail(acc.email || '');
     setFPassword('');
     setFRole(acc.role);
-    setFTitle(acc.title || '');
-    setFUnitId(acc.unitId || units[0]?.id || 'unit-other');
+    setFUnitId(acc.unitId || '');
     setFormError(null);
     setModalOpen(true);
   };
@@ -180,8 +177,7 @@ export const AccountsPage: React.FC = () => {
           email: fEmail.trim(),
           ...(fPassword.length >= 6 ? { password: fPassword } : {}),
           role: fRole,
-          title: fTitle.trim() || undefined,
-          unitId: isStaff ? fUnitId : undefined,
+          unitId: isStaff ? fUnitId : '',
         });
         setAccounts((prev) => prev.map((a) => (a.id === editing.id ? res.user : a)));
         setNotice(
@@ -196,7 +192,6 @@ export const AccountsPage: React.FC = () => {
           email: fEmail.trim() || undefined,
           password: fPassword,
           role: fRole,
-          title: fTitle.trim() || undefined,
           unitId: isStaff ? fUnitId : undefined,
         });
         setAccounts((prev) => [res.user, ...prev]);
@@ -591,35 +586,22 @@ export const AccountsPage: React.FC = () => {
               </div>
 
               {ROLE_META[fRole].isStaff && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Thuộc Tổ đội *
-                    </label>
-                    <select
-                      value={fUnitId}
-                      onChange={(e) => setFUnitId(e.target.value)}
-                      className="w-full h-9 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                    >
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Chức vụ
-                    </label>
-                    <input
-                      type="text"
-                      value={fTitle}
-                      onChange={(e) => setFTitle(e.target.value)}
-                      placeholder="VD: Kỹ thuật viên"
-                      className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Thuộc Tổ đội (tùy chọn)
+                  </label>
+                  <select
+                    value={fUnitId}
+                    onChange={(e) => setFUnitId(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  >
+                    <option value="">Không thuộc tổ đội nào</option>
+                    {units.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
