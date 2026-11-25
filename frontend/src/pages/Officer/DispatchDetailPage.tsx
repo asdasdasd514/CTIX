@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTeamStore } from '../../store/useTeamStore';
+import { incidentsApi, type DuplicateCandidate } from '../../services/api';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
   CATEGORIES,
@@ -36,13 +37,56 @@ import {
 export const DispatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { incidents, assignIncident, approveIncident, rejectIncident } = useIncidentStore();
+  const { incidents, assignIncident, approveIncident, rejectIncident, mergeIncidents } =
+    useIncidentStore();
   const { currentUser } = useAuthStore();
   const { units, members } = useTeamStore();
 
   const incident = incidents.find((item) => item.id === id);
   const [rejectReason, setRejectReason] = useState<string>('');
   const [showRejectBox, setShowRejectBox] = useState<boolean>(false);
+
+  // AI Gemini đối chiếu phản ánh trong bán kính 50m (kể cả khác loại / Sự cố khác)
+  const [nearbyLoading, setNearbyLoading] = useState<boolean>(false);
+  const [nearbyCandidates, setNearbyCandidates] = useState<DuplicateCandidate[]>([]);
+  const [nearbyAnalyzedBy, setNearbyAnalyzedBy] = useState<'gemini' | 'ngram'>('ngram');
+  const [showOtherNearby, setShowOtherNearby] = useState<boolean>(false);
+
+  const runNearbyCheck = async () => {
+    if (!incident) return;
+    setNearbyLoading(true);
+    try {
+      const res = await incidentsApi.checkDuplicate({
+        title: incident.title,
+        description: incident.description,
+        category: incident.category,
+        lat: incident.location.lat,
+        lng: incident.location.lng,
+        radiusMeters: 50,
+        excludeId: incident.id,
+      });
+      setNearbyCandidates(res.candidates || []);
+      setNearbyAnalyzedBy(res.analyzedBy || 'ngram');
+    } catch {
+      setNearbyCandidates([]);
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      incident &&
+      (incident.status === 'pending_review' ||
+        incident.status === 'pending' ||
+        incident.status === 'assigned')
+    ) {
+      void runNearbyCheck();
+    } else {
+      setNearbyCandidates([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incident?.id]);
 
   // Chế độ phân công: 'individual' (Cá nhân) hoặc 'group' (Tổ đội / Nhóm)
   const [assignMode, setAssignMode] = useState<'individual' | 'group'>('individual');
@@ -371,6 +415,178 @@ export const DispatchDetailPage: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* CÁC PHẢN ÁNH ĐÃ GỘP VÀO HỒ SƠ NÀY (KÈM SĐT ĐỂ CÁN BỘ LIÊN HỆ) */}
+          {incident.linkedReports && incident.linkedReports.length > 0 && (
+            <div className="pt-4 border-t border-slate-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">
+                  Các phản ánh đã gộp ({incident.linkedReports.length}) • Tổng {incident.sameReportsCount} người báo
+                </span>
+              </div>
+              <div className="space-y-2">
+                {incident.linkedReports.map((lr, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-[5px] bg-amber-50/50 border border-amber-200 flex items-start gap-3 text-xs"
+                  >
+                    {lr.photos?.[0] && (
+                      <img
+                        src={lr.photos[0]}
+                        alt={`Ảnh gộp ${idx + 1}`}
+                        className="w-14 h-14 rounded-[5px] object-cover border border-amber-200 shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-slate-800">
+                        {lr.sender?.name} • <span className="font-mono text-blue-700">{lr.sender?.phone}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        Gửi lúc: {formatDate(lr.reportedAt)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI GEMINI ĐỐI CHIẾU PHẢN ÁNH TRONG BÁN KÍNH 50M (HỖ TRỢ GỘP CHÉO LOẠI) */}
+          {(incident.status === 'pending_review' ||
+            incident.status === 'pending' ||
+            incident.status === 'assigned') && (
+            <div className="pt-4 border-t border-slate-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    ✨ AI đối chiếu phản ánh trong bán kính 50m ({nearbyCandidates.length})
+                  </span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                    {nearbyAnalyzedBy === 'gemini' ? 'Gemini 2.5 Flash' : 'N-gram'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void runNearbyCheck()}
+                  disabled={nearbyLoading}
+                  className="text-[11px] font-semibold text-blue-700 hover:underline disabled:opacity-50"
+                >
+                  {nearbyLoading ? 'Đang quét AI...' : 'Quét lại AI'}
+                </button>
+              </div>
+
+              {nearbyLoading ? (
+                <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                  AI đang đối chiếu ngữ nghĩa & khoảng cách các hồ sơ trong 50m...
+                </div>
+              ) : nearbyCandidates.length === 0 ? (
+                <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                  Không phát hiện phản ánh nào khác đang mở trong bán kính 50m quanh điểm này.
+                </div>
+              ) : (
+                (() => {
+                  const highDup = nearbyCandidates.filter((c) => c.isDuplicate || c.confidence >= 60);
+                  const otherNear = nearbyCandidates.filter((c) => !c.isDuplicate && c.confidence < 60);
+
+                  const renderCard = (cand: DuplicateCandidate) => (
+                    <div
+                      key={cand.incident.id}
+                      className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-start gap-3"
+                    >
+                      {cand.incident.photosBefore[0] && (
+                        <img
+                          src={cand.incident.photosBefore[0]}
+                          alt=""
+                          className="w-16 h-16 rounded-[5px] object-cover border border-slate-200 shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                          <span className="font-mono font-bold text-blue-700">#{cand.incident.code}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-semibold">
+                            {CATEGORIES[cand.incident.category]}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold">
+                            Cách {cand.distanceMeters}m
+                          </span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded font-bold ${
+                              cand.confidence >= 60
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            Khớp {cand.confidence}%
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-800 line-clamp-1">
+                          {cand.incident.title}
+                        </div>
+                        <div className="text-[11px] text-slate-600">{cand.reason}</div>
+                        <div className="pt-1 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  `Gộp hồ sơ #${cand.incident.code} vào hồ sơ #${incident.code}? Toàn bộ ảnh và thông tin người báo sẽ được giữ lại trong mục Đã gộp.`
+                                )
+                              ) {
+                                mergeIncidents(incident.id, cand.incident.id);
+                                setNearbyCandidates((prev) =>
+                                  prev.filter((c) => c.incident.id !== cand.incident.id)
+                                );
+                                setSuccessMsg(
+                                  `Đã gộp hồ sơ #${cand.incident.code} vào #${incident.code}.`
+                                );
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded-[4px] bg-blue-700 hover:bg-blue-800 text-white text-[11px] font-bold transition"
+                          >
+                            Gộp vào hồ sơ này
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/dispatch/${cand.incident.id}`)}
+                            className="px-2.5 py-1 rounded-[4px] bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition"
+                          >
+                            Xem hồ sơ kia
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  return (
+                    <div className="space-y-3">
+                      {highDup.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-[11px] font-bold text-amber-800">
+                            Nghi trùng cao ({highDup.length})
+                          </div>
+                          {highDup.map(renderCard)}
+                        </div>
+                      )}
+                      {otherNear.length > 0 && (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowOtherNearby((v) => !v)}
+                            className="text-[11px] font-semibold text-slate-600 hover:text-blue-700 underline"
+                          >
+                            {showOtherNearby
+                              ? `Ẩn sự cố khác gần đó (${otherNear.length})`
+                              : `Xem thêm ${otherNear.length} sự cố khác gần đó (≤ 50m) để đối chiếu chéo loại`}
+                          </button>
+                          {showOtherNearby && <div className="space-y-2">{otherNear.map(renderCard)}</div>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
+            </div>
+          )}
         </div>
 
         {/* CỘT PHẢI (5/12): KIỂM DUYỆT HOẶC PHÂN CÔNG NHÂN LỰC */}

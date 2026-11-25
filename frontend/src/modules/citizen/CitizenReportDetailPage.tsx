@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { mediaApi } from '../../services/api';
+import { distanceMeters } from '../../lib/incidents';
 import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import {
@@ -689,6 +690,99 @@ export const CitizenReportDetailPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* CÁC PHẢN ÁNH CÙNG HIỆN TRƯỜNG ĐÃ GỘP (ẨN SĐT ĐỂ BẢO MẬT CÔNG DÂN) */}
+              {incident.linkedReports && incident.linkedReports.length > 0 && (
+                <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                      Các phản ánh cùng hiện trường đã gộp ({incident.linkedReports.length})
+                    </h3>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-[4px] bg-amber-50 text-amber-800 border border-amber-200">
+                      🔥 {incident.sameReportsCount} người cùng phản ánh
+                    </span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {incident.linkedReports.map((lr, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-start gap-3"
+                      >
+                        {lr.photos?.[0] && (
+                          <img
+                            src={lr.photos[0]}
+                            alt={`Góc chụp bổ sung ${idx + 1}`}
+                            className="w-16 h-16 rounded-[5px] object-cover border border-slate-200 shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1 text-xs">
+                          <div className="font-semibold text-slate-800">
+                            {lr.sender?.name || 'Công dân Phường Trấn Biên'}
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Báo bổ sung lúc {new Date(lr.reportedAt).toLocaleString('vi-VN')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PHẢN ÁNH TƯƠNG TỰ QUANH ĐÂY (TRONG BÁN KÍNH 50M) */}
+              {(() => {
+                const nearbyPublic = incidents
+                  .filter(
+                    (other) =>
+                      other.id !== incident.id &&
+                      other.status !== 'pending_review' &&
+                      other.status !== 'rejected' &&
+                      other.status !== 'resolved' &&
+                      other.status !== 'closed'
+                  )
+                  .map((other) => ({
+                    other,
+                    dist: Math.round(distanceMeters(incident.location, other.location)),
+                  }))
+                  .filter((x) => x.dist <= 50)
+                  .sort((a, b) => a.dist - b.dist)
+                  .slice(0, 4);
+
+                if (nearbyPublic.length === 0) return null;
+                return (
+                  <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                      Phản ánh gần vị trí này (trong bán kính 50m)
+                    </h3>
+                    <div className="space-y-2">
+                      {nearbyPublic.map(({ other, dist }) => (
+                        <button
+                          key={other.id}
+                          type="button"
+                          onClick={() => navigate(`/citizen/reports/${other.id}`)}
+                          className="w-full text-left p-2.5 rounded-[5px] bg-slate-50 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-300 flex items-center gap-3 transition"
+                        >
+                          {other.photosBefore[0] && (
+                            <img
+                              src={other.photosBefore[0]}
+                              alt=""
+                              className="w-12 h-12 rounded-[5px] object-cover border border-slate-200 shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-slate-800 truncate">
+                              {other.title}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                              Cách {dist}m • {other.location.address}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>

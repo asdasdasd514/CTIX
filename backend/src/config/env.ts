@@ -12,4 +12,5 @@ export const env = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
   JWT_SECRET: process.env.JWT_SECRET || 'ctix_dev_secret_change_in_prod',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
 };

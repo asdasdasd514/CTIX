@@ -191,6 +191,15 @@ interface IncidentStore {
   ) => void;
   approveIncident: (id: string, officerName?: string) => void;
   rejectIncident: (id: string, reason: string, officerName?: string) => void;
+  linkDuplicateIncident: (
+    targetId: string,
+    payload: { senderName: string; senderPhone: string; photos: string[] },
+  ) => void;
+  mergeIncidents: (
+    targetId: string,
+    sourceId: string,
+    newCategory?: IncidentCategory,
+  ) => void;
   reassignIncident: (id: string, options: ReassignOptions) => void;
   startIncident: (id: string) => void;
   verifyIncident: (id: string, notes?: string) => void;
@@ -471,6 +480,70 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
     });
     if (isBrowserEnv()) {
       incidentsApi.reject(id, trimmed, officerName).catch(() => {});
+    }
+  },
+  linkDuplicateIncident: (targetId, payload) => {
+    const nowIso = new Date().toISOString();
+    changeIncident(targetId, (item) => {
+      const nextCount = (item.sameReportsCount || 1) + 1;
+      return {
+        ...item,
+        sameReportsCount: nextCount,
+        priority: nextCount >= 3 && item.priority === "normal" ? "high" : item.priority,
+        linkedReports: [
+          ...(item.linkedReports || []),
+          {
+            sender: {
+              name: payload.senderName.trim() || "Công dân Phường Trấn Biên",
+              phone: payload.senderPhone.trim() || "0900000000",
+            },
+            photos: payload.photos,
+            reportedAt: nowIso,
+          },
+        ],
+      };
+    });
+    if (isBrowserEnv()) {
+      incidentsApi.linkDuplicate(targetId, payload).catch(() => {});
+    }
+  },
+  mergeIncidents: (targetId, sourceId, newCategory) => {
+    const source = get().incidents.find((i) => i.id === sourceId);
+    const target = get().incidents.find((i) => i.id === targetId);
+    if (!source || !target || targetId === sourceId) return;
+
+    const nowIso = new Date().toISOString();
+    const nextLinked = [
+      ...(target.linkedReports || []),
+      {
+        sender: source.sender,
+        photos: source.photosBefore || [],
+        reportedAt: source.createdAt,
+      },
+      ...(source.linkedReports || []),
+    ];
+    const nextCount = (target.sameReportsCount || 1) + (source.sameReportsCount || 1);
+    const mergedTarget: Incident = {
+      ...target,
+      ...(newCategory ? { category: newCategory } : {}),
+      sameReportsCount: nextCount,
+      priority: nextCount >= 3 && target.priority === "normal" ? "high" : target.priority,
+      linkedReports: nextLinked,
+      updatedAt: nowIso,
+    };
+
+    const nextList = get()
+      .incidents.filter((i) => i.id !== sourceId)
+      .map((i) => (i.id === targetId ? mergedTarget : i));
+    save(nextList);
+    set({
+      incidents: nextList,
+      lastSyncedAt: nowIso,
+      syncNotice: `Đã gộp hồ sơ ${source.code} vào ${target.code}.`,
+    });
+
+    if (isBrowserEnv()) {
+      incidentsApi.mergeIncidents(targetId, sourceId, newCategory).catch(() => {});
     }
   },
   assignIncident: (

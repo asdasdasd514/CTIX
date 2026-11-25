@@ -91,8 +91,51 @@ export const mediaApi = {
 };
 
 // 3. Incidents API (MOD-01 -> MOD-05)
+export interface DuplicateCandidate {
+  incident: Incident;
+  distanceMeters: number;
+  isDuplicate: boolean;
+  confidence: number;
+  reason: string;
+}
+
+export interface CheckDuplicateResponse {
+  candidates: DuplicateCandidate[];
+  suggestedCategory?: IncidentCategory;
+  analyzedBy: 'gemini' | 'ngram';
+}
+
 export const incidentsApi = {
   list: () => apiRequest<{ incidents: Incident[]; total: number }>('/incidents'),
+  checkDuplicate: (payload: {
+    title?: string;
+    description: string;
+    category: IncidentCategory;
+    lat: number;
+    lng: number;
+    radiusMeters?: number;
+    excludeId?: string;
+  }) =>
+    apiRequest<CheckDuplicateResponse>('/incidents/check-duplicate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  linkDuplicate: (
+    id: string,
+    payload: { senderName: string; senderPhone: string; photos: string[] }
+  ) =>
+    apiRequest<{ incident: Incident }>(`/incidents/${encodeURIComponent(id)}/link-duplicate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  mergeIncidents: (targetId: string, sourceId: string, newCategory?: IncidentCategory) =>
+    apiRequest<{ incident: Incident; mergedSourceId: string }>(
+      `/incidents/${encodeURIComponent(targetId)}/merge/${encodeURIComponent(sourceId)}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ newCategory }),
+      }
+    ),
   create: (input: NewIncidentInput) =>
     apiRequest<{ incident: Incident }>('/incidents', {
       method: 'POST',

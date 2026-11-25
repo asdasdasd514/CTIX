@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { IncidentModel, serializeIncident } from '../models/Incident';
 import type { IncidentCategoryType } from '../models/Unit';
+import { analyzeDuplicatesWithAI, distanceMeters } from '../services/aiDuplicateService';
 
 const CATEGORY_TITLES: Record<IncidentCategoryType, string> = {
   street_light: 'Sự cố đèn chiếu sáng đô thị',
@@ -508,5 +509,179 @@ export async function toggleWorkflowStep(req: Request, res: Response) {
   } catch (err) {
     console.error('[Incidents] toggleWorkflowStep error:', err);
     return res.status(500).json({ message: 'Không thể cập nhật bước quy trình.' });
+  }
+}
+
+// POST /api/incidents/check-duplicate — Quét bán kính 50m + AI Gemini 2.5 Flash phân tích chéo loại
+export async function checkDuplicates(req: Request, res: Response) {
+  try {
+    const {
+      title = '',
+      description = '',
+      category = 'other',
+      lat,
+      lng,
+      radiusMeters = 50,
+      excludeId,
+    } = req.body as {
+      title?: string;
+      description?: string;
+      category?: IncidentCategoryType;
+      lat?: number;
+      lng?: number;
+      radiusMeters?: number;
+      excludeId?: string;
+    };
+
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (!Number.isFinite(numLat) || !Number.isFinite(numLng)) {
+      return res.status(400).json({ message: 'Tọa độ không hợp lệ.' });
+    }
+
+    const radius = Math.min(200, Math.max(10, Number(radiusMeters) || 50));
+
+    // Lấy toàn bộ hồ sơ đang mở (không phân biệt loại)
+    const openDocs = await IncidentModel.find({
+      status: { $in: ['pending_review', 'pending', 'assigned', 'in_progress'] },
+      ...(excludeId ? { incidentId: { $ne: excludeId } } : {}),
+    });
+
+    const nearby = openDocs
+      .map((doc) => ({
+        doc,
+        distance: distanceMeters(numLat, numLng, doc.location.lat, doc.location.lng),
+      }))
+      .filter((item) => item.distance <= radius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 8);
+
+    if (nearby.length === 0) {
+      return res.json({
+        candidates: [],
+        suggestedCategory: undefined,
+        analyzedBy: 'ngram',
+      });
+    }
+
+    const analysis = await analyzeDuplicatesWithAI(
+      { title, description, category, lat: numLat, lng: numLng },
+      nearby
+    );
+
+    const docMap = new Map(nearby.map((n) => [n.doc.incidentId, n.doc]));
+    const candidates = analysis.matches
+      .map((m) => {
+        const doc = docMap.get(m.incidentId);
+        if (!doc) return null;
+        return {
+          incident: serializeIncident(doc),
+          distanceMeters: m.distanceMeters,
+          isDuplicate: m.isDuplicate,
+          confidence: m.confidence,
+          reason: m.reason,
+        };
+      })
+      .filter(Boolean);
+
+    return res.json({
+      candidates,
+      suggestedCategory: analysis.suggestedCategory,
+      analyzedBy: analysis.analyzedBy,
+    });
+  } catch (err) {
+    console.error('[Incidents] checkDuplicates error:', err);
+    return res.status(500).json({ message: 'Không thể kiểm tra phản ánh tương tự.' });
+  }
+}
+
+// POST /api/incidents/:id/link-duplicate — Công dân chọn "Đúng là sự cố này (+1 đồng phản ánh)"
+export async function linkDuplicate(req: Request, res: Response) {
+  try {
+    const doc = await IncidentModel.findOne({ incidentId: req.params.id });
+    if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ gốc.' });
+
+    const { senderName, senderPhone, photos } = req.body as {
+      senderName?: string;
+      senderPhone?: string;
+      photos?: string[];
+    };
+
+    const nowIso = new Date().toISOString();
+    doc.linkedReports = doc.linkedReports || [];
+    doc.linkedReports.push({
+      sender: {
+        name: senderName?.trim() || 'Công dân Phường Trấn Biên',
+        phone: senderPhone?.trim() || '0900000000',
+      },
+      photos: Array.isArray(photos) ? photos : [],
+      reportedAt: nowIso,
+    });
+    doc.sameReportsCount = (doc.sameReportsCount || 1) + 1;
+
+    // Tự động nâng mức ưu tiên khi có >= 3 người cùng phản ánh
+    if (doc.sameReportsCount >= 3 && doc.priority === 'normal') {
+      doc.priority = 'high';
+    }
+
+    doc.updatedAtIso = nowIso;
+    await doc.save();
+
+    return res.json({ incident: serializeIncident(doc) });
+  } catch (err) {
+    console.error('[Incidents] linkDuplicate error:', err);
+    return res.status(500).json({ message: 'Không thể gộp đồng phản ánh.' });
+  }
+}
+
+// POST /api/incidents/:targetId/merge/:sourceId — Cán bộ gộp hồ sơ trùng (hỗ trợ gộp chéo loại)
+export async function mergeIncidents(req: Request, res: Response) {
+  try {
+    const { targetId, sourceId } = req.params;
+    if (targetId === sourceId) {
+      return res.status(400).json({ message: 'Không thể tự gộp một hồ sơ vào chính nó.' });
+    }
+
+    const [target, source] = await Promise.all([
+      IncidentModel.findOne({ incidentId: targetId }),
+      IncidentModel.findOne({ incidentId: sourceId }),
+    ]);
+
+    if (!target || !source) {
+      return res.status(404).json({ message: 'Không tìm thấy hồ sơ cần gộp.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    target.linkedReports = target.linkedReports || [];
+    target.linkedReports.push({
+      sender: source.sender,
+      photos: source.photosBefore || [],
+      reportedAt: source.createdAtIso,
+    });
+    if (source.linkedReports && source.linkedReports.length > 0) {
+      target.linkedReports.push(...source.linkedReports);
+    }
+
+    target.sameReportsCount = (target.sameReportsCount || 1) + (source.sameReportsCount || 1);
+    if (target.sameReportsCount >= 3 && target.priority === 'normal') {
+      target.priority = 'high';
+    }
+
+    const { newCategory } = req.body as { newCategory?: IncidentCategoryType };
+    if (newCategory) {
+      target.category = newCategory;
+    }
+
+    target.updatedAtIso = nowIso;
+    await target.save();
+    await IncidentModel.deleteOne({ _id: source._id });
+
+    return res.json({
+      incident: serializeIncident(target),
+      mergedSourceId: sourceId,
+    });
+  } catch (err) {
+    console.error('[Incidents] mergeIncidents error:', err);
+    return res.status(500).json({ message: 'Không thể gộp 2 hồ sơ lúc này.' });
   }
 }

@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { mediaApi } from '../../services/api';
+import { incidentsApi, mediaApi, type DuplicateCandidate } from '../../services/api';
 import { saveGuestReport } from '../../lib/guestReports';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
@@ -93,7 +93,7 @@ const CATEGORIES: {
 
 export const SubmitIncidentWizard: React.FC = () => {
   const navigate = useNavigate();
-  const { addIncident, elderlyMode } = useIncidentStore();
+  const { addIncident, linkDuplicateIncident, elderlyMode } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -125,6 +125,47 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
+
+  // AI Gemini kiểm tra phản ánh tương tự trong bán kính 50m tại Bước 2
+  const [checkingDup, setCheckingDup] = useState<boolean>(false);
+  const [dupCandidates, setDupCandidates] = useState<DuplicateCandidate[]>([]);
+  const [aiSuggestedCat, setAiSuggestedCat] = useState<IncidentCategory | undefined>(undefined);
+  const [dupAnalyzedBy, setDupAnalyzedBy] = useState<'gemini' | 'ngram'>('ngram');
+  const [dismissedDupCheck, setDismissedDupCheck] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (step !== 2) return;
+    let cancelled = false;
+    setDismissedDupCheck(false);
+    const timer = setTimeout(async () => {
+      setCheckingDup(true);
+      try {
+        const res = await incidentsApi.checkDuplicate({
+          description,
+          category: selectedCategory,
+          lat: location.lat,
+          lng: location.lng,
+          radiusMeters: 50,
+        });
+        if (!cancelled) {
+          setDupCandidates((res.candidates || []).filter((c) => c.isDuplicate || c.confidence >= 60));
+          setAiSuggestedCat(res.suggestedCategory);
+          setDupAnalyzedBy(res.analyzedBy || 'ngram');
+        }
+      } catch {
+        if (!cancelled) {
+          setDupCandidates([]);
+          setAiSuggestedCat(undefined);
+        }
+      } finally {
+        if (!cancelled) setCheckingDup(false);
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [step, location.lat, location.lng, selectedCategory, description]);
 
   const [notification, setNotification] = useState<{
     type: 'success' | 'duplicate';
@@ -798,6 +839,116 @@ export const SubmitIncidentWizard: React.FC = () => {
                     <span>Lia và nhấp vào bản đồ để di chuyển ghim. Bạn có thể gõ bổ sung số nhà nếu cần.</span>
                   </p>
                 </div>
+
+                {/* AI GEMINI GỢI Ý PHẢN ÁNH TƯƠNG TỰ TRONG BÁN KÍNH 50M */}
+                {checkingDup && (
+                  <div className="p-3 rounded-[5px] bg-blue-50 border border-blue-200 text-xs text-blue-800 font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                    <span>AI Gemini đang kiểm tra các phản ánh tương tự trong bán kính 50m...</span>
+                  </div>
+                )}
+
+                {!checkingDup && aiSuggestedCat && (
+                  <div className="p-3 rounded-[5px] bg-violet-50 border border-violet-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="text-violet-900 font-medium">
+                      ✨ AI nhận thấy mô tả của bạn phù hợp với nhóm{' '}
+                      <strong>
+                        {CATEGORIES.find((c) => c.id === aiSuggestedCat)?.name || aiSuggestedCat}
+                      </strong>
+                      .
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(aiSuggestedCat);
+                        setAiSuggestedCat(undefined);
+                      }}
+                      className="px-2.5 py-1 rounded-[4px] bg-violet-700 hover:bg-violet-800 text-white font-semibold"
+                    >
+                      Chuyển sang nhóm này
+                    </button>
+                  </div>
+                )}
+
+                {!checkingDup && !dismissedDupCheck && dupCandidates.length > 0 && (
+                  <div className="p-4 rounded-[5px] bg-amber-50 border border-amber-300 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-xs sm:text-sm font-bold text-amber-950">
+                        ✨ Phát hiện {dupCandidates.length} phản ánh tương tự trong bán kính 50m
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-white text-amber-800 border border-amber-300 uppercase">
+                        {dupAnalyzedBy === 'gemini' ? 'AI Gemini 2.5' : 'Đối chiếu tự động'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-900">
+                      Vui lòng đối chiếu ảnh bên dưới: nếu đúng là cùng một sự cố, bạn có thể bấm{' '}
+                      <strong>Đồng phản ánh (+1)</strong> để gộp ảnh và đẩy độ ưu tiên xử lý nhanh hơn.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {dupCandidates.slice(0, 2).map((cand) => (
+                        <div
+                          key={cand.incident.id}
+                          className="p-3 rounded-[5px] bg-white border border-amber-200 flex flex-col sm:flex-row gap-3 items-start"
+                        >
+                          {cand.incident.photosBefore[0] && (
+                            <img
+                              src={cand.incident.photosBefore[0]}
+                              alt="Hiện trường gần đó"
+                              className="w-full sm:w-24 h-28 sm:h-20 rounded-[5px] object-cover border border-slate-200 shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                              <span className="font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                                Cách {cand.distanceMeters}m
+                              </span>
+                              <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                Khớp {cand.confidence}%
+                              </span>
+                              <span className="text-slate-500">
+                                • {cand.incident.sameReportsCount} người đã báo
+                              </span>
+                            </div>
+                            <div className="text-xs font-bold text-slate-900 line-clamp-1">
+                              {cand.incident.title}
+                            </div>
+                            <div className="text-[11px] text-slate-600">{cand.reason}</div>
+                            <div className="pt-1.5 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const cleanPhone = phone.replace(/[\s.-]/g, '').trim();
+                                  linkDuplicateIncident(cand.incident.id, {
+                                    senderName: senderName.trim() || 'Công dân Phường Trấn Biên',
+                                    senderPhone: cleanPhone || '0900000000',
+                                    photos: photos.map((p) => p.url),
+                                  });
+                                  saveGuestReport(cand.incident.id, cleanPhone);
+                                  setNotification({
+                                    type: 'duplicate',
+                                    message: `Đã gộp ảnh hiện trường & ghi nhận đồng phản ánh (+1) vào hồ sơ gần đó! Tổng cộng hiện có ${cand.incident.sameReportsCount + 1} người cùng phản ánh sự cố này.`,
+                                    code: cand.incident.code,
+                                  });
+                                }}
+                                className="px-3 py-1.5 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition"
+                              >
+                                Đúng là sự cố này — Đồng phản ánh (+1)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDismissedDupCheck(true)}
+                                className="px-3 py-1.5 rounded-[5px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                              >
+                                Hiện trường khác — Vẫn gửi mới
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
                   <button

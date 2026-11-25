@@ -21,12 +21,15 @@ apiRouter.post('/media/upload', uploadImages.array('files', 6), mediaCtrl.upload
 apiRouter.delete('/media', mediaCtrl.deleteMedia);
 
 // Incidents (MOD-01, MOD-02, MOD-03, MOD-04, MOD-05)
+apiRouter.post('/incidents/check-duplicate', optionalAuth, incidentCtrl.checkDuplicates);
 apiRouter.get('/incidents', optionalAuth, incidentCtrl.listIncidents);
 apiRouter.get('/incidents/:id', optionalAuth, incidentCtrl.getIncidentById);
 apiRouter.post('/incidents', optionalAuth, incidentCtrl.createIncident);
 apiRouter.patch('/incidents/:id', optionalAuth, incidentCtrl.updateIncident);
 apiRouter.delete('/incidents/:id', optionalAuth, incidentCtrl.deleteIncident);
 apiRouter.post('/incidents/:id/upvote', optionalAuth, incidentCtrl.upvoteIncident);
+apiRouter.post('/incidents/:id/link-duplicate', optionalAuth, incidentCtrl.linkDuplicate);
+apiRouter.post('/incidents/:targetId/merge/:sourceId', optionalAuth, incidentCtrl.mergeIncidents);
 apiRouter.post('/incidents/:id/rating', optionalAuth, incidentCtrl.rateIncident);
 apiRouter.post('/incidents/:id/approve', optionalAuth, incidentCtrl.approveIncident);
 apiRouter.post('/incidents/:id/reject', optionalAuth, incidentCtrl.rejectIncident);
