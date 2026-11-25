@@ -663,13 +663,8 @@ export const SubmitIncidentWizard: React.FC = () => {
                   />
                 </div>
 
-                {/* THÔNG TIN NGƯỜI GỬI (Bắt buộc Họ tên + SĐT khi chưa đăng nhập) */}
+                {/* THÔNG TIN NGƯỜI GỬI */}
                 <div className="bg-slate-50 p-3.5 sm:p-4 rounded-[5px] border border-slate-200 space-y-3">
-                  {!isAuthenticated && (
-                    <div className="p-2.5 rounded-[5px] bg-blue-50 border border-blue-200 text-xs text-blue-800 font-medium">
-                      Bạn đang gửi phản ánh nhanh không cần đăng nhập — vui lòng nhập <strong>Họ và tên</strong> cùng <strong>Số điện thoại</strong> để UBND Phường liên hệ khi cần.
-                    </div>
-                  )}
                   {formError && (
                     <div className="p-2.5 rounded-[5px] bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold">
                       {formError}

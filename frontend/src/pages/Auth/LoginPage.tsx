@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Lock, User, ArrowRight, ShieldCheck, Users, AlertCircle } from 'lucide-react';
+import { Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loginAs, loginWithCredentials } = useAuthStore();
+  const { loginWithCredentials } = useAuthStore();
 
-  const [username, setUsername] = useState('admin@tranbien.gov.vn');
-  const [password, setPassword] = useState('123456');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,16 +28,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickCitizen = () => {
-    loginAs('citizen');
-    navigate('/citizen/home', { replace: true });
-  };
-
-  const handleQuickAdmin = () => {
-    loginAs('officer');
-    navigate('/dashboard', { replace: true });
   };
 
   return (
@@ -71,7 +61,7 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Form đăng nhập thật + 2 nút đăng nhập nhanh */}
+        {/* Form đăng nhập */}
         <div className="p-6 space-y-5 bg-white">
           {error && (
             <div className="p-3 rounded-[5px] bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
@@ -83,7 +73,7 @@ export const LoginPage: React.FC = () => {
           <form onSubmit={handleFormLogin} className="space-y-3.5">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Email / Số điện thoại:
+                Số điện thoại / Email:
               </label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -91,7 +81,7 @@ export const LoginPage: React.FC = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin@tranbien.gov.vn hoặc SĐT..."
+                  placeholder="Nhập số điện thoại hoặc email..."
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
                   required
                 />
@@ -125,42 +115,19 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* 2 Nút đăng nhập nhanh: Công dân & Admin */}
-          <div className="pt-4 border-t border-slate-200 space-y-2.5">
-            <span className="block text-[11px] font-semibold text-slate-500 uppercase text-center tracking-wider">
-              Đăng nhập nhanh theo vai trò
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={handleQuickCitizen}
-                className="py-3 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 border border-amber-500 rounded-[5px] font-bold text-xs sm:text-sm transition shadow-sm flex items-center justify-center gap-2 active:scale-[0.99]"
-              >
-                <Users className="w-4 h-4 shrink-0" />
-                <span>Công dân</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleQuickAdmin}
-                className="py-3 px-4 bg-blue-950 hover:bg-blue-900 text-white border border-blue-950 rounded-[5px] font-bold text-xs sm:text-sm transition shadow-sm flex items-center justify-center gap-2 active:scale-[0.99]"
-              >
-                <ShieldCheck className="w-4 h-4 text-cyan-300 shrink-0" />
-                <span>Admin</span>
-              </button>
+          {/* Link đăng ký & truy cập cổng công dân */}
+          <div className="pt-4 border-t border-slate-200 space-y-2 text-center text-xs text-slate-600">
+            <div>
+              Chưa có tài khoản công dân?{' '}
+              <Link to="/register" className="font-bold text-blue-700 hover:underline">
+                Đăng ký bằng số điện thoại
+              </Link>
             </div>
-          </div>
-
-          {/* Link đăng ký tài khoản công dân */}
-          <div className="pt-3 border-t border-slate-100 text-center text-xs text-slate-600">
-            Chưa có tài khoản công dân?{' '}
-            <Link
-              to="/register"
-              className="font-bold text-blue-700 hover:underline"
-            >
-              Đăng ký bằng số điện thoại
-            </Link>
+            <div>
+              <Link to="/citizen/home" className="text-slate-500 hover:text-blue-700 hover:underline">
+                Gửi phản ánh nhanh không cần đăng nhập →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
