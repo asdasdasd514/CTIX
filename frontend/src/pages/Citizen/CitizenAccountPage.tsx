@@ -167,7 +167,7 @@ export const CitizenAccountPage: React.FC = () => {
               </span>
               <span className="inline-flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                {currentUser.department || 'Đồng Nai'}
+                {currentUser.department || 'Phường Trấn Biên'}
               </span>
             </div>
           </div>
@@ -257,7 +257,7 @@ export const CitizenAccountPage: React.FC = () => {
                 <div className="text-[11px] font-semibold text-slate-500 mb-1">Khu vực</div>
                 <div className="font-semibold text-slate-700 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>{currentUser.department || 'Đồng Nai'}</span>
+                  <span>{currentUser.department || 'Phường Trấn Biên'}</span>
                 </div>
               </div>
 

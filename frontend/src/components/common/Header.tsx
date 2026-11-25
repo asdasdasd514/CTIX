@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
               </span>
             </div>
             <h1 className="text-base sm:text-lg font-bold leading-tight">
-              UBND Đồng Nai – Cổng Phản Ánh Hiện Trường
+              UBND Phường Trấn Biên – Cổng Phản Ánh Hiện Trường
             </h1>
           </div>
         </div>
@@ -52,7 +52,7 @@ export const Header: React.FC = () => {
           {/* Reset Demo Data */}
           <button
             onClick={() => {
-              if (window.confirm('Khôi phục lại dữ liệu gốc 64 phản ánh chuẩn của Đồng Nai?')) {
+              if (window.confirm('Khôi phục lại dữ liệu gốc 64 phản ánh chuẩn của Phường Trấn Biên?')) {
                 resetToDefaultData();
               }
             }}
@@ -93,7 +93,7 @@ export const Header: React.FC = () => {
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>(2) Cán bộ Đồng Nai</span>
+              <span>(2) Cán bộ Phường</span>
             </button>
 
             <button

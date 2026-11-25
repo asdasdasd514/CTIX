@@ -179,7 +179,7 @@ export async function analyzeDuplicatesWithAI(
       distanceMeters: distance,
     }));
 
-    const prompt = `Bạn là trợ lý AI điều phối đô thị thông minh cho UBND Đồng Nai.
+    const prompt = `Bạn là trợ lý AI điều phối đô thị thông minh cho UBND Phường Trấn Biên.
 Hãy đối chiếu [Phản ánh mới] với danh sách [Các phản ánh đang mở trong bán kính 50m] để xác định xem có phải CÙNG MỘT SỰ CỐ HIỆN TRƯỜNG hay không.
 
 Lưu ý quan trọng:

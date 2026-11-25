@@ -335,8 +335,8 @@ export const SubmitIncidentWizard: React.FC = () => {
           setLocation({
             lat,
             lng,
-            address: `${shortAddress}, Đồng Nai`,
-            ward: 'Đồng Nai',
+            address: `${shortAddress}, Phường Trấn Biên`,
+            ward: 'Phường Trấn Biên',
           });
         }
       }
@@ -344,8 +344,8 @@ export const SubmitIncidentWizard: React.FC = () => {
       setLocation({
         lat,
         lng,
-        address: `Khu vực tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}), Đồng Nai`,
-        ward: 'Đồng Nai',
+        address: `Khu vực tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}), Phường Trấn Biên`,
+        ward: 'Phường Trấn Biên',
       });
     } finally {
       setIsGeocoding(false);
@@ -393,7 +393,7 @@ export const SubmitIncidentWizard: React.FC = () => {
       return;
     }
     if (!senderName.trim() || !cleanPhone) {
-      setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại để UBND Đồng Nai liên hệ khi cần.');
+      setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại để UBND Phường liên hệ khi cần.');
       setStep(1);
       return;
     }
@@ -444,8 +444,8 @@ export const SubmitIncidentWizard: React.FC = () => {
           type: 'success',
           message:
             finalPhotoUrls.length > 0
-              ? `Đã gửi phản ánh thành công kèm ${finalPhotoUrls.length} ảnh đã đóng dấu thời gian & địa chỉ! Hồ sơ đang chờ UBND Đồng Nai duyệt tiếp nhận.`
-              : `Đã gửi phản ánh thành công! Hồ sơ đang chờ UBND Đồng Nai duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`,
+              ? `Đã gửi phản ánh thành công kèm ${finalPhotoUrls.length} ảnh đã đóng dấu thời gian & địa chỉ! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận.`
+              : `Đã gửi phản ánh thành công! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`,
           code: created.code,
         });
       } catch (apiErr) {
@@ -471,7 +471,7 @@ export const SubmitIncidentWizard: React.FC = () => {
         }
         setNotification({
           type: 'success',
-          message: `Đã ghi nhận phản ánh (${finalPhotoUrls.length} ảnh). Hồ sơ đang chờ UBND Đồng Nai duyệt tiếp nhận.`,
+          message: `Đã ghi nhận phản ánh (${finalPhotoUrls.length} ảnh). Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận.`,
           code: result.incident.code,
         });
       }
@@ -502,12 +502,12 @@ export const SubmitIncidentWizard: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC (ĐỒNG NAI SỐ) */}
+      {/* 1. TIÊU ĐỀ & THANH 2 BƯỚC (CÓ ẢNH NỀN VĂN MIẾU TRẤN BIÊN) */}
       <div className="relative bg-blue-950 text-white rounded-[5px] p-4 sm:p-6 shadow-sm border border-blue-950 overflow-hidden">
-        {/* Ảnh nền Đồng Nai Số */}
+        {/* Ảnh nền Văn Miếu Trấn Biên */}
         <img
           src="/images/tran-bien-banner.jpg"
-          alt="Đồng Nai Số"
+          alt="Văn Miếu Trấn Biên"
           className="absolute inset-0 w-full h-full object-cover object-center opacity-55"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/92 via-blue-900/80 to-blue-950/60" />
@@ -516,7 +516,7 @@ export const SubmitIncidentWizard: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <span className="inline-block bg-white/15 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-white/25">
-                Dịch Vụ Dân Sinh • Đồng Nai
+                Dịch Vụ Dân Sinh • Phường Trấn Biên
               </span>
               <h1 className="text-lg sm:text-2xl font-black tracking-tight drop-shadow-sm">
                 Gửi Phản Ánh Hiện Trường Mới
@@ -1207,7 +1207,7 @@ export const SubmitIncidentWizard: React.FC = () => {
                                       location.address || cand.incident.location.address
                                     );
                                     linkDuplicateIncident(cand.incident.id, {
-                                      senderName: senderName.trim() || 'Công dân Đồng Nai',
+                                      senderName: senderName.trim() || 'Công dân Phường Trấn Biên',
                                       senderPhone: cleanPhone || '0900000000',
                                       photos: uploadedLinked,
                                     });
@@ -1344,7 +1344,7 @@ export const SubmitIncidentWizard: React.FC = () => {
             <div className="bg-blue-50/70 rounded-[5px] border border-blue-200 p-4 sm:p-5 space-y-2.5">
               <div className="flex items-center gap-2 text-blue-900 font-extrabold text-xs uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Cam kết phục vụ UBND Đồng Nai</span>
+                <span>Cam kết phục vụ UBND Phường</span>
               </div>
 
               <div className="space-y-2 text-xs text-slate-700 font-medium">

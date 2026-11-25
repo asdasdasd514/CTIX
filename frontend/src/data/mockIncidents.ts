@@ -4,22 +4,22 @@
   IncidentStatus,
 } from "../types/incident.ts";
 
-// Danh sách đường phố thực tế tại Đồng Nai (Biên Hòa, Đồng Nai)
+// Danh sách đường phố thực tế tại Phường Trấn Biên (Biên Hòa, Đồng Nai)
 const STREET_NAMES = [
   "Đường Nguyễn Ái Quốc",
   "Đường Cách Mạng Tháng 8",
   "Đường Huỳnh Văn Nghệ",
   "Đường Đồng Khởi",
   "Hẻm 42 Nguyễn Ái Quốc",
-  "Khu vực 1, Đồng Nai",
-  "Khu vực 2, Đồng Nai",
-  "Khu vực 3, Đồng Nai",
-  "Khu vực 4, Đồng Nai",
+  "Khu phố 1, Phường Trấn Biên",
+  "Khu phố 2, Phường Trấn Biên",
+  "Khu phố 3, Phường Trấn Biên",
+  "Khu phố 4, Phường Trấn Biên",
   "Đường Phan Chu Trinh",
-  "Khu dân cư Đồng Nai Plaza",
-  "Gần Trường Tiểu học Đồng Nai",
-  "Đoạn gần Chợ Đồng Nai",
-  "Gần Công viên Bờ sông Đồng Nai",
+  "Khu dân cư Trấn Biên Plaza",
+  "Gần Trường Tiểu học Trấn Biên",
+  "Đoạn gần Chợ Trấn Biên",
+  "Gần Công viên Bờ sông Trấn Biên",
 ];
 
 const SAMPLE_PHOTOS = {
@@ -49,7 +49,7 @@ const SAMPLE_PHOTOS = {
   ],
 };
 
-// Tạo 64 phản ánh chuẩn Đồng Nai (tháng 11/2026)
+// Tạo 64 phản ánh chuẩn Phường Trấn Biên (tháng 11/2026)
 // Đèn đường: 18, Ngập nước: 15, Rác thải: 21, Mặt đường: 10
 // Tổng: 64, Đã xử lý: 47 (thời gian TB 3.2 ngày)
 export function generateMockIncidents(): Incident[] {
@@ -83,12 +83,12 @@ export function generateMockIncidents(): Incident[] {
         else status = "in_progress";
       }
 
-      // Tạo tọa độ quanh Đồng Nai (trong bán kính ~1.5km)
+      // Tạo tọa độ quanh Phường Trấn Biên (trong bán kính ~1.5km)
       const latOffset = Math.sin(idCounter * 12.3) * 0.012;
       const lngOffset = Math.cos(idCounter * 7.9) * 0.014;
 
       const street = STREET_NAMES[idCounter % STREET_NAMES.length];
-      const address = `${((idCounter * 7) % 180) + 1} ${street}, Đồng Nai`;
+      const address = `${((idCounter * 7) % 180) + 1} ${street}, P. Trấn Biên`;
 
       let title = "";
       let desc = "";
@@ -142,11 +142,11 @@ export function generateMockIncidents(): Incident[] {
         },
         sender: {
           name: [
-            "Bác Hai Đồng Nai",
+            "Bác Hai Trấn Biên",
             "Chú Tám",
             "Nguyễn Văn An",
             "Trần Thị Mai",
-            "Cô Hoa Đồng Nai",
+            "Cô Hoa Trấn Biên",
           ][idCounter % 5],
           phone: `09${((idCounter * 13789) % 90000000) + 10000000}`,
         },
@@ -161,10 +161,10 @@ export function generateMockIncidents(): Incident[] {
 
       if (status !== "pending") {
         const units = [
-          "Đội Trật tự Đô thị Đồng Nai",
+          "Đội Trật tự Đô thị Phường",
           "Công ty Chiếu sáng Đô thị",
-          "Công ty Cấp thoát nước Đồng Nai",
-          "Đội Thanh niên Tình nguyện Đồng Nai",
+          "Công ty Cấp thoát nước Trấn Biên",
+          "Đội Thanh niên Tình nguyện Phường",
         ];
         const assignedUnit =
           category === "street_light"
@@ -192,7 +192,7 @@ export function generateMockIncidents(): Incident[] {
         item.resolution = {
           notes: `Đã phối hợp xử lý xong triệt để tại hiện trường vào ngày ${resolvedDate.toLocaleDateString("vi-VN")}. Hoàn trả mặt bằng thông thoáng.`,
           resolvedAt: resolvedDate.toISOString(),
-          officerName: "Tổ cơ động Đồng Nai",
+          officerName: "Tổ cơ động Phường Trấn Biên",
         };
 
         const stars = 4 + (idCounter % 2); // 4 hoặc 5 sao

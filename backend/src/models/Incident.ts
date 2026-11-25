@@ -130,7 +130,7 @@ const IncidentSchema = new Schema<IIncident>(
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
       address: { type: String, required: true },
-      ward: { type: String, default: 'Đồng Nai' },
+      ward: { type: String, default: 'Phường Trấn Biên' },
       geo: {
         type: {
           type: String,

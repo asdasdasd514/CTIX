@@ -68,8 +68,8 @@ export async function register(req: Request, res: Response) {
       phone: cleanPhone,
       passwordHash,
       role: 'citizen',
-      title: 'Công dân Đồng Nai',
-      department: 'Đồng Nai',
+      title: 'Công dân Phường Trấn Biên',
+      department: 'Phường Trấn Biên, TP. Biên Hòa',
       isActive: true,
     });
 
@@ -110,7 +110,7 @@ export async function login(req: Request, res: Response) {
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ message: 'Tài khoản này đang bị tạm khóa. Vui lòng liên hệ UBND Đồng Nai.' });
+      return res.status(403).json({ message: 'Tài khoản này đang bị tạm khóa. Vui lòng liên hệ UBND Phường.' });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);

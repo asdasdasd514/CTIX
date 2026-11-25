@@ -9,8 +9,8 @@ import {
 
 const FAQS = [
   {
-    q: 'Thời gian giải quyết phản ánh của UBND Đồng Nai là bao lâu?',
-    a: 'Theo quy chế tiếp nhận của UBND Đồng Nai: Hồ sơ được cán bộ tiếp nhận trong vòng 2 giờ làm việc. Đội phản ứng nhanh sẽ khảo sát trong vòng 12 giờ và thời hạn hoàn thành khắc phục (SLA) từ 24h - 48h tùy theo mức độ khẩn cấp của sự cố.',
+    q: 'Thời gian giải quyết phản ánh của UBND Phường là bao lâu?',
+    a: 'Theo quy chế tiếp nhận của UBND Phường Trấn Biên: Hồ sơ được cán bộ tiếp nhận trong vòng 2 giờ làm việc. Đội phản ứng nhanh sẽ khảo sát trong vòng 12 giờ và thời hạn hoàn thành khắc phục (SLA) từ 24h - 48h tùy theo mức độ khẩn cấp của sự cố.',
   },
   {
     q: 'Tôi có thể chụp ảnh trực tiếp hoặc tải ảnh từ máy tính/điện thoại lên không?',
@@ -42,7 +42,7 @@ export const CitizenHelpPage: React.FC = () => {
     setTimeout(() => {
       setFeedback('');
       setFeedbackSent(false);
-      alert('Cảm ơn ý kiến đóng góp của bạn! UBND Đồng Nai đã ghi nhận phản hồi.');
+      alert('Cảm ơn ý kiến đóng góp của bạn! UBND Phường Trấn Biên đã ghi nhận phản hồi.');
     }, 1000);
   };
 
@@ -86,7 +86,7 @@ export const CitizenHelpPage: React.FC = () => {
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">Tiếp nhận & phân công</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              UBND Đồng Nai thẩm định trong 2h, chuyển giao cho đội tiếp ứng chuyên môn xử lý tại chỗ.
+              UBND Phường thẩm định trong 2h, chuyển giao cho đội tiếp ứng chuyên môn xử lý tại chỗ.
             </p>
           </div>
 
@@ -173,7 +173,7 @@ export const CitizenHelpPage: React.FC = () => {
 
               <div className="p-3 rounded-[5px] bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-bold text-slate-800 truncate">Trực ban Công an Đồng Nai</div>
+                  <div className="font-bold text-slate-800 truncate">Trực ban Công an Phường</div>
                   <div className="text-[11px] text-slate-500 truncate">An ninh trật tự & Giao thông</div>
                 </div>
                 <a href="tel:02513822113" className="font-mono font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0">
@@ -206,7 +206,7 @@ export const CitizenHelpPage: React.FC = () => {
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Gửi câu hỏi / Góp ý cho UBND Đồng Nai</span>
+              <span>Gửi câu hỏi / Góp ý cho UBND Phường</span>
             </h3>
 
             <form onSubmit={handleSendFeedback} className="space-y-3">

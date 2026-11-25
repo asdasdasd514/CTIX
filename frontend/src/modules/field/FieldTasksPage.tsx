@@ -83,7 +83,7 @@ export function FieldTasksPage() {
 
   // Phạm vi cơ bản:
   // - Tài khoản Tổ xử lý (volunteer): chỉ xem đúng nhiệm vụ thuộc Tổ hoặc cá nhân mình
-  // - Quản trị/Điều phối (officer/leader): xem toàn tỉnh & có bộ lọc theo tổ/người phụ trách
+  // - Quản trị/Điều phối (officer/leader): xem toàn phường & có bộ lọc theo tổ/người phụ trách
   const scopedIncidents = useMemo(() => {
     const valid = incidents.filter(
       (i) => i.status !== 'pending_review' && i.status !== 'rejected'
@@ -178,7 +178,7 @@ export function FieldTasksPage() {
               Nhiệm Vụ Hiện Trường
             </h1>
             <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-blue-200">
-              {isFieldStaff ? currentUser.department || 'Tổ xử lý' : 'Toàn tỉnh'}
+              {isFieldStaff ? currentUser.department || 'Tổ xử lý' : 'Toàn phường'}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">

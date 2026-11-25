@@ -213,8 +213,8 @@ export const CitizenReportDetailPage: React.FC = () => {
           setEditLocation({
             lat,
             lng,
-            address: `${shortAddr}, Đồng Nai`,
-            ward: 'Đồng Nai',
+            address: `${shortAddr}, Phường Trấn Biên`,
+            ward: 'Phường Trấn Biên',
           });
         }
       }
@@ -222,8 +222,8 @@ export const CitizenReportDetailPage: React.FC = () => {
       setEditLocation({
         lat,
         lng,
-        address: `Khu vực tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}), Đồng Nai`,
-        ward: 'Đồng Nai',
+        address: `Khu vực tọa độ (${lat.toFixed(4)}, ${lng.toFixed(4)}), Phường Trấn Biên`,
+        ward: 'Phường Trấn Biên',
       });
     } finally {
       setIsGeocoding(false);
@@ -663,7 +663,7 @@ export const CitizenReportDetailPage: React.FC = () => {
                     <User className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <span className="text-[11px] font-bold text-slate-500 uppercase block">Người gửi phản ánh</span>
-                      <span className="font-semibold text-slate-800">{incident.sender?.name || 'Công dân Đồng Nai'}</span>
+                      <span className="font-semibold text-slate-800">{incident.sender?.name || 'Công dân Trấn Biên'}</span>
                     </div>
                   </div>
                 </div>
@@ -804,7 +804,7 @@ export const CitizenReportDetailPage: React.FC = () => {
                         )}
                         <div className="min-w-0 flex-1 text-xs">
                           <div className="font-semibold text-slate-800">
-                            {lr.sender?.name || 'Công dân Đồng Nai'}
+                            {lr.sender?.name || 'Công dân Phường Trấn Biên'}
                           </div>
                           <div className="text-[11px] text-slate-500 mt-0.5">
                             Báo bổ sung lúc {new Date(lr.reportedAt).toLocaleString('vi-VN')}
@@ -877,7 +877,7 @@ export const CitizenReportDetailPage: React.FC = () => {
         <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-4 min-w-0">
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
             <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight border-b border-slate-200 pb-2.5">
-              Tiến trình giải quyết của UBND Đồng Nai
+              Tiến trình giải quyết của UBND Phường
             </h2>
 
             {incident.assignedTo && (
@@ -1032,11 +1032,11 @@ export const CitizenReportDetailPage: React.FC = () => {
             {/* THÔNG BÁO CHỜ DUYỆT HOẶC TỪ CHỐI TIẾP NHẬN */}
             {incident.status === 'pending_review' && (
               <div className="p-3.5 rounded-[5px] bg-violet-50 border border-violet-200 text-xs text-violet-900 space-y-1">
-                <div className="font-bold">Đang chờ UBND Đồng Nai kiểm duyệt tiếp nhận</div>
+                <div className="font-bold">Đang chờ UBND Phường kiểm duyệt tiếp nhận</div>
                 <p className="text-violet-700 leading-relaxed">
                   {isOwner
                     ? 'Phản ánh của bạn đã được ghi nhận và đang chờ cán bộ xác thực trước khi công khai & phân công xử lý. Bạn vẫn có thể chỉnh sửa hoặc hủy trong thời gian này.'
-                    : 'Phản ánh này đang chờ UBND Đồng Nai kiểm duyệt tiếp nhận.'}
+                    : 'Phản ánh này đang chờ UBND Phường kiểm duyệt tiếp nhận.'}
                 </p>
               </div>
             )}
@@ -1046,7 +1046,7 @@ export const CitizenReportDetailPage: React.FC = () => {
                 <div className="font-bold">Phản ánh không được tiếp nhận</div>
                 <p className="text-rose-700 leading-relaxed">
                   <strong>Lý do:</strong>{' '}
-                  {incident.review?.reason || 'Không đủ thông tin hoặc ngoài phạm vi xử lý của Đồng Nai.'}
+                  {incident.review?.reason || 'Không đủ thông tin hoặc ngoài phạm vi xử lý của Phường Trấn Biên.'}
                 </p>
               </div>
             )}
@@ -1201,7 +1201,7 @@ export const CitizenReportDetailPage: React.FC = () => {
                       rows={2}
                       value={ratingComment}
                       onChange={(e) => setRatingComment(e.target.value)}
-                      placeholder="Nhập nhận xét hoặc góp ý thêm cho UBND Đồng Nai..."
+                      placeholder="Nhập nhận xét hoặc góp ý thêm cho UBND Phường..."
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-[5px] text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                     />
 

@@ -73,7 +73,7 @@ export function Sidebar({
           className="w-9 h-9 rounded-[5px] object-cover bg-white shrink-0 border border-white/25 shadow-sm"
         />
         <div className="sidebar-brand-text">
-          <strong>Đồng Nai Số</strong>
+          <strong>Trấn Biên SmartCity</strong>
           <span>Cổng Quản Trị CTIX</span>
         </div>
       </button>

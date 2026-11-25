@@ -237,7 +237,7 @@ export const MembersPage: React.FC = () => {
             Quản lý Thành viên & Tổ đội
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Danh sách cán bộ hiện trường và các nhóm chuyên môn phục vụ điều phối xử lý sự cố Đồng Nai
+            Danh sách cán bộ hiện trường và các nhóm chuyên môn phục vụ điều phối xử lý sự cố Phường Trấn Biên
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">

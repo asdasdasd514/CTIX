@@ -29,7 +29,7 @@ export const CitizenLayout: React.FC = () => {
             <div className="w-9 h-9 rounded-[5px] overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0">
               <img
                 src="/images/ctix-logo.jpg"
-                alt="Đồng Nai Số"
+                alt="Trấn Biên SmartCity"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -38,7 +38,7 @@ export const CitizenLayout: React.FC = () => {
                 Cổng Dịch Vụ Tiếp Nhận Phản Ánh Hiện Trường Đô Thị
               </span>
               <span className="text-[11px] text-slate-500 block mt-0.5">
-                Ủy Ban Nhân Dân Đồng Nai • Đồng Nai Số
+                Ủy Ban Nhân Dân Phường Trấn Biên • TP. Biên Hòa, Tỉnh Đồng Nai
               </span>
             </div>
           </div>

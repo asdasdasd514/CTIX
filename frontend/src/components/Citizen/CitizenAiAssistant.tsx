@@ -18,7 +18,7 @@ const CHAT_OPEN_KEY = 'ctix_ai_chat_open_v1';
 const WELCOME_MSG: ChatMsg = {
   id: 'welcome',
   role: 'assistant',
-  text: 'Chào bạn! Tôi là Trợ lý AI Đồng Nai Số. Chạm để hỏi đáp thông tin thực tế hoặc ra lệnh điều khiển trang; giữ nút AI 1 giây để nói trực tiếp.',
+  text: 'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Chạm để hỏi đáp thông tin thực tế hoặc ra lệnh điều khiển trang; giữ nút AI 1 giây để nói trực tiếp.',
 };
 
 function loadSavedMessages(): ChatMsg[] {
@@ -202,7 +202,7 @@ export const CitizenAiAssistant: React.FC = () => {
     } else if (res.action === 'call_hotline') {
       if (fromVoice) setChatOpen(false);
       navigate('/citizen/help');
-      setToast('Tổng đài hỗ trợ khẩn cấp 24/7 Đồng Nai: 1022');
+      setToast('Tổng đài hỗ trợ khẩn cấp 24/7 Phường Trấn Biên: 1022');
       didNavigate = true;
     } else if (res.action === 'logout') {
       if (isAuthenticated) {
@@ -535,7 +535,7 @@ export const CitizenAiAssistant: React.FC = () => {
                 <Bot className="w-4 h-4 text-amber-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-bold truncate">Trợ lý AI Đồng Nai Số</div>
+                <div className="text-xs font-bold truncate">Trợ lý AI Phường Trấn Biên</div>
                 <div className="text-[10px] text-blue-200 truncate">
                   Giữ nút AI 1 giây để ra lệnh giọng nói
                 </div>

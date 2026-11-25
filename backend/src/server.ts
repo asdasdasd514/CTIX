@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
-    service: 'CTIX — Đồng Nai Số API',
+    service: 'CTIX — Trấn Biên SmartCity API',
     timestamp: new Date().toISOString(),
   });
 });

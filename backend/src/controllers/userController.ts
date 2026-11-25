@@ -15,7 +15,7 @@ function defaultTitleByRole(role: UserRoleType): string {
   if (role === 'officer') return 'Quản trị viên / Cán bộ điều phối';
   if (role === 'leader') return 'Cán bộ Điều hành';
   if (role === 'volunteer') return 'Đội xử lý hiện trường';
-  return 'Công dân Đồng Nai';
+  return 'Công dân Phường Trấn Biên';
 }
 
 function serializeAccount(u: IUser) {
@@ -97,7 +97,7 @@ export async function createUser(req: Request, res: Response) {
     const finalRole: UserRoleType = role || 'citizen';
     const passwordHash = await bcrypt.hash(password, 10);
 
-    let resolvedDepartment = department?.trim() || 'UBND Đồng Nai';
+    let resolvedDepartment = department?.trim() || 'UBND Phường Trấn Biên';
     if (unitId && isStaffRole(finalRole)) {
       const unit = await UnitModel.findOne({ unitId });
       if (unit) resolvedDepartment = unit.name;
@@ -110,7 +110,7 @@ export async function createUser(req: Request, res: Response) {
       passwordHash,
       role: finalRole,
       title: title?.trim() || defaultTitleByRole(finalRole),
-      department: finalRole === 'citizen' ? 'Đồng Nai' : resolvedDepartment,
+      department: finalRole === 'citizen' ? 'Phường Trấn Biên, TP. Biên Hòa' : resolvedDepartment,
       unitId: isStaffRole(finalRole) ? unitId?.trim() || '' : undefined,
       isActive: true,
     });
@@ -171,7 +171,7 @@ export async function updateUser(req: AuthRequest, res: Response) {
           const unit = await UnitModel.findOne({ unitId: unitId.trim() });
           if (unit) user.department = unit.name;
         } else {
-          user.department = 'UBND Đồng Nai';
+          user.department = 'UBND Phường Trấn Biên';
         }
       }
     }

@@ -146,7 +146,7 @@ export const DispatchDetailPage: React.FC = () => {
           name: member.name,
           initials,
           role: member.role,
-          unitName: unit?.name || 'UBND Đồng Nai',
+          unitName: unit?.name || 'UBND Phường Trấn Biên',
           category: unit?.category || 'other',
           activeTasks,
           distance: distances[idx % distances.length],
@@ -643,7 +643,7 @@ export const DispatchDetailPage: React.FC = () => {
                     rows={3}
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="VD: Ảnh mờ không rõ hiện trường, hoặc vị trí nằm ngoài địa bàn Đồng Nai..."
+                    placeholder="VD: Ảnh mờ không rõ hiện trường, hoặc vị trí nằm ngoài địa bàn Phường Trấn Biên..."
                     className="w-full px-3 py-2 rounded-[5px] border border-rose-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
                   />
                   <div className="flex items-center gap-2">
@@ -1135,7 +1135,7 @@ export const DispatchDetailPage: React.FC = () => {
                   <div>
                     <div className="text-[11px] font-bold text-blue-800 uppercase">Đơn vị tiếp nhận</div>
                     <div className="font-extrabold text-blue-950 mt-0.5">
-                      {incident.assignedTo?.unitName || 'UBND Đồng Nai'}
+                      {incident.assignedTo?.unitName || 'UBND Phường Trấn Biên'}
                     </div>
                     {incident.assignedTo?.assigneeName && (
                       <div className="text-xs text-blue-800 mt-0.5">

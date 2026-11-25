@@ -11,15 +11,15 @@ const STREET_NAMES = [
   'Đường Huỳnh Văn Nghệ',
   'Đường Đồng Khởi',
   'Hẻm 42 Nguyễn Ái Quốc',
-  'Khu vực 1, Đồng Nai',
-  'Khu vực 2, Đồng Nai',
-  'Khu vực 3, Đồng Nai',
-  'Khu vực 4, Đồng Nai',
+  'Khu phố 1, Phường Trấn Biên',
+  'Khu phố 2, Phường Trấn Biên',
+  'Khu phố 3, Phường Trấn Biên',
+  'Khu phố 4, Phường Trấn Biên',
   'Đường Phan Chu Trinh',
-  'Khu dân cư Đồng Nai Plaza',
-  'Gần Trường Tiểu học Đồng Nai',
-  'Đoạn gần Chợ Đồng Nai',
-  'Gần Công viên Bờ sông Đồng Nai',
+  'Khu dân cư Trấn Biên Plaza',
+  'Gần Trường Tiểu học Trấn Biên',
+  'Đoạn gần Chợ Trấn Biên',
+  'Gần Công viên Bờ sông Trấn Biên',
 ];
 
 const SAMPLE_PHOTOS: Record<IncidentCategoryType | 'resolved', string[]> = {
@@ -60,7 +60,7 @@ async function seed() {
       name: 'Nguyễn Thành Long',
       title: 'Cán bộ Quản trị & Điều phối',
       role: 'officer' as const,
-      department: 'UBND Đồng Nai',
+      department: 'UBND Phường Trấn Biên',
       phone: '0912888999',
       passwordHash,
     },
@@ -78,16 +78,16 @@ async function seed() {
       name: 'Lê Hoàng Nam',
       title: 'Đội trưởng Thanh niên Tình nguyện',
       role: 'volunteer' as const,
-      department: 'Đoàn Thanh niên Đồng Nai',
+      department: 'Đoàn Thanh niên Phường Trấn Biên',
       phone: '0977333444',
       passwordHash,
     },
     {
       userId: 'u-dan',
-      name: 'Bác Hai Đồng Nai',
-      title: 'Công dân Đồng Nai',
+      name: 'Bác Hai Trấn Biên',
+      title: 'Công dân Phường Trấn Biên',
       role: 'citizen' as const,
-      department: 'Khu vực 2, Đồng Nai',
+      department: 'Khu phố 2, Phường Trấn Biên',
       phone: '0988555666',
       passwordHash,
     },
@@ -110,7 +110,7 @@ async function seed() {
       unitId: 'unit-flood',
       name: 'Tổ thoát nước',
       category: 'flooding' as const,
-      description: 'Khơi thông cống rãnh, xử lý điểm ngập cục bộ và nắp hố ga trên địa bàn Đồng Nai.',
+      description: 'Khơi thông cống rãnh, xử lý điểm ngập cục bộ và nắp hố ga trên địa bàn phường.',
       hotline: '0251.382.1102',
     },
     {
@@ -155,7 +155,7 @@ async function seed() {
   await UnitMemberModel.insertMany(members);
   console.log(`[Seed] Seeded ${units.length} units and ${members.length} members.`);
 
-  // 3. Seed 64 Incidents (Đồng Nai tháng 11/2026)
+  // 3. Seed 64 Incidents (Phường Trấn Biên tháng 11/2026)
   const targets: { category: IncidentCategoryType; count: number; resolvedCount: number }[] = [
     { category: 'street_light', count: 18, resolvedCount: 13 },
     { category: 'flooding', count: 15, resolvedCount: 11 },
@@ -190,7 +190,7 @@ async function seed() {
 
       const street = STREET_NAMES[idCounter % STREET_NAMES.length];
       const houseNum = ((idCounter * 7) % 180) + 1;
-      const address = `${houseNum} ${street}, Đồng Nai`;
+      const address = `${houseNum} ${street}, P. Trấn Biên`;
       const latOffset = (((idCounter * 17) % 100) - 50) * 0.00018;
       const lngOffset = (((idCounter * 23) % 100) - 50) * 0.00018;
       const lat = Number((baseLat + latOffset).toFixed(6));
@@ -218,11 +218,11 @@ async function seed() {
       }
 
       const senderNames = [
-        'Bác Hai Đồng Nai',
+        'Bác Hai Trấn Biên',
         'Chú Tư Khu phố 2',
         'Chị Lan Anh',
         'Anh Minh Hoàng',
-        'Cô Hoa Đồng Nai',
+        'Cô Hoa Trấn Biên',
         'Anh Tuấn Kiệt',
         'Chị Thanh Thảo',
       ];
@@ -292,7 +292,7 @@ async function seed() {
           lat,
           lng,
           address,
-          ward: 'Đồng Nai',
+          ward: 'Phường Trấn Biên',
           geo: {
             type: 'Point',
             coordinates: [lng, lat],
