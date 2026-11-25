@@ -849,8 +849,8 @@ export const CitizenReportDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 2 NÚT HÀNH ĐỘNG CHO PHẢN ÁNH CHƯA XỬ LÝ: CHỈNH SỬA HỒ SƠ & HỦY YÊU CẦU */}
-            {!isResolved && (
+            {/* 2 NÚT HÀNH ĐỘNG CHỈ HIỆN KHI HỒ SƠ CHƯA ĐƯỢC TIẾP NHẬN / PHÂN CÔNG (STATUS === 'pending') */}
+            {incident.status === 'pending' && (
               <div className="pt-4 border-t border-slate-200 space-y-2.5">
                 <button
                   type="button"

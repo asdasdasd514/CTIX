@@ -133,8 +133,8 @@ export async function updateIncident(req: Request, res: Response) {
     if (!doc) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ phản ánh.' });
     }
-    if (doc.status === 'resolved' || doc.status === 'closed') {
-      return res.status(400).json({ message: 'Không thể chỉnh sửa hồ sơ đã hoàn thành.' });
+    if (doc.status !== 'pending') {
+      return res.status(400).json({ message: 'Hồ sơ đã được tiếp nhận/phân công xử lý, không thể chỉnh sửa.' });
     }
 
     const { title, description, category, location, photosBefore } = req.body;
@@ -174,8 +174,8 @@ export async function deleteIncident(req: Request, res: Response) {
     if (!doc) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ phản ánh.' });
     }
-    if (doc.status === 'resolved' || doc.status === 'closed') {
-      return res.status(400).json({ message: 'Không thể hủy hồ sơ đã được xử lý xong.' });
+    if (doc.status !== 'pending') {
+      return res.status(400).json({ message: 'Hồ sơ đã được tiếp nhận/phân công xử lý, không thể hủy.' });
     }
     await IncidentModel.deleteOne({ _id: doc._id });
     return res.json({ deleted: true, id: req.params.id });
