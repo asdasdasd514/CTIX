@@ -29,7 +29,15 @@ export async function uploadMedia(req: Request, res: Response) {
         : `ctix_smartcity/incidents/${phase}/${category}`;
 
     const uploaded = await Promise.all(
-      files.map((file) => uploadBufferToCloudinary(file.buffer, folder))
+      files.map(async (file) => {
+        const res = await uploadBufferToCloudinary(file.buffer, folder);
+        const hasBakedWatermark = /_wm([._-]|$)/i.test(file.originalname || '');
+        const finalUrl =
+          hasBakedWatermark && !/[?&]wm=1\b/i.test(res.url)
+            ? `${res.url}${res.url.includes('?') ? '&' : '?'}wm=1`
+            : res.url;
+        return { ...res, url: finalUrl };
+      })
     );
 
     return res.status(201).json({

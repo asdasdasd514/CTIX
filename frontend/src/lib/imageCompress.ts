@@ -141,13 +141,13 @@ export async function stampTimestampWatermark(
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Tỷ lệ font co giãn hài hòa theo kích thước ảnh (cả ảnh dọc & ảnh ngang)
+        // Tỷ lệ font & lề an toàn co giãn hài hòa (tránh bị cắt chữ khi hiển thị trong khung 16:9 / 16:10)
         const base = Math.max(420, Math.min(width, height));
-        const padX = Math.round(width * 0.032);
-        const padBottom = Math.round(height * 0.03);
-        const timeFontSize = Math.round(base * 0.095);
-        const metaFontSize = Math.round(base * 0.034);
-        const addrFontSize = Math.round(base * 0.031);
+        const padX = Math.round(width * 0.06);
+        const padBottom = Math.round(height * 0.045);
+        const timeFontSize = Math.round(base * 0.078);
+        const metaFontSize = Math.round(base * 0.03);
+        const addrFontSize = Math.round(base * 0.028);
         const addrLineHeight = Math.round(addrFontSize * 1.32);
 
         // Chia dòng địa chỉ nếu dài quá 90% chiều rộng ảnh
