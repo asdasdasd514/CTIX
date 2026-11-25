@@ -520,24 +520,32 @@ export const SubmitIncidentWizard: React.FC = () => {
           return;
         }
         // Fallback offline chỉ khi không kết nối được máy chủ
-        const result = addIncident({
-          title: finalTitle,
-          description,
-          category: selectedCategory,
-          location,
-          photosBefore: finalPhotoUrls,
-          senderPhone: cleanPhone,
-          senderName: senderName.trim(),
-          status: 'pending_review',
-        });
-        if (!isAuthenticated) {
-          saveGuestReport(result.incident.id, cleanPhone);
+        try {
+          const result = addIncident({
+            title: finalTitle,
+            description,
+            category: selectedCategory,
+            location,
+            photosBefore: finalPhotoUrls,
+            senderPhone: cleanPhone,
+            senderName: senderName.trim(),
+            status: 'pending_review',
+          });
+          if (!isAuthenticated) {
+            saveGuestReport(result.incident.id, cleanPhone);
+          }
+          setNotification({
+            type: 'success',
+            message: `Đã ghi nhận phản ánh (${finalPhotoUrls.length} ảnh). Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận.`,
+            code: result.incident.code,
+          });
+        } catch (offlineErr) {
+          setFormError(
+            offlineErr instanceof Error
+              ? offlineErr.message
+              : 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối mạng và thử gửi lại.'
+          );
         }
-        setNotification({
-          type: 'success',
-          message: `Đã ghi nhận phản ánh (${finalPhotoUrls.length} ảnh). Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận.`,
-          code: result.incident.code,
-        });
       }
     } finally {
       setIsSubmitting(false);
@@ -1243,14 +1251,20 @@ export const SubmitIncidentWizard: React.FC = () => {
                                       photos: uploadedLinked,
                                     });
                                     saveGuestReport(cand.incident.id, cleanPhone);
-                                    setNotification({
-                                      type: 'duplicate',
-                                      message: `Đã gộp ảnh hiện trường & ghi nhận đồng phản ánh (+1) vào hồ sơ gần đó! Tổng cộng hiện có ${cand.incident.sameReportsCount + 1} người cùng phản ánh sự cố này.`,
-                                      code: cand.incident.code,
-                                    });
-                                  } finally {
-                                    setIsSubmitting(false);
-                                  }
+                                      setNotification({
+                                        type: 'duplicate',
+                                        message: `Đã gộp ảnh hiện trường & ghi nhận đồng phản ánh (+1) vào hồ sơ gần đó! Tổng cộng hiện có ${cand.incident.sameReportsCount + 1} người cùng phản ánh sự cố này.`,
+                                        code: cand.incident.code,
+                                      });
+                                    } catch (dupErr) {
+                                      setFormError(
+                                        dupErr instanceof Error
+                                          ? dupErr.message
+                                          : 'Không thể gộp đồng phản ánh lúc này. Vui lòng thử lại.'
+                                      );
+                                    } finally {
+                                      setIsSubmitting(false);
+                                    }
                                 }}
                                 className="px-3 py-1.5 rounded-[5px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition"
                               >

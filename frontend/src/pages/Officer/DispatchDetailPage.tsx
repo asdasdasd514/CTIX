@@ -111,6 +111,24 @@ export const DispatchDetailPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Reset toàn bộ form state khi điều hướng sang hồ sơ khác (vd: bấm "Xem hồ sơ kia")
+  useEffect(() => {
+    if (!incident) return;
+    setSelectedStaffId('');
+    setSelectedUnitName('');
+    setPriority(incident.priority || 'high');
+    setDeadlineHours(24);
+    setNotes('');
+    setWorkflowDraft([
+      ...(DEFAULT_WORKFLOW_TEMPLATES[incident.category] || DEFAULT_WORKFLOW_TEMPLATES.other),
+    ]);
+    setNewStepText('');
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setShowRejectBox(false);
+    setRejectReason('');
+  }, [incident?.id]);
+
   const moveWorkflowStep = (fromIdx: number, toIdx: number) => {
     if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return;
     setWorkflowDraft((prev) => {
@@ -916,8 +934,16 @@ export const DispatchDetailPage: React.FC = () => {
                       min={1}
                       max={720}
                       step={1}
-                      value={deadlineHours}
-                      onChange={(e) => setDeadlineHours(Math.max(1, Number(e.target.value) || 24))}
+                      value={deadlineHours === 0 ? '' : deadlineHours}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') {
+                          setDeadlineHours(0);
+                        } else {
+                          setDeadlineHours(Math.min(720, Math.max(0, Number(raw) || 0)));
+                        }
+                      }}
+                      onBlur={() => setDeadlineHours((v) => Math.max(1, v || 24))}
                       className="w-full pl-2.5 pr-12 py-2 border border-slate-300 rounded-[5px] text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
                     />
                     <span className="absolute right-2.5 text-[11px] font-bold text-slate-500 pointer-events-none">

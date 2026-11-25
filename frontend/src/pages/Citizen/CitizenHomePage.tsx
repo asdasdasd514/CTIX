@@ -36,40 +36,49 @@ export const CitizenHomePage: React.FC = () => {
   );
 
   const [mapCategory, setMapCategory] = useState<'all' | IncidentCategory>('all');
-  const [selectedMapIncident, setSelectedMapIncident] = useState<Incident | null>(
-    activeIncidents[0] || null
+  const [selectedMapIncidentId, setSelectedMapIncidentId] = useState<string | null>(
+    activeIncidents[0]?.id || null
   );
+  const selectedMapIncident =
+    activeIncidents.find((i) => i.id === selectedMapIncidentId) || activeIncidents[0] || null;
 
   const pendingCount = activeIncidents.length;
   const resolvedList = publicIncidents.filter((i) => i.status === 'resolved' || i.status === 'closed');
   const resolvedCount = resolvedList.length;
   const resolvedRate = publicIncidents.length > 0 ? Math.round((resolvedCount / publicIncidents.length) * 100) : 0;
 
-  // Tính thời gian xử lý trung bình (ngày) từ dữ liệu thực tế (chuẩn mẫu 3,2 ngày)
-  const resolvedWithTime = resolvedList.filter((i) => i.resolution?.resolvedAt);
-  const avgDaysNumber =
+  // Tính thời gian xử lý trung bình (ngày) từ dữ liệu thực tế
+  const resolvedWithTime = resolvedList.filter(
+    (i) =>
+      i.resolution?.resolvedAt &&
+      new Date(i.resolution.resolvedAt).getTime() >= new Date(i.createdAt).getTime()
+  );
+  const avgDaysFormatted =
     resolvedWithTime.length > 0
-      ? resolvedWithTime.reduce((sum, item) => {
-          const diffMs =
-            new Date(item.resolution!.resolvedAt).getTime() - new Date(item.createdAt).getTime();
-          return sum + Math.max(0.1, diffMs / (1000 * 60 * 60 * 24));
-        }, 0) / resolvedWithTime.length
-      : 3.2;
-  const avgDaysFormatted = avgDaysNumber.toFixed(1).replace('.', ',');
+      ? (
+          resolvedWithTime.reduce((sum, item) => {
+            const diffMs =
+              new Date(item.resolution!.resolvedAt).getTime() - new Date(item.createdAt).getTime();
+            return sum + diffMs / (1000 * 60 * 60 * 24);
+          }, 0) / resolvedWithTime.length
+        )
+          .toFixed(1)
+          .replace('.', ',')
+      : '—';
 
   // Tính mức độ hài lòng thật từ đánh giá của công dân (đồng bộ 100% với Dashboard Admin)
   const ratedList = publicIncidents.filter((i) => i.rating?.stars);
   const avgStars =
     ratedList.length > 0
       ? (ratedList.reduce((s, i) => s + (i.rating?.stars || 0), 0) / ratedList.length).toFixed(1)
-      : '5.0';
+      : '—';
   const satisfactionPct =
     ratedList.length > 0
       ? ((ratedList.filter((i) => (i.rating?.stars || 0) >= 4).length / ratedList.length) * 100)
           .toFixed(1)
           .replace('.', ',')
           .replace(',0', '')
-      : '100';
+      : '—';
 
   // Tự động lấy sự cố Khẩn cấp mới nhất đang mở từ MongoDB cho thanh cảnh báo
   const latestUrgent =
@@ -196,7 +205,9 @@ export const CitizenHomePage: React.FC = () => {
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-blue-700 shadow-sm">
               <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Xử lý trung bình</div>
-              <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1">{avgDaysFormatted} ngày</div>
+              <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1">
+                {avgDaysFormatted === '—' ? '—' : `${avgDaysFormatted} ngày`}
+              </div>
             </div>
 
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-emerald-600 shadow-sm">
@@ -395,7 +406,7 @@ export const CitizenHomePage: React.FC = () => {
                 mode="citizen"
                 incidents={filteredMapIncidents}
                 selectedId={selectedMapIncident?.id}
-                onMarkerClick={(item) => setSelectedMapIncident(item)}
+                onMarkerClick={(item) => setSelectedMapIncidentId(item.id)}
               />
             </div>
 

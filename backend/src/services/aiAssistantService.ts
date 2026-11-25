@@ -88,7 +88,7 @@ Quy tắc phân loại:
               ],
               generationConfig: {
                 temperature: 0.15,
-                maxOutputTokens: 256,
+                maxOutputTokens: 512,
                 responseMimeType: 'application/json',
               },
             }),
@@ -1115,7 +1115,11 @@ Trả về JSON duy nhất đúng cấu trúc:
       return fallbackAssistant(trimmed, liveCtx);
     }
 
-    const parsed = JSON.parse(result.rawText);
+    const cleanedJson = result.rawText
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    const parsed = JSON.parse(cleanedJson);
     return {
       ...sanitizeAssistantOutput(parsed, trimmed),
       analyzedBy: 'gemini',
@@ -1226,7 +1230,23 @@ Trả về JSON duy nhất đúng cấu trúc:
     );
   }
 
-  const parsed = JSON.parse(result.rawText);
+  let parsed: Record<string, any> = {};
+  try {
+    const cleanedJson = result.rawText
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    parsed = JSON.parse(cleanedJson);
+  } catch (err) {
+    console.warn('[AI Voice] JSON parse error:', err instanceof Error ? err.message : err);
+    return {
+      action: 'chat_reply',
+      transcript: '',
+      reply: 'Chưa nhận diện rõ nội dung giọng nói. Bạn vui lòng giữ nút AI và nói lại ngắn gọn hơn nhé.',
+      analyzedBy: 'gemini',
+      modelUsed: result.modelUsed,
+    };
+  }
   const transcript = (parsed.transcript || '').trim();
 
   if (!transcript || transcript.replace(/[^\p{L}\p{N}]/gu, '').length < 2) {

@@ -56,7 +56,8 @@ export async function listIncidents(req: Request, res: Response) {
       filter.category = category;
     }
     if (search && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'i');
       filter.$or = [
         { code: regex },
         { title: regex },
@@ -609,16 +610,17 @@ export async function resolveIncident(req: Request, res: Response) {
       officerName,
     };
     if (doc.workflowSteps && doc.workflowSteps.length > 0) {
-      doc.workflowSteps = doc.workflowSteps.map((s) =>
-        s.completed
-          ? s
+      doc.workflowSteps = doc.workflowSteps.map((s) => {
+        const plain = typeof (s as any).toObject === 'function' ? (s as any).toObject() : { ...s };
+        return plain.completed
+          ? plain
           : {
-              ...s,
+              ...plain,
               completed: true,
               completedAt: nowIso,
               completedBy: officerName,
-            }
-      );
+            };
+      });
     }
     doc.updatedAtIso = nowIso;
     await doc.save();
@@ -766,6 +768,11 @@ export async function linkDuplicate(req: Request, res: Response) {
   try {
     const doc = await IncidentModel.findOne({ incidentId: req.params.id });
     if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ gốc.' });
+    if (['resolved', 'closed', 'rejected'].includes(doc.status)) {
+      return res.status(400).json({
+        message: 'Hồ sơ này đã kết thúc xử lý nên không thể gắn thêm đồng phản ánh.',
+      });
+    }
 
     const { senderName, senderPhone, photos } = req.body as {
       senderName?: string;

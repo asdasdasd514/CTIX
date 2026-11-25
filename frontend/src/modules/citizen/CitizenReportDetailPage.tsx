@@ -347,6 +347,13 @@ export const CitizenReportDetailPage: React.FC = () => {
 
   const getStatusBadge = (status: Incident['status']) => {
     switch (status) {
+      case 'pending_review':
+        return (
+          <span className="bg-violet-100 text-violet-800 text-xs font-bold px-2.5 py-1 rounded-[5px] border border-violet-300 inline-flex items-center gap-1.5 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+            Chờ duyệt tiếp nhận
+          </span>
+        );
       case 'pending':
         return (
           <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-[5px] border border-amber-300 inline-flex items-center gap-1.5 whitespace-nowrap">
@@ -378,6 +385,12 @@ export const CitizenReportDetailPage: React.FC = () => {
         return (
           <span className="bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-[5px] border border-slate-300 whitespace-nowrap">
             Đã nghiệm thu & Hài lòng
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="bg-rose-100 text-rose-800 text-xs font-bold px-2.5 py-1 rounded-[5px] border border-rose-300 whitespace-nowrap">
+            Đã từ chối
           </span>
         );
     }
@@ -614,10 +627,11 @@ export const CitizenReportDetailPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs sm:text-sm font-black inline-flex items-center justify-center gap-1.5 shadow-sm"
+                  disabled={isSavingEdit}
+                  className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white rounded-[5px] text-xs sm:text-sm font-black inline-flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Lưu cập nhật hồ sơ</span>
+                  <span>{isSavingEdit ? 'Đang lưu...' : 'Lưu cập nhật hồ sơ'}</span>
                 </button>
               </div>
             </form>

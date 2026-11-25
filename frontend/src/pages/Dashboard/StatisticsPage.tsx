@@ -45,7 +45,7 @@ export function StatisticsPage() {
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     for (const item of incidents) {
-      if (item.status !== "rejected") {
+      if (item.status !== "rejected" && item.status !== "pending_review") {
         set.add(incidentMonthKey(item.createdAt));
       }
     }
@@ -61,7 +61,7 @@ export function StatisticsPage() {
   const items = useMemo(
     () =>
       incidents.filter((i) => {
-        if (i.status === "rejected") return false;
+        if (i.status === "rejected" || i.status === "pending_review") return false;
         if (month && incidentMonthKey(i.createdAt) !== month) return false;
         if (category !== "all" && i.category !== category) return false;
         if (unit === UNASSIGNED_UNIT_FILTER && i.assignedTo) return false;

@@ -256,7 +256,14 @@ export const App: React.FC = () => {
               </RequireManager>
             }
           />
-          <Route path="settings" element={<AdminSettingsPage />} />
+          <Route
+            path="settings"
+            element={
+              <RequireManager>
+                <AdminSettingsPage />
+              </RequireManager>
+            }
+          />
         </Route>
 
         {/* Redirect tương thích ngược các URL Admin cũ -> /admin/* (đều bị chặn bởi RequireAdmin) */}

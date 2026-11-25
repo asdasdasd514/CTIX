@@ -37,8 +37,12 @@ export const IocDashboardPage: React.FC = () => {
   const resolvedCount = resolvedList.length;
   const resolvedRate = totalCount > 0 ? ((resolvedCount / totalCount) * 100).toFixed(1).replace('.', ',') : '0,0';
 
-  // Thời gian xử lý trung bình (ngày)
-  const resolvedWithTime = resolvedList.filter((i) => i.resolution?.resolvedAt);
+  // Thời gian xử lý trung bình (ngày) — chỉ tính trên hồ sơ có dữ liệu thật
+  const resolvedWithTime = resolvedList.filter(
+    (i) =>
+      i.resolution?.resolvedAt &&
+      new Date(i.resolution.resolvedAt).getTime() >= new Date(i.createdAt).getTime()
+  );
   const avgDays =
     resolvedWithTime.length > 0
       ? (
@@ -46,27 +50,40 @@ export const IocDashboardPage: React.FC = () => {
             const diffDays =
               (new Date(item.resolution!.resolvedAt).getTime() - new Date(item.createdAt).getTime()) /
               (1000 * 60 * 60 * 24);
-            return sum + Math.max(0.1, diffDays);
+            return sum + diffDays;
           }, 0) / resolvedWithTime.length
         )
           .toFixed(1)
           .replace('.', ',')
-      : '3,2';
+      : '—';
 
-  // Điểm hài lòng trung bình
-  const ratedList = incidents.filter((i) => i.rating);
+  // Điểm hài lòng trung bình (chỉ tính trên hồ sơ vận hành chính thức)
+  const ratedList = operationalIncidents.filter((i) => i.rating?.stars);
   const avgStars =
     ratedList.length > 0
-      ? (ratedList.reduce((s, i) => s + (i.rating?.stars || 5), 0) / ratedList.length).toFixed(2)
-      : '4.85';
+      ? (ratedList.reduce((s, i) => s + (i.rating?.stars || 0), 0) / ratedList.length).toFixed(2)
+      : '—';
   const satisfactionPct =
     ratedList.length > 0
       ? ((ratedList.filter((i) => (i.rating?.stars || 0) >= 4).length / ratedList.length) * 100)
           .toFixed(1)
           .replace('.', ',')
-      : '96,8';
+      : '—';
 
-  // Dữ liệu biểu đồ xu hướng tiếp nhận & xử lý theo 4 tuần tháng 11/2026 (tính từ dữ liệu thật)
+  // Dữ liệu biểu đồ xu hướng tiếp nhận & xử lý theo 4 tuần của tháng hiện tại (múi giờ VN)
+  const vnMonthFmt = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+  });
+  const vnDayFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: 'numeric',
+  });
+  const targetMonthKey = '2026-11';
+  const getVnMonthKey = (iso: string) => vnMonthFmt.format(new Date(iso));
+  const getVnDay = (iso: string) => Number(vnDayFmt.format(new Date(iso)));
+
   const weeklyChart = [
     { label: 'Tuần 1', range: [1, 7] },
     { label: 'Tuần 2', range: [8, 14] },
@@ -74,12 +91,15 @@ export const IocDashboardPage: React.FC = () => {
     { label: 'Tuần 4', range: [22, 31] },
   ].map((w) => {
     const received = operationalIncidents.filter((i) => {
-      const day = new Date(i.createdAt).getDate();
+      if (getVnMonthKey(i.createdAt) !== targetMonthKey) return false;
+      const day = getVnDay(i.createdAt);
       return day >= w.range[0] && day <= w.range[1];
     }).length;
     const resolved = operationalIncidents.filter((i) => {
       if (i.status !== 'resolved' && i.status !== 'closed') return false;
-      const day = new Date(i.createdAt).getDate();
+      const resolvedIso = i.resolution?.resolvedAt || i.updatedAt || i.createdAt;
+      if (getVnMonthKey(resolvedIso) !== targetMonthKey) return false;
+      const day = getVnDay(resolvedIso);
       return day >= w.range[0] && day <= w.range[1];
     }).length;
     return { label: w.label, received, resolved };
@@ -267,9 +287,16 @@ export const IocDashboardPage: React.FC = () => {
               <Smile className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-amber-600 mt-2">{satisfactionPct}%</div>
+          <div className="text-3xl font-black text-amber-600 mt-2">
+            {satisfactionPct === '—' ? '—' : `${satisfactionPct}%`}
+          </div>
           <div className="text-xs text-slate-500 mt-1.5 flex items-center justify-between font-medium">
-            <span>Đánh giá: <strong className="text-amber-600">{avgStars} / 5.0 ★</strong></span>
+            <span>
+              Đánh giá:{' '}
+              <strong className="text-amber-600">
+                {avgStars === '—' ? 'Chưa có' : `${avgStars} / 5.0 ★`}
+              </strong>
+            </span>
             <span>{ratedList.length} lượt</span>
           </div>
         </div>
@@ -334,12 +361,12 @@ export const IocDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Cơ cấu 4 nhóm sự cố hiện trường */}
+          {/* Cơ cấu 5 nhóm sự cố hiện trường */}
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-blue-700" />
-                <span>Cơ cấu 4 nhóm sự cố hiện trường</span>
+                <span>Cơ cấu 5 nhóm sự cố hiện trường</span>
               </h2>
               <span className="text-xs font-bold text-slate-400">Tỷ lệ %</span>
             </div>
@@ -358,7 +385,7 @@ export const IocDashboardPage: React.FC = () => {
                     <div className="w-full h-2.5 bg-slate-100 rounded-[4px] overflow-hidden">
                       <div
                         className={`h-full ${cat.barColor} rounded-[4px] transition-all duration-500`}
-                        style={{ width: `${Math.max(4, pct)}%` }}
+                        style={{ width: cat.count > 0 ? `${Math.max(4, pct)}%` : '0%' }}
                       />
                     </div>
                   </div>

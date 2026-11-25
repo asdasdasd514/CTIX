@@ -110,6 +110,8 @@ export const OfficerInboxPage: React.FC = () => {
   const [statusTab, setStatusTab] = useState<
     'pending_review' | 'pending' | 'open' | 'all' | 'overdue' | 'resolved' | 'rejected'
   >(() => {
+    if (urlStatus === 'completed') return 'resolved';
+    if (urlStatus === 'assigned' || urlStatus === 'in_progress') return 'open';
     if (
       urlStatus &&
       ['pending_review', 'pending', 'open', 'all', 'overdue', 'resolved', 'rejected'].includes(
@@ -262,6 +264,36 @@ export const OfficerInboxPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      {(urlUnit || urlMonth || urlAssignee) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-[5px] bg-blue-50 border border-blue-200 text-xs text-blue-900">
+          <div className="flex flex-wrap items-center gap-2 font-semibold">
+            <span>Đang lọc từ Thống kê:</span>
+            {urlMonth && (
+              <span className="px-2 py-0.5 rounded-[4px] bg-white border border-blue-200 font-bold">
+                Tháng {urlMonth}
+              </span>
+            )}
+            {urlUnit && (
+              <span className="px-2 py-0.5 rounded-[4px] bg-white border border-blue-200 font-bold">
+                Đơn vị: {urlUnit === UNASSIGNED_UNIT_FILTER ? 'Chưa phân công' : urlUnit}
+              </span>
+            )}
+            {urlAssignee && (
+              <span className="px-2 py-0.5 rounded-[4px] bg-white border border-blue-200 font-bold">
+                Cán bộ: {urlAssignee}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/inbox')}
+            className="px-2.5 py-1 rounded-[4px] bg-blue-700 hover:bg-blue-800 text-white font-bold transition"
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+      )}
+
       {/* 1. 4 THẺ KPI TRỌNG TÂM (GỌN GÀNG, BẤM ĐỂ NHẢY THẲNG TAB TƯƠNG ỨNG) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <button
