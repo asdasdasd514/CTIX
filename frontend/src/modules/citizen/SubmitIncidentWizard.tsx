@@ -4,7 +4,7 @@ import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { aiApi, incidentsApi, mediaApi, type AiReportDraft, type DuplicateCandidate } from '../../services/api';
 import { saveGuestReport } from '../../lib/guestReports';
-import { compressImageFile, compressImageFiles, stampTimestampWatermarks } from '../../lib/imageCompress';
+import { compressImageFile, compressImageFiles } from '../../lib/imageCompress';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
@@ -323,29 +323,26 @@ export const SubmitIncidentWizard: React.FC = () => {
     }
   };
 
-  // Chỉ đóng dấu Thời gian + Địa chỉ (Timestamp Camera) & upload Cloudinary ĐÚNG LÚC BẤM GỬI
+  // Chỉ nén ảnh sạch & upload Cloudinary ĐÚNG LÚC BẤM GỬI (watermark hiển thị đồng nhất bằng HTML/CSS)
   const uploadStagedPhotos = async (
     phase: 'before' | 'linked',
     category: IncidentCategory,
-    addressText: string
+    _addressText: string
   ): Promise<string[]> => {
     if (photos.length === 0) return [];
     const filesToUpload = photos.map((p) => p.file).filter((f): f is File => Boolean(f));
     const alreadyUploaded = photos.filter((p) => !p.file).map((p) => p.url);
     if (filesToUpload.length === 0) return alreadyUploaded;
 
-    const watermarkedFiles = await stampTimestampWatermarks(filesToUpload, {
-      timestamp: new Date(),
-      address: addressText,
-    });
+    const cleanFiles = await compressImageFiles(filesToUpload);
 
     try {
-      const urls = await mediaApi.uploadFiles(watermarkedFiles, phase, category);
+      const urls = await mediaApi.uploadFiles(cleanFiles, phase, category);
       return [...alreadyUploaded, ...urls];
     } catch {
-      // Fallback sang dataURL đã nén & đóng dấu khi mất kết nối Cloudinary
+      // Fallback sang dataURL đã nén khi mất kết nối Cloudinary
       const dataUrls = await Promise.all(
-        watermarkedFiles.map(
+        cleanFiles.map(
           (file) =>
             new Promise<string>((resolve) => {
               const reader = new FileReader();

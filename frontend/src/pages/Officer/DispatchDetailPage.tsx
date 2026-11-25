@@ -6,6 +6,7 @@ import { useTeamStore } from '../../store/useTeamStore';
 import { incidentsApi, type DuplicateCandidate } from '../../services/api';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
+import { TimestampWatermark } from '../../components/common/TimestampWatermark';
 import {
   CATEGORIES,
   DEFAULT_WORKFLOW_TEMPLATES,
@@ -403,7 +404,14 @@ export const DispatchDetailPage: React.FC = () => {
                     alt={`Hiện trường ${idx + 1}`}
                     className="w-full h-full object-contain"
                   />
-                  <span className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-[4px]">
+                  <TimestampWatermark
+                    timestamp={incident.createdAt}
+                    address={incident.location.address}
+                    imageUrl={src}
+                    align="left"
+                    compact={incident.photosBefore.length > 1}
+                  />
+                  <span className="absolute top-2 right-2 z-20 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-[4px]">
                     Hiện trường #{idx + 1}
                   </span>
                 </div>
@@ -1239,11 +1247,17 @@ export const DispatchDetailPage: React.FC = () => {
                       <span className="text-[11px] font-bold text-emerald-700 uppercase block">
                         Ảnh sau khi xử lý:
                       </span>
-                      <div className="aspect-video rounded-[5px] overflow-hidden border border-slate-200">
+                      <div className="aspect-video rounded-[5px] overflow-hidden border border-slate-200 bg-slate-900 relative">
                         <img
                           src={incident.photosAfter[0]}
                           alt="Sau xử lý"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
+                        />
+                        <TimestampWatermark
+                          timestamp={incident.resolution?.resolvedAt || incident.updatedAt}
+                          address={incident.location.address}
+                          imageUrl={incident.photosAfter[0]}
+                          align="right"
                         />
                       </div>
                     </div>

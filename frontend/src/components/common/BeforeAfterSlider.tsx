@@ -144,6 +144,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                   address={address}
                   imageUrl={afterUrl}
                   align="right"
+                  splitHalf
                   visible={position <= 62}
                 />
               )}
@@ -166,6 +167,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                   address={address}
                   imageUrl={beforeUrl}
                   align="left"
+                  splitHalf
                   visible={position >= 38}
                 />
               )}

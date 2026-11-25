@@ -35,6 +35,7 @@ interface TimestampWatermarkProps {
   compact?: boolean;
   align?: 'left' | 'right';
   visible?: boolean;
+  splitHalf?: boolean;
 }
 
 export const TimestampWatermark: React.FC<TimestampWatermarkProps> = ({
@@ -44,6 +45,7 @@ export const TimestampWatermark: React.FC<TimestampWatermarkProps> = ({
   compact = false,
   align = 'left',
   visible = true,
+  splitHalf = false,
 }) => {
   if (!timestamp || isAlreadyWatermarkedUrl(imageUrl, align)) return null;
   const dateObj = timestamp instanceof Date ? timestamp : new Date(timestamp);
@@ -59,7 +61,7 @@ export const TimestampWatermark: React.FC<TimestampWatermarkProps> = ({
 
   return (
     <div
-      className={`pointer-events-none select-none absolute inset-x-0 bottom-0 z-10 px-4 sm:px-6 pb-3 sm:pb-4 pt-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent text-white transition-opacity duration-150 ${
+      className={`pointer-events-none select-none absolute inset-x-0 bottom-0 z-10 px-2.5 sm:px-5 pb-2 sm:pb-3.5 pt-7 sm:pt-10 bg-gradient-to-t from-black/75 via-black/35 to-transparent text-white transition-opacity duration-150 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
       style={{
@@ -68,28 +70,28 @@ export const TimestampWatermark: React.FC<TimestampWatermarkProps> = ({
       }}
     >
       <div className={`flex flex-col ${isRight ? 'items-end text-right' : 'items-start text-left'}`}>
-        <div className="flex items-center gap-2 sm:gap-2.5 text-left">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 text-left">
           <span
             className={`font-bold leading-none tracking-tight ${
-              compact ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-[32px]'
+              compact ? 'text-sm sm:text-xl' : 'text-base sm:text-2xl md:text-[28px]'
             }`}
           >
             {timeText}
           </span>
-          <span className="w-[2px] self-stretch bg-white/85 rounded-full my-0.5 shrink-0" />
+          <span className="w-[1.5px] sm:w-[2px] self-stretch bg-white/85 rounded-full my-0.5 shrink-0" />
           <div className="leading-tight min-w-0">
-            <div className={`font-semibold ${compact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-[13px]'}`}>
+            <div className={`font-semibold whitespace-nowrap ${compact ? 'text-[9px] sm:text-[11px]' : 'text-[9px] sm:text-xs'}`}>
               {dateText}
             </div>
-            <div className={`font-semibold text-white/95 ${compact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-[13px]'}`}>
+            <div className={`font-semibold text-white/95 whitespace-nowrap ${compact ? 'text-[9px] sm:text-[11px]' : 'text-[9px] sm:text-xs'}`}>
               {weekdayText}
             </div>
           </div>
         </div>
         <div
-          className={`font-semibold text-white/95 mt-1 line-clamp-1 max-w-[90%] ${
-            compact ? 'text-[10px] sm:text-[11px]' : 'text-[11px] sm:text-xs'
-          }`}
+          className={`font-semibold text-white/95 mt-0.5 sm:mt-1 truncate ${
+            splitHalf ? 'max-w-[46%] sm:max-w-[48%]' : 'max-w-[92%]'
+          } ${compact ? 'text-[8px] sm:text-[10px]' : 'text-[8px] sm:text-[11px]'}`}
         >
           {addrText}
         </div>

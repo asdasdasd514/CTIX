@@ -98,6 +98,9 @@ export function IncidentOverview({
           <BeforeAfterSlider
             photosBefore={incident.photosBefore}
             photosAfter={incident.photosAfter}
+            beforeTimestamp={incident.createdAt}
+            afterTimestamp={incident.resolution?.resolvedAt || incident.updatedAt}
+            address={incident.location.address}
           />
           <div className="work-evidence">
             <dl>

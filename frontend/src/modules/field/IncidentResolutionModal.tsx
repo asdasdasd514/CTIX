@@ -12,7 +12,7 @@ import {
 import type { Incident, IncidentCategory } from '../../types/incident';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { compressImageFile, stampTimestampWatermark } from '../../lib/imageCompress';
+import { compressImageFile } from '../../lib/imageCompress';
 import { distanceMeters } from '../../lib/incidents';
 import { mediaApi } from '../../services/api';
 
@@ -141,23 +141,19 @@ export function IncidentResolutionModal({
 
     setSubmitting(true);
     try {
-      // Đóng dấu Thời gian hoàn thành + Địa chỉ ở góc dưới-PHẢI (đồng đều với ảnh TRƯỚC bên trái)
-      const watermarked = await stampTimestampWatermark(stagedFile, {
-        timestamp: new Date(),
-        address: incident.location.address,
-        align: 'right',
-      });
+      // Nén ảnh sạch (không in đè chữ cứng lên pixel — watermark hiển thị đồng nhất bên PHẢI bằng HTML/CSS)
+      const cleanFile = await compressImageFile(stagedFile);
 
       let finalPhotoUrl = '';
       try {
-        const urls = await mediaApi.uploadFiles([watermarked], 'after', incident.category);
+        const urls = await mediaApi.uploadFiles([cleanFile], 'after', incident.category);
         if (urls[0]) finalPhotoUrl = urls[0];
       } catch {
-        // Fallback sang dataURL đã nén & đóng dấu khi mất kết nối Cloudinary
+        // Fallback sang dataURL đã nén khi mất kết nối Cloudinary
         finalPhotoUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = (ev) => resolve((ev.target?.result as string) || '');
-          reader.readAsDataURL(watermarked);
+          reader.readAsDataURL(cleanFile);
         });
       }
 

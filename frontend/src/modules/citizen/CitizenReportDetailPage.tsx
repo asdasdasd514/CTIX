@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { mediaApi } from '../../services/api';
 import { distanceMeters, isPublicIncident } from '../../lib/incidents';
 import { getGuestPhone, getGuestReportIds, normalizePhone } from '../../lib/guestReports';
-import { compressImageFiles, stampTimestampWatermarks } from '../../lib/imageCompress';
+import { compressImageFiles } from '../../lib/imageCompress';
 import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
@@ -265,15 +265,12 @@ export const CitizenReportDetailPage: React.FC = () => {
 
       let uploadedNewUrls: string[] = [];
       if (newFiles.length > 0) {
-        const watermarked = await stampTimestampWatermarks(newFiles, {
-          timestamp: new Date(),
-          address: editLocation.address || incident.location.address,
-        });
+        const cleanFiles = await compressImageFiles(newFiles);
         try {
-          uploadedNewUrls = await mediaApi.uploadFiles(watermarked, 'before', editCategory);
+          uploadedNewUrls = await mediaApi.uploadFiles(cleanFiles, 'before', editCategory);
         } catch {
           uploadedNewUrls = await Promise.all(
-            watermarked.map(
+            cleanFiles.map(
               (file) =>
                 new Promise<string>((resolve) => {
                   const reader = new FileReader();
@@ -738,9 +735,16 @@ export const CitizenReportDetailPage: React.FC = () => {
                           {incident.photosAfter.map((src, idx) => (
                             <div
                               key={idx}
-                              className="aspect-video rounded-[5px] overflow-hidden bg-slate-900 border border-slate-200"
+                              className="aspect-video rounded-[5px] overflow-hidden bg-slate-900 border border-slate-200 relative"
                             >
                               <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-contain" />
+                              <TimestampWatermark
+                                timestamp={incident.resolution?.resolvedAt || incident.updatedAt}
+                                address={incident.location.address}
+                                imageUrl={src}
+                                align="right"
+                                compact={incident.photosAfter!.length > 1}
+                              />
                             </div>
                           ))}
                         </div>
