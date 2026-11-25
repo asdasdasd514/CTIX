@@ -396,14 +396,14 @@ export const DispatchDetailPage: React.FC = () => {
               {incident.photosBefore.map((src, idx) => (
                 <div
                   key={idx}
-                  className="aspect-[16/10] rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative"
+                  className="aspect-[16/10] rounded-[5px] overflow-hidden bg-slate-900 border border-slate-200 relative"
                 >
                   <img
                     src={src}
                     alt={`Hiện trường ${idx + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
-                  <span className="absolute bottom-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-[4px]">
+                  <span className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-[4px]">
                     Hiện trường #{idx + 1}
                   </span>
                 </div>

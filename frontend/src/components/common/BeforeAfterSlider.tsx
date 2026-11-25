@@ -136,7 +136,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 src={afterUrl}
                 alt="Ảnh sau xử lý"
                 draggable={false}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
               {afterTimestamp && (
                 <TimestampWatermark
@@ -159,7 +159,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 src={beforeUrl}
                 alt="Ảnh trước xử lý"
                 draggable={false}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
               {beforeTimestamp && (
                 <TimestampWatermark
@@ -213,8 +213,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       ) : (
         /* CHẾ ĐỘ 2: XEM SONG SONG 2 ẢNH */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="relative aspect-[16/10] rounded-[5px] overflow-hidden border border-slate-200 bg-slate-100">
-            <img src={beforeUrl} alt="Trước xử lý" className="w-full h-full object-cover" />
+          <div className="relative aspect-[16/10] rounded-[5px] overflow-hidden border border-slate-200 bg-slate-900">
+            <img src={beforeUrl} alt="Trước xử lý" className="w-full h-full object-contain" />
             <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-[5px] bg-rose-600/90 text-white text-[10px] font-black">
               {beforeLabel}
             </span>
@@ -227,8 +227,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
               />
             )}
           </div>
-          <div className="relative aspect-[16/10] rounded-[5px] overflow-hidden border border-emerald-200 bg-emerald-50">
-            <img src={afterUrl} alt="Sau xử lý" className="w-full h-full object-cover" />
+          <div className="relative aspect-[16/10] rounded-[5px] overflow-hidden border border-emerald-200 bg-slate-900">
+            <img src={afterUrl} alt="Sau xử lý" className="w-full h-full object-contain" />
             <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-[5px] bg-emerald-600/90 text-white text-[10px] font-black">
               {afterLabel}
             </span>

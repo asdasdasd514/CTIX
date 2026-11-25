@@ -209,7 +209,7 @@ export function FieldTaskDetailPage() {
                     <img
                       src={activeBeforePhoto}
                       alt={item.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                     <TimestampWatermark
                       timestamp={item.createdAt}

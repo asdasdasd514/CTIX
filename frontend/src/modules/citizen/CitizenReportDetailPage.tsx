@@ -708,12 +708,12 @@ export const CitizenReportDetailPage: React.FC = () => {
                         {incident.photosBefore.map((src, idx) => (
                           <div
                             key={idx}
-                            className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200 relative"
+                            className="aspect-video rounded-[5px] overflow-hidden bg-slate-900 border border-slate-200 relative"
                           >
                             <img
                               src={src}
                               alt={`Ảnh hiện trường ${idx + 1}`}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                             />
                             <TimestampWatermark
                               timestamp={incident.createdAt}
@@ -738,9 +738,9 @@ export const CitizenReportDetailPage: React.FC = () => {
                           {incident.photosAfter.map((src, idx) => (
                             <div
                               key={idx}
-                              className="aspect-video rounded-[5px] overflow-hidden bg-slate-100 border border-slate-200"
+                              className="aspect-video rounded-[5px] overflow-hidden bg-slate-900 border border-slate-200"
                             >
-                              <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-cover" />
+                              <img src={src} alt={`Sau xử lý ${idx + 1}`} className="w-full h-full object-contain" />
                             </div>
                           ))}
                         </div>
