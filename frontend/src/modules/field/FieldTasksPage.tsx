@@ -32,7 +32,7 @@ import {
   isOverdue,
 } from '../../lib/incidents';
 
-type FieldTab = 'assigned' | 'verify' | 'completed';
+type FieldTab = 'assigned' | 'completed';
 
 export function FieldTasksPage() {
   const {
@@ -60,21 +60,10 @@ export function FieldTasksPage() {
     current: FieldTab;
   }>({
     linked: linkedId,
-    current: linkedIncident
-      ? isComplete(linkedIncident)
-        ? 'completed'
-        : linkedIncident.status === 'pending'
-          ? 'verify'
-          : 'assigned'
-      : 'assigned',
+    current: linkedIncident && isComplete(linkedIncident) ? 'completed' : 'assigned',
   });
-  const derivedLinkedTab: FieldTab = linkedIncident
-    ? isComplete(linkedIncident)
-      ? 'completed'
-      : linkedIncident.status === 'pending'
-        ? 'verify'
-        : 'assigned'
-    : 'assigned';
+  const derivedLinkedTab: FieldTab =
+    linkedIncident && isComplete(linkedIncident) ? 'completed' : 'assigned';
   const tab =
     tabState.linked === linkedId ? tabState.current : derivedLinkedTab;
   const setTab = (next: FieldTab) =>
@@ -169,9 +158,6 @@ export function FieldTasksPage() {
     assigned: scopedIncidents.filter(
       (i) =>
         (i.status === 'assigned' || i.status === 'in_progress') && matchesScope(i)
-    ),
-    verify: scopedIncidents.filter(
-      (i) => !isComplete(i) && !i.verifiedByVolunteer && matchesScope(i)
     ),
     completed: scopedIncidents.filter((i) => isComplete(i) && matchesScope(i)),
   };
@@ -289,12 +275,12 @@ export function FieldTasksPage() {
       {/* 3. THANH TAB & BỘ LỌC */}
       <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-3.5 sm:p-4 space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* 3 Tab */}
-          <div className="grid grid-cols-3 sm:inline-flex items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200">
+          {/* 2 Tab gọn gàng: Cần xử lý & Đã xử lý */}
+          <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200">
             <button
               type="button"
               onClick={() => setTab('assigned')}
-              className={`px-3 py-1.5 rounded-[4px] text-xs font-bold transition whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-[4px] text-xs font-bold transition whitespace-nowrap ${
                 tab === 'assigned'
                   ? 'bg-blue-700 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -304,19 +290,8 @@ export function FieldTasksPage() {
             </button>
             <button
               type="button"
-              onClick={() => setTab('verify')}
-              className={`px-3 py-1.5 rounded-[4px] text-xs font-bold transition whitespace-nowrap ${
-                tab === 'verify'
-                  ? 'bg-blue-700 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Cần xác minh ({groups.verify.length})
-            </button>
-            <button
-              type="button"
               onClick={() => setTab('completed')}
-              className={`px-3 py-1.5 rounded-[4px] text-xs font-bold transition whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-[4px] text-xs font-bold transition whitespace-nowrap ${
                 tab === 'completed'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -474,6 +449,9 @@ export function FieldTasksPage() {
                       <BeforeAfterSlider
                         photosBefore={item.photosBefore}
                         photosAfter={item.photosAfter}
+                        beforeTimestamp={item.createdAt}
+                        afterTimestamp={item.resolution?.resolvedAt || item.updatedAt}
+                        address={item.location.address}
                       />
                     </div>
                   ) : (

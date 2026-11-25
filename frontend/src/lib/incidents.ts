@@ -405,6 +405,8 @@ export function safeImageUrl(value: unknown): string {
   if (typeof value !== "string") return "";
   if (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value))
     return value;
+  if (/^\/images\/[A-Za-z0-9/_.-]+\.(jpg|jpeg|png|webp)$/i.test(value))
+    return value;
   try {
     const url = new URL(value);
     return url.protocol === "https:" ? url.href : "";

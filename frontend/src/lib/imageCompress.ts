@@ -70,7 +70,7 @@ export async function compressImageFile(
               return;
             }
             const baseName = file.name.replace(/\.[^.]+$/, '') || 'hien-truong';
-            resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' }));
+            resolve(new File([blob], `${baseName}_wm.jpg`, { type: 'image/jpeg' }));
           },
           'image/jpeg',
           quality
@@ -237,7 +237,7 @@ export async function stampTimestampWatermark(
               return;
             }
             const baseName = file.name.replace(/\.[^.]+$/, '') || 'hien-truong';
-            resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' }));
+            resolve(new File([blob], `${baseName}_wm.jpg`, { type: 'image/jpeg' }));
           },
           'image/jpeg',
           quality

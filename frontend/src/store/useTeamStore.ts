@@ -27,7 +27,7 @@ interface TeamState {
   addMember: (member: Omit<StaffMember, 'id'>) => void;
   updateMember: (id: string, patch: Partial<Omit<StaffMember, 'id'>>) => void;
   removeMember: (id: string) => void;
-  addUnit: (unit: Omit<TeamUnit, 'id'>) => void;
+  addUnit: (unit: Omit<TeamUnit, 'id'>, memberIds?: string[]) => void;
   updateUnit: (id: string, patch: Partial<Omit<TeamUnit, 'id'>>) => void;
   removeUnit: (id: string) => void;
   resetTeams: () => void;
@@ -174,20 +174,34 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     teamsApi.deleteMember(id).catch(() => {});
   },
 
-  addUnit: (unit) => {
+  addUnit: (unit, memberIds = []) => {
     const tempId = `unit-${Date.now().toString(36)}`;
     const newUnit: TeamUnit = { ...unit, id: tempId };
     const nextUnits = [...get().units, newUnit];
-    persist(nextUnits, get().members);
-    set({ units: nextUnits });
+    const selectedSet = new Set(memberIds);
+    const nextMembers =
+      selectedSet.size > 0
+        ? get().members.map((m) => (selectedSet.has(m.id) ? { ...m, unitId: tempId } : m))
+        : get().members;
+    persist(nextUnits, nextMembers);
+    set({ units: nextUnits, members: nextMembers });
 
     teamsApi
       .createUnit(unit)
       .then((res) => {
         if (res?.unit) {
-          const synced = get().units.map((u) => (u.id === tempId ? res.unit : u));
-          persist(synced, get().members);
-          set({ units: synced });
+          const realId = res.unit.id;
+          const syncedUnits = get().units.map((u) => (u.id === tempId ? res.unit : u));
+          const syncedMembers = get().members.map((m) =>
+            m.unitId === tempId ? { ...m, unitId: realId } : m
+          );
+          persist(syncedUnits, syncedMembers);
+          set({ units: syncedUnits, members: syncedMembers });
+          if (selectedSet.size > 0) {
+            selectedSet.forEach((mId) => {
+              teamsApi.updateMember(mId, { unitId: realId }).catch(() => {});
+            });
+          }
         }
       })
       .catch(() => {});

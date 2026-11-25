@@ -1,11 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { Columns2, MoveHorizontal, SlidersHorizontal } from 'lucide-react';
+import { TimestampWatermark } from './TimestampWatermark';
 
 interface BeforeAfterSliderProps {
   photosBefore: string[];
   photosAfter: string[];
   beforeLabel?: string;
   afterLabel?: string;
+  beforeTimestamp?: string;
+  afterTimestamp?: string;
+  address?: string;
   className?: string;
 }
 
@@ -14,6 +18,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   photosAfter,
   beforeLabel = 'TRƯỚC XỬ LÝ',
   afterLabel = 'SAU XỬ LÝ',
+  beforeTimestamp,
+  afterTimestamp,
+  address,
   className = '',
 }) => {
   const [position, setPosition] = useState<number>(50);
@@ -120,21 +127,43 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           className="relative aspect-[16/9] w-full rounded-[5px] overflow-hidden border border-slate-300 bg-slate-900 select-none touch-none cursor-ew-resize shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
         >
           {/* Ảnh SAU xử lý (nằm dưới, hiển thị đủ 100%) */}
-          <img
-            src={afterUrl}
-            alt="Ảnh sau xử lý"
-            draggable={false}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          />
+          <div className="absolute inset-0 pointer-events-none">
+            <img
+              src={afterUrl}
+              alt="Ảnh sau xử lý"
+              draggable={false}
+              className="w-full h-full object-cover"
+            />
+            {afterTimestamp && (
+              <TimestampWatermark
+                timestamp={afterTimestamp}
+                address={address}
+                imageUrl={afterUrl}
+                compact
+              />
+            )}
+          </div>
 
           {/* Ảnh TRƯỚC xử lý (nằm trên, cắt theo clip-path) */}
-          <img
-            src={beforeUrl}
-            alt="Ảnh trước xử lý"
-            draggable={false}
+          <div
             style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          />
+            className="absolute inset-0 pointer-events-none"
+          >
+            <img
+              src={beforeUrl}
+              alt="Ảnh trước xử lý"
+              draggable={false}
+              className="w-full h-full object-cover"
+            />
+            {beforeTimestamp && (
+              <TimestampWatermark
+                timestamp={beforeTimestamp}
+                address={address}
+                imageUrl={beforeUrl}
+                compact
+              />
+            )}
+          </div>
 
           {/* Nhãn góc TRƯỚC */}
           <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
@@ -177,15 +206,31 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="relative aspect-[16/10] rounded-[5px] overflow-hidden border border-slate-200 bg-slate-100">
             <img src={beforeUrl} alt="Trước xử lý" className="w-full h-full object-cover" />
-            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[5px] bg-rose-600/90 text-white text-[10px] font-black">
+            <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-[5px] bg-rose-600/90 text-white text-[10px] font-black">
               {beforeLabel}
             </span>
+            {beforeTimestamp && (
+              <TimestampWatermark
+                timestamp={beforeTimestamp}
+                address={address}
+                imageUrl={beforeUrl}
+                compact
+              />
+            )}
           </div>
           <div className="relative aspect-[16/10] rounded-[5px] overflow-hidden border border-emerald-200 bg-emerald-50">
             <img src={afterUrl} alt="Sau xử lý" className="w-full h-full object-cover" />
-            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[5px] bg-emerald-600/90 text-white text-[10px] font-black">
+            <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-[5px] bg-emerald-600/90 text-white text-[10px] font-black">
               {afterLabel}
             </span>
+            {afterTimestamp && (
+              <TimestampWatermark
+                timestamp={afterTimestamp}
+                address={address}
+                imageUrl={afterUrl}
+                compact
+              />
+            )}
           </div>
         </div>
       )}

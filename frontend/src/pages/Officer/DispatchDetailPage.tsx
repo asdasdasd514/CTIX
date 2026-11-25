@@ -1134,6 +1134,9 @@ export const DispatchDetailPage: React.FC = () => {
                     <BeforeAfterSlider
                       photosBefore={incident.photosBefore}
                       photosAfter={incident.photosAfter}
+                      beforeTimestamp={incident.createdAt}
+                      afterTimestamp={incident.resolution?.resolvedAt || incident.updatedAt}
+                      address={incident.location.address}
                     />
                   ) : (
                     <div className="space-y-1.5">

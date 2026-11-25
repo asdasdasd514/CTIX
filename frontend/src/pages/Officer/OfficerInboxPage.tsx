@@ -142,10 +142,8 @@ export const OfficerInboxPage: React.FC = () => {
       if (statusTab === 'pending' && item.status !== 'pending') return false;
       if (
         statusTab === 'open' &&
-        (item.status === 'resolved' ||
-          item.status === 'closed' ||
-          item.status === 'pending_review' ||
-          item.status === 'rejected')
+        item.status !== 'assigned' &&
+        item.status !== 'in_progress'
       )
         return false;
       if (statusTab === 'overdue' && !isOverdue(item, now)) return false;
@@ -256,8 +254,8 @@ export const OfficerInboxPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* 1. THẺ TỔNG QUAN NHANH (BẤM ĐỂ LỌC NHANH) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* 1. 4 THẺ KPI TRỌNG TÂM (GỌN GÀNG, BẤM ĐỂ NHẢY THẲNG TAB TƯƠNG ỨNG) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <button
           type="button"
           onClick={() => setStatusTab('pending_review')}
@@ -292,22 +290,6 @@ export const OfficerInboxPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setStatusTab('open')}
-          className={`p-3.5 rounded-[5px] border text-left transition shadow-sm bg-white ${
-            statusTab === 'open'
-              ? 'border-blue-600 ring-1 ring-blue-600 bg-blue-50/40'
-              : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>Đã giao / Đang xử lý</span>
-            <Truck className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="text-2xl font-black text-blue-700 mt-1">{assignedCount + inProgressCount}</div>
-        </button>
-
-        <button
-          type="button"
           onClick={() => setStatusTab('overdue')}
           className={`p-3.5 rounded-[5px] border text-left transition shadow-sm bg-white ${
             statusTab === 'overdue'
@@ -337,36 +319,22 @@ export const OfficerInboxPage: React.FC = () => {
           </div>
           <div className="text-2xl font-black text-emerald-700 mt-1">{resolvedCount}</div>
         </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusTab('all')}
-          className={`col-span-2 sm:col-span-1 p-3.5 rounded-[5px] border text-left transition shadow-sm bg-white ${
-            statusTab === 'all'
-              ? 'border-slate-800 ring-1 ring-slate-800 bg-slate-50'
-              : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>Tất cả hồ sơ</span>
-            <Clock className="w-4 h-4 text-slate-600" />
-          </div>
-          <div className="text-2xl font-black text-slate-900 mt-1">{incidents.length}</div>
-        </button>
       </div>
 
-      {/* 2. THANH BỘ LỌC ĐẸP ĐỒNG NHẤT TRANG CÔNG DÂN */}
+      {/* 2. THANH BỘ LỌC THEO ĐÚNG DÒNG CHẢY QUY TRÌNH */}
       <div className="bg-white p-3.5 sm:p-4 rounded-[5px] border border-slate-200 shadow-sm space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* Tab trạng thái */}
+          {/* Tab trạng thái theo thứ tự: Chờ duyệt -> Chờ phân công -> Đang xử lý -> Quá hạn -> Đã hoàn thành -> Tất cả */}
           <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-[5px] border border-slate-200">
             {[
               { id: 'pending_review', label: `Chờ duyệt (${reviewCount})` },
               { id: 'pending', label: `Chờ phân công (${pendingCount})` },
-              { id: 'open', label: 'Chưa hoàn tất' },
+              { id: 'open', label: `Đang xử lý (${assignedCount + inProgressCount})` },
               { id: 'overdue', label: `Quá hạn (${overdueCount})` },
-              { id: 'resolved', label: 'Đã xử lý' },
-              { id: 'rejected', label: `Từ chối (${rejectedCount})` },
+              { id: 'resolved', label: `Đã hoàn thành (${resolvedCount})` },
+              ...(rejectedCount > 0
+                ? [{ id: 'rejected', label: `Từ chối (${rejectedCount})` }]
+                : []),
               { id: 'all', label: `Tất cả (${incidents.length})` },
             ].map((t) => (
               <button

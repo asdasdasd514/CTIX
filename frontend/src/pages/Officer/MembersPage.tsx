@@ -39,13 +39,15 @@ export const MembersPage: React.FC = () => {
   const [mUnitId, setMUnitId] = useState(units[0]?.id || '');
   const [mStatus, setMStatus] = useState<'available' | 'busy' | 'off_duty'>('available');
 
-  // Modal Nhóm / Tổ đội
+  // Modal Nhóm / Tổ đội (2 cột: thông tin nhóm bên trái + chọn thành viên bên phải)
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<TeamUnit | null>(null);
   const [uName, setUName] = useState('');
   const [uCategory, setUCategory] = useState<IncidentCategory>('street_light');
   const [uHotline, setUHotline] = useState('');
   const [uDescription, setUDescription] = useState('');
+  const [uSelectedMemberIds, setUSelectedMemberIds] = useState<string[]>([]);
+  const [uMemberSearch, setUMemberSearch] = useState('');
 
   // Modal chọn thành viên từ danh sách hiện có để phân vào Nhóm / Tổ đội
   const [assignUnitTarget, setAssignUnitTarget] = useState<TeamUnit | null>(null);
@@ -174,13 +176,15 @@ export const MembersPage: React.FC = () => {
     setMemberModalOpen(false);
   };
 
-  // Mở modal Tổ đội
+  // Mở modal Tổ đội (2 cột kèm chọn thành viên bên phải)
   const openAddUnit = () => {
     setEditingUnit(null);
     setUName('');
     setUCategory('street_light');
     setUHotline('');
     setUDescription('');
+    setUSelectedMemberIds([]);
+    setUMemberSearch('');
     setUnitModalOpen(true);
   };
 
@@ -190,26 +194,36 @@ export const MembersPage: React.FC = () => {
     setUCategory(unit.category);
     setUHotline(unit.hotline);
     setUDescription(unit.description);
+    setUSelectedMemberIds(members.filter((m) => m.unitId === unit.id).map((m) => m.id));
+    setUMemberSearch('');
     setUnitModalOpen(true);
+  };
+
+  const toggleUnitMemberSelection = (memberId: string) => {
+    setUSelectedMemberIds((prev) =>
+      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
+    );
   };
 
   const handleSaveUnit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!uName.trim()) return;
+    const payload = {
+      name: uName.trim(),
+      category: uCategory,
+      hotline: uHotline.trim() || '0251.382.1100',
+      description: uDescription.trim() || 'Tổ đội tiếp ứng xử lý sự cố hạ tầng đô thị.',
+    };
     if (editingUnit) {
-      updateUnit(editingUnit.id, {
-        name: uName.trim(),
-        category: uCategory,
-        hotline: uHotline.trim() || '0251.382.1100',
-        description: uDescription.trim() || 'Tổ đội tiếp ứng xử lý sự cố hạ tầng đô thị.',
+      updateUnit(editingUnit.id, payload);
+      uSelectedMemberIds.forEach((mId) => {
+        const m = members.find((x) => x.id === mId);
+        if (m && m.unitId !== editingUnit.id) {
+          updateMember(mId, { unitId: editingUnit.id });
+        }
       });
     } else {
-      addUnit({
-        name: uName.trim(),
-        category: uCategory,
-        hotline: uHotline.trim() || '0251.382.1100',
-        description: uDescription.trim() || 'Tổ đội tiếp ứng xử lý sự cố hạ tầng đô thị.',
-      });
+      addUnit(payload, uSelectedMemberIds);
     }
     setUnitModalOpen(false);
   };
@@ -850,18 +864,23 @@ export const MembersPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL THÊM / SỬA NHÓM / TỔ ĐỘI */}
+      {/* MODAL THÊM / SỬA NHÓM / TỔ ĐỘI (2 CỘT: THÔNG TIN BÊN TRÁI + CHỌN THÀNH VIÊN BÊN PHẢI) */}
       {unitModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto"
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white rounded-[5px] border border-slate-200 shadow-xl w-full max-w-md overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800">
-                {editingUnit ? 'Chỉnh sửa nhóm / tổ đội' : 'Thêm nhóm / tổ đội mới'}
-              </h3>
+          <div className="bg-white rounded-[5px] border border-slate-200 shadow-xl w-full max-w-3xl overflow-hidden my-auto">
+            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  {editingUnit ? 'Chỉnh sửa nhóm / tổ đội' : 'Tạo nhóm / tổ đội mới'}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Điền thông tin nhóm bên trái và tick chọn thành viên thêm vào nhóm ngay bên phải
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setUnitModalOpen(false)}
@@ -870,62 +889,137 @@ export const MembersPage: React.FC = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveUnit} className="p-5 space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Tên nhóm / tổ đội *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={uName}
-                  onChange={(e) => setUName(e.target.value)}
-                  placeholder="VD: Tổ phản ứng nhanh Khu phố 2"
-                  className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Lĩnh vực phụ trách
-                  </label>
-                  <select
-                    value={uCategory}
-                    onChange={(e) => setUCategory(e.target.value as IncidentCategory)}
-                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  >
-                    {Object.entries(CATEGORIES).map(([id, label]) => (
-                      <option key={id} value={id}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+
+            <form onSubmit={handleSaveUnit} className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                {/* Cột trái (6/12): Thông tin nhóm */}
+                <div className="md:col-span-6 space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Tên nhóm / tổ đội *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={uName}
+                      onChange={(e) => setUName(e.target.value)}
+                      placeholder="VD: Tổ phản ứng nhanh Khu phố 2"
+                      className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Lĩnh vực phụ trách
+                      </label>
+                      <select
+                        value={uCategory}
+                        onChange={(e) => setUCategory(e.target.value as IncidentCategory)}
+                        className="w-full h-9 px-2.5 rounded-[5px] border border-slate-300 bg-white text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                      >
+                        {Object.entries(CATEGORIES).map(([id, label]) => (
+                          <option key={id} value={id}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Đường dây nóng
+                      </label>
+                      <input
+                        type="text"
+                        value={uHotline}
+                        onChange={(e) => setUHotline(e.target.value)}
+                        placeholder="0251.382.xxxx"
+                        className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Mô tả nhiệm vụ
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={uDescription}
+                      onChange={(e) => setUDescription(e.target.value)}
+                      placeholder="Mô tả phạm vi chuyên môn của tổ đội..."
+                      className="w-full px-3 py-2 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Đường dây nóng
-                  </label>
-                  <input
-                    type="text"
-                    value={uHotline}
-                    onChange={(e) => setUHotline(e.target.value)}
-                    placeholder="0251.382.xxxx"
-                    className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  />
+
+                {/* Cột phải (6/12): Danh sách thành viên để chọn add vào nhóm */}
+                <div className="md:col-span-6 flex flex-col border border-slate-200 rounded-[5px] bg-slate-50/60 overflow-hidden">
+                  <div className="p-3 border-b border-slate-200 bg-white space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Chọn thành viên vào nhóm</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">
+                        Đã chọn: {uSelectedMemberIds.length}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={uMemberSearch}
+                        onChange={(e) => setUMemberSearch(e.target.value)}
+                        placeholder="Tìm theo tên hoặc SĐT..."
+                        className="w-full h-8 pl-8 pr-2.5 rounded-[5px] border border-slate-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 max-h-64 overflow-y-auto divide-y divide-slate-200/70">
+                    {members
+                      .filter((m) => {
+                        const q = uMemberSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          m.name.toLowerCase().includes(q) ||
+                          m.phone.toLowerCase().includes(q) ||
+                          m.role.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((m) => {
+                        const checked = uSelectedMemberIds.includes(m.id);
+                        const currentUnit = unitById.get(m.unitId);
+                        return (
+                          <label
+                            key={m.id}
+                            className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition text-xs ${
+                              checked ? 'bg-blue-50/80' : 'bg-white hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleUnitMemberSelection(m.id)}
+                              className="accent-blue-700 shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-slate-800 truncate">{m.name}</div>
+                              <div className="text-[11px] text-slate-500 truncate">
+                                {m.phone} • {currentUnit ? currentUnit.name : 'Chưa gán tổ'}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    {members.length === 0 && (
+                      <div className="p-6 text-center text-xs text-slate-400">
+                        Chưa có tài khoản nhân sự nào. Hãy tạo tài khoản ở mục Tài khoản.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Mô tả nhiệm vụ
-                </label>
-                <textarea
-                  rows={3}
-                  value={uDescription}
-                  onChange={(e) => setUDescription(e.target.value)}
-                  placeholder="Mô tả phạm vi chuyên môn của tổ đội..."
-                  className="w-full px-3 py-2 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
-              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -936,9 +1030,13 @@ export const MembersPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-xs font-semibold text-white"
+                  className="px-4 py-2 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-xs font-semibold text-white shadow-sm"
                 >
-                  {editingUnit ? 'Lưu thay đổi' : 'Tạo nhóm'}
+                  {editingUnit
+                    ? 'Lưu thay đổi'
+                    : uSelectedMemberIds.length > 0
+                    ? `Tạo nhóm (${uSelectedMemberIds.length} thành viên)`
+                    : 'Tạo nhóm'}
                 </button>
               </div>
             </form>

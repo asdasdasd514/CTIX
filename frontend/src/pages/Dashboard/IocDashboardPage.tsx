@@ -27,8 +27,11 @@ export const IocDashboardPage: React.FC = () => {
     void refreshIncidents();
   }, [refreshIncidents]);
 
-  // Loại bỏ hồ sơ đã bị Từ chối khỏi KPI điều hành để tỷ lệ xử lý chính xác 100%
-  const operationalIncidents = incidents.filter((i) => i.status !== 'rejected');
+  // Loại bỏ hồ sơ Chờ duyệt & Từ chối khỏi KPI tiếp nhận chính thức để số liệu chuẩn xác 100%
+  const pendingReviewCount = incidents.filter((i) => i.status === 'pending_review').length;
+  const operationalIncidents = incidents.filter(
+    (i) => i.status !== 'rejected' && i.status !== 'pending_review'
+  );
   const totalCount = operationalIncidents.length;
   const resolvedList = operationalIncidents.filter((i) => i.status === 'resolved' || i.status === 'closed');
   const resolvedCount = resolvedList.length;
@@ -70,11 +73,11 @@ export const IocDashboardPage: React.FC = () => {
     { label: 'Tuần 3', range: [15, 21] },
     { label: 'Tuần 4', range: [22, 31] },
   ].map((w) => {
-    const received = incidents.filter((i) => {
+    const received = operationalIncidents.filter((i) => {
       const day = new Date(i.createdAt).getDate();
       return day >= w.range[0] && day <= w.range[1];
     }).length;
-    const resolved = incidents.filter((i) => {
+    const resolved = operationalIncidents.filter((i) => {
       if (i.status !== 'resolved' && i.status !== 'closed') return false;
       const day = new Date(i.createdAt).getDate();
       return day >= w.range[0] && day <= w.range[1];
@@ -83,64 +86,111 @@ export const IocDashboardPage: React.FC = () => {
   });
   const maxWeeklyVal = Math.max(10, ...weeklyChart.map((w) => Math.max(w.received, w.resolved)));
 
-  // Cơ cấu 4 nhóm sự cố hiện trường
+  // Cơ cấu 5 nhóm sự cố hiện trường (tách riêng Sự cố khác, tính từ dữ liệu đã tiếp nhận)
   const categoryStats = [
     {
       label: 'Vệ sinh môi trường / Rác thải',
-      count: incidents.filter((i) => i.category === 'waste').length,
+      count: operationalIncidents.filter((i) => i.category === 'waste').length,
       barColor: 'bg-amber-500',
       textColor: 'text-amber-700',
     },
     {
       label: 'Chiếu sáng đô thị / Đèn đường',
-      count: incidents.filter((i) => i.category === 'street_light').length,
+      count: operationalIncidents.filter((i) => i.category === 'street_light').length,
       barColor: 'bg-blue-600',
       textColor: 'text-blue-700',
     },
     {
       label: 'Thoát nước & Điểm ngập úng',
-      count: incidents.filter((i) => i.category === 'flooding').length,
+      count: operationalIncidents.filter((i) => i.category === 'flooding').length,
       barColor: 'bg-cyan-500',
       textColor: 'text-cyan-700',
     },
     {
       label: 'Giao thông & Mặt đường / Ổ gà',
-      count: incidents.filter((i) => i.category === 'road_damage' || i.category === 'other').length,
+      count: operationalIncidents.filter((i) => i.category === 'road_damage').length,
       barColor: 'bg-indigo-600',
       textColor: 'text-indigo-700',
     },
+    {
+      label: 'Sự cố đô thị khác',
+      count: operationalIncidents.filter((i) => i.category === 'other').length,
+      barColor: 'bg-violet-600',
+      textColor: 'text-violet-700',
+    },
   ];
 
-  // Thời gian xử lý trung bình theo ngành
+  // Thời gian xử lý trung bình theo ngành (tính trực tiếp từ dữ liệu thật MongoDB)
+  const calcCategoryAvgDays = (cat: string) => {
+    const list = resolvedWithTime.filter((i) => i.category === cat);
+    if (list.length === 0) return null;
+    const avg =
+      list.reduce((sum, item) => {
+        const d =
+          (new Date(item.resolution!.resolvedAt).getTime() - new Date(item.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24);
+        return sum + Math.max(0.1, d);
+      }, 0) / list.length;
+    return avg;
+  };
+
   const industrySla = [
-    { label: 'Thu gom rác thải tồn lưu', value: '2,4 ngày', standard: 'Chuẩn 3 ngày', pct: 68, color: 'bg-emerald-600' },
-    { label: 'Khắc phục đèn chiếu sáng', value: '2,8 ngày', standard: 'Chuẩn 3 ngày', pct: 78, color: 'bg-blue-600' },
-    { label: 'Nạo vét khơi thông thoát nước', value: '3,4 ngày', standard: 'Chuẩn 4 ngày', pct: 84, color: 'bg-amber-500' },
-    { label: 'Vá thảm mặt đường & ổ gà', value: '3,9 ngày', standard: 'Chuẩn 5 ngày', pct: 88, color: 'bg-indigo-700' },
-  ];
-
-  // Bảng xếp hạng các tổ đội xử lý thực tế tại Phường Trấn Biên (dữ liệu thật từ useTeamStore & đánh giá thật)
-  const sourceUnits = units.length > 0 ? units : DEMO_UNITS;
-  const unitRankings = sourceUnits.slice(0, 5).map((unit, idx) => {
-    const unitItems = operationalIncidents.filter((i) => i.assignedTo?.unitName === unit.name);
-    const unitResolved = unitItems.filter((i) => i.status === 'resolved' || i.status === 'closed').length;
-    const unitOverdue = unitItems.filter((i) => isOverdue(i, now)).length;
-    const rate = unitItems.length > 0 ? Math.round((unitResolved / unitItems.length) * 100) : 0;
-    const ratedUnitItems = unitItems.filter((i) => i.rating);
-    const stars =
-      ratedUnitItems.length > 0
-        ? (
-            ratedUnitItems.reduce((s, i) => s + (i.rating?.stars || 5), 0) / ratedUnitItems.length
-          ).toFixed(2)
-        : '5.00';
+    { cat: 'waste', label: 'Thu gom rác thải tồn lưu', stdDays: 3, color: 'bg-emerald-600' },
+    { cat: 'street_light', label: 'Khắc phục đèn chiếu sáng', stdDays: 3, color: 'bg-blue-600' },
+    { cat: 'flooding', label: 'Nạo vét khơi thông thoát nước', stdDays: 4, color: 'bg-amber-500' },
+    { cat: 'road_damage', label: 'Vá thảm mặt đường & ổ gà', stdDays: 5, color: 'bg-indigo-700' },
+  ].map((row) => {
+    const avg = calcCategoryAvgDays(row.cat);
+    const pct = avg !== null ? Math.min(100, Math.round((avg / row.stdDays) * 100)) : 0;
     return {
-      name: unit.name,
-      rate,
-      avgTime: `${(2.6 + idx * 0.3).toFixed(1)} ngày`,
-      stars,
-      overdue: unitOverdue,
+      label: row.label,
+      value: avg !== null ? `${avg.toFixed(1).replace('.', ',')} ngày` : 'Chưa có',
+      standard: `Chuẩn ${row.stdDays} ngày`,
+      pct,
+      color: row.color,
     };
   });
+
+  // Bảng xếp hạng các tổ đội xử lý thực tế (sắp xếp đúng từ cao -> thấp, số ngày & sao thật 100%)
+  const sourceUnits = units.length > 0 ? units : DEMO_UNITS;
+  const unitRankings = sourceUnits
+    .slice(0, 6)
+    .map((unit) => {
+      const unitItems = operationalIncidents.filter((i) => i.assignedTo?.unitName === unit.name);
+      const unitResolved = unitItems.filter(
+        (i) => i.status === 'resolved' || i.status === 'closed'
+      );
+      const unitOverdue = unitItems.filter((i) => isOverdue(i, now)).length;
+      const rate = unitItems.length > 0 ? Math.round((unitResolved.length / unitItems.length) * 100) : 0;
+
+      const resolvedUnitWithTime = unitResolved.filter((i) => i.resolution?.resolvedAt);
+      const avgDaysVal =
+        resolvedUnitWithTime.length > 0
+          ? resolvedUnitWithTime.reduce((sum, item) => {
+              const d =
+                (new Date(item.resolution!.resolvedAt).getTime() - new Date(item.createdAt).getTime()) /
+                (1000 * 60 * 60 * 24);
+              return sum + Math.max(0.1, d);
+            }, 0) / resolvedUnitWithTime.length
+          : null;
+
+      const ratedUnitItems = unitItems.filter((i) => i.rating);
+      const starsNum =
+        ratedUnitItems.length > 0
+          ? ratedUnitItems.reduce((s, i) => s + (i.rating?.stars || 5), 0) / ratedUnitItems.length
+          : null;
+
+      return {
+        name: unit.name,
+        total: unitItems.length,
+        rate,
+        avgTime: avgDaysVal !== null ? `${avgDaysVal.toFixed(1)} ngày` : 'Chưa có',
+        stars: starsNum !== null ? starsNum.toFixed(2) : '—',
+        starsNum: starsNum ?? -1,
+        overdue: unitOverdue,
+      };
+    })
+    .sort((a, b) => b.rate - a.rate || b.starsNum - a.starsNum || b.total - a.total);
 
   const warningUnits = unitRankings.filter((u) => u.overdue > 0);
 
@@ -169,7 +219,9 @@ export const IocDashboardPage: React.FC = () => {
           <div className="text-3xl font-black text-slate-900 mt-2">{totalCount}</div>
           <div className="text-xs font-bold text-emerald-600 mt-1.5 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Tháng 11/2026 • Phường Trấn Biên</span>
+            <span>
+              Đã tiếp nhận{pendingReviewCount > 0 ? ` • +${pendingReviewCount} chờ duyệt` : ' • Phường Trấn Biên'}
+            </span>
           </div>
         </div>
 

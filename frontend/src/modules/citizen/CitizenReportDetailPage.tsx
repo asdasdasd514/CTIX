@@ -9,6 +9,7 @@ import { compressImageFiles } from '../../lib/imageCompress';
 import { Incident, IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { BeforeAfterSlider } from '../../components/common/BeforeAfterSlider';
+import { TimestampWatermark } from '../../components/common/TimestampWatermark';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -649,6 +650,9 @@ export const CitizenReportDetailPage: React.FC = () => {
                   <BeforeAfterSlider
                     photosBefore={incident.photosBefore}
                     photosAfter={incident.photosAfter}
+                    beforeTimestamp={incident.createdAt}
+                    afterTimestamp={incident.resolution?.resolvedAt || incident.updatedAt}
+                    address={incident.location.address}
                   />
                 ) : (
                   <>
@@ -675,7 +679,13 @@ export const CitizenReportDetailPage: React.FC = () => {
                               alt={`Ảnh hiện trường ${idx + 1}`}
                               className="w-full h-full object-cover"
                             />
-                            <span className="absolute bottom-1.5 right-1.5 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px]">
+                            <TimestampWatermark
+                              timestamp={incident.createdAt}
+                              address={incident.location.address}
+                              imageUrl={src}
+                              compact={incident.photosBefore.length > 1}
+                            />
+                            <span className="absolute top-1.5 right-1.5 z-20 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px]">
                               #{idx + 1}
                             </span>
                           </div>
