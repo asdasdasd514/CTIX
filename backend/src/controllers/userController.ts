@@ -26,7 +26,6 @@ function serializeAccount(u: IUser) {
     department: u.department,
     unitId: u.unitId || '',
     phone: u.phone,
-    email: u.email || '',
     isActive: u.isActive,
     createdAt: u.createdAt?.toISOString() || new Date().toISOString(),
   };
@@ -53,12 +52,11 @@ async function syncUserToTeamMember(user: IUser) {
       { upsert: true, new: true }
     );
   } else {
-    // Nếu hạ quyền về Công dân thì gỡ khỏi danh sách Thành viên đội xử lý
     await UnitMemberModel.deleteOne({ memberId });
   }
 }
 
-// GET /api/users — Lấy toàn bộ tài khoản
+// GET /api/users
 export async function listUsers(_req: Request, res: Response) {
   try {
     const users = await UserModel.find().sort({ createdAt: -1 });
@@ -69,13 +67,12 @@ export async function listUsers(_req: Request, res: Response) {
   }
 }
 
-// POST /api/users — Admin tạo tài khoản mới (tự đồng bộ sang Thành viên nếu là Admin hoặc Đội xử lý)
+// POST /api/users — Tạo tài khoản chỉ dùng SĐT (tự đồng bộ sang Thành viên nếu là Admin / Đội xử lý)
 export async function createUser(req: Request, res: Response) {
   try {
-    const { name, phone, email, password, role, title, department, unitId } = req.body as {
+    const { name, phone, password, role, title, department, unitId } = req.body as {
       name?: string;
       phone?: string;
-      email?: string;
       password?: string;
       role?: UserRoleType;
       title?: string;
@@ -91,13 +88,9 @@ export async function createUser(req: Request, res: Response) {
       return res.status(400).json({ message: 'Mật khẩu phải có tối thiểu 6 ký tự.' });
     }
 
-    const cleanEmail = email?.trim().toLowerCase() || undefined;
-    const orQuery: Record<string, unknown>[] = [{ phone: cleanPhone }];
-    if (cleanEmail) orQuery.push({ email: cleanEmail });
-
-    const exists = await UserModel.findOne({ $or: orQuery });
+    const exists = await UserModel.findOne({ phone: cleanPhone });
     if (exists) {
-      return res.status(409).json({ message: 'Số điện thoại hoặc email đã tồn tại trong hệ thống.' });
+      return res.status(409).json({ message: 'Số điện thoại này đã tồn tại trong hệ thống.' });
     }
 
     const finalRole: UserRoleType = role || 'citizen';
@@ -113,7 +106,6 @@ export async function createUser(req: Request, res: Response) {
       userId: `u-${Date.now().toString(36)}`,
       name: name.trim(),
       phone: cleanPhone,
-      ...(cleanEmail ? { email: cleanEmail } : {}),
       passwordHash,
       role: finalRole,
       title: title?.trim() || defaultTitleByRole(finalRole),
@@ -122,7 +114,6 @@ export async function createUser(req: Request, res: Response) {
       isActive: true,
     });
 
-    // Tự động thêm sang trang Thành viên nếu là Admin hoặc Đội xử lý
     await syncUserToTeamMember(user);
 
     return res.status(201).json({ user: serializeAccount(user) });
@@ -132,7 +123,7 @@ export async function createUser(req: Request, res: Response) {
   }
 }
 
-// PATCH /api/users/:id — Cập nhật thông tin, vai trò, mật khẩu hoặc khóa/mở khóa
+// PATCH /api/users/:id
 export async function updateUser(req: Request, res: Response) {
   try {
     const user = await UserModel.findOne({ userId: req.params.id });
@@ -140,10 +131,9 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
     }
 
-    const { name, phone, email, password, role, title, department, unitId, isActive } = req.body as {
+    const { name, phone, password, role, title, department, unitId, isActive } = req.body as {
       name?: string;
       phone?: string;
-      email?: string;
       password?: string;
       role?: UserRoleType;
       title?: string;
@@ -154,7 +144,6 @@ export async function updateUser(req: Request, res: Response) {
 
     if (name !== undefined && name.trim()) user.name = name.trim();
     if (phone !== undefined && phone.trim()) user.phone = phone.replace(/[\s.-]/g, '').trim();
-    if (email !== undefined) user.email = email.trim() ? email.trim().toLowerCase() : undefined;
     if (role !== undefined) user.role = role;
     if (title !== undefined) user.title = title.trim() || defaultTitleByRole(user.role);
     if (department !== undefined) user.department = department.trim();
@@ -184,7 +173,7 @@ export async function updateUser(req: Request, res: Response) {
   }
 }
 
-// DELETE /api/users/:id — Xóa tài khoản (và gỡ khỏi Thành viên nếu có)
+// DELETE /api/users/:id
 export async function deleteUser(req: Request, res: Response) {
   try {
     const user = await UserModel.findOne({ userId: req.params.id });

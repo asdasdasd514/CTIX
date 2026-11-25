@@ -73,15 +73,15 @@ export const LoginPage: React.FC = () => {
           <form onSubmit={handleFormLogin} className="space-y-3.5">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Số điện thoại / Email:
+                Số điện thoại:
               </label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="text"
+                  type="tel"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Nhập số điện thoại hoặc email..."
+                  placeholder="Nhập số điện thoại (VD: 0912888999)..."
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-[5px] text-xs sm:text-sm font-medium focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
                   required
                 />

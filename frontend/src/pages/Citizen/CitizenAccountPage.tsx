@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   User,
   Phone,
-  Mail,
   Lock,
   LogOut,
   CheckCircle2,
@@ -24,7 +23,6 @@ export const CitizenAccountPage: React.FC = () => {
 
   const [name, setName] = useState(currentUser.name);
   const [phone, setPhone] = useState(currentUser.phone);
-  const [email, setEmail] = useState(currentUser.email || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -94,23 +92,19 @@ export const CitizenAccountPage: React.FC = () => {
       const updated = await usersApi.update(currentUser.id, {
         name: name.trim(),
         phone: phone.trim(),
-        email: email.trim(),
         ...(newPassword ? { password: newPassword } : {}),
       });
       updateCurrentUser({
         name: updated.user.name,
         phone: updated.user.phone,
-        email: updated.user.email || '',
       });
       setNewPassword('');
       setConfirmPassword('');
       setSuccess('Đã cập nhật thông tin tài khoản thành công.');
     } catch (err) {
-      // Nếu backend tạm offline vẫn cập nhật cục bộ
       updateCurrentUser({
         name: name.trim(),
         phone: phone.trim(),
-        email: email.trim(),
       });
       setSuccess(
         err instanceof Error
@@ -242,22 +236,6 @@ export const CitizenAccountPage: React.FC = () => {
                   className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
               </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Email (tùy chọn)
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Nhập email để nhận thông báo (không bắt buộc)"
-                className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
             </div>
           </div>
 

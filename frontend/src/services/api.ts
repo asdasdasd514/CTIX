@@ -264,7 +264,6 @@ export interface AccountRecord {
   department: string;
   unitId?: string;
   phone: string;
-  email?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -274,7 +273,6 @@ export const usersApi = {
   create: (payload: {
     name: string;
     phone: string;
-    email?: string;
     password: string;
     role: 'citizen' | 'officer' | 'leader' | 'volunteer';
     title?: string;
@@ -289,7 +287,6 @@ export const usersApi = {
     patch: Partial<{
       name: string;
       phone: string;
-      email: string;
       password: string;
       role: 'citizen' | 'officer' | 'leader' | 'volunteer';
       title: string;

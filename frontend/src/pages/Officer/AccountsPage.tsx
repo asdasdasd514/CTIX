@@ -4,7 +4,6 @@ import {
   UserPlus,
   Search,
   Phone,
-  Mail,
   ShieldCheck,
   Users,
   Wrench,
@@ -65,7 +64,6 @@ export const AccountsPage: React.FC = () => {
   const [editing, setEditing] = useState<AccountRecord | null>(null);
   const [fName, setFName] = useState('');
   const [fPhone, setFPhone] = useState('');
-  const [fEmail, setFEmail] = useState('');
   const [fPassword, setFPassword] = useState('');
   const [fRole, setFRole] = useState<RoleOption>('citizen');
   const [fUnitId, setFUnitId] = useState('');
@@ -117,7 +115,6 @@ export const AccountsPage: React.FC = () => {
         const match =
           a.name.toLowerCase().includes(q) ||
           a.phone.toLowerCase().includes(q) ||
-          (a.email || '').toLowerCase().includes(q) ||
           a.department.toLowerCase().includes(q);
         if (!match) return false;
       }
@@ -135,7 +132,6 @@ export const AccountsPage: React.FC = () => {
     setEditing(null);
     setFName('');
     setFPhone('');
-    setFEmail('');
     setFPassword('');
     setFRole('volunteer');
     setFUnitId('');
@@ -147,7 +143,6 @@ export const AccountsPage: React.FC = () => {
     setEditing(acc);
     setFName(acc.name);
     setFPhone(acc.phone);
-    setFEmail(acc.email || '');
     setFPassword('');
     setFRole(acc.role);
     setFUnitId(acc.unitId || '');
@@ -174,7 +169,6 @@ export const AccountsPage: React.FC = () => {
         const res = await usersApi.update(editing.id, {
           name: fName.trim(),
           phone: fPhone.trim(),
-          email: fEmail.trim(),
           ...(fPassword.length >= 6 ? { password: fPassword } : {}),
           role: fRole,
           unitId: isStaff ? fUnitId : '',
@@ -189,7 +183,6 @@ export const AccountsPage: React.FC = () => {
         const res = await usersApi.create({
           name: fName.trim(),
           phone: fPhone.trim(),
-          email: fEmail.trim() || undefined,
           password: fPassword,
           role: fRole,
           unitId: isStaff ? fUnitId : undefined,
@@ -365,7 +358,7 @@ export const AccountsPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm họ tên, SĐT, email..."
+              placeholder="Tìm họ tên, SĐT..."
               className="w-full h-9 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
           </div>
@@ -426,12 +419,6 @@ export const AccountsPage: React.FC = () => {
                           <Phone className="w-3.5 h-3.5 text-slate-400" />
                           <span>{acc.phone}</span>
                         </div>
-                        {acc.email && (
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
-                            <Mail className="w-3 h-3 text-slate-400" />
-                            <span>{acc.email}</span>
-                          </div>
-                        )}
                       </td>
                       <td className="py-3 px-4 text-xs text-slate-700">
                         {acc.unitId && unitMap.get(acc.unitId)
@@ -557,32 +544,18 @@ export const AccountsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Số điện thoại *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={fPhone}
-                    onChange={(e) => setFPhone(e.target.value)}
-                    placeholder="0912345678"
-                    className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Email (tùy chọn)
-                  </label>
-                  <input
-                    type="email"
-                    value={fEmail}
-                    onChange={(e) => setFEmail(e.target.value)}
-                    placeholder="email@tranbien.vn"
-                    className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Số điện thoại *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={fPhone}
+                  onChange={(e) => setFPhone(e.target.value)}
+                  placeholder="0912345678"
+                  className="w-full h-9 px-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                />
               </div>
 
               {ROLE_META[fRole].isStaff && (

@@ -10,7 +10,6 @@ export interface IUser extends Document {
   department: string;
   unitId?: string;
   phone: string;
-  email?: string;
   passwordHash: string;
   isActive: boolean;
   createdAt: Date;
@@ -30,7 +29,6 @@ const UserSchema = new Schema<IUser>(
     department: { type: String, default: 'Phường Trấn Biên, TP. Biên Hòa' },
     unitId: { type: String, default: undefined },
     phone: { type: String, required: true, unique: true, trim: true },
-    email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     isActive: { type: Boolean, default: true },
   },

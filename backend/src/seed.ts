@@ -52,7 +52,7 @@ const SAMPLE_PHOTOS: Record<IncidentCategoryType | 'resolved', string[]> = {
 async function seed() {
   await connectDatabase();
 
-  // 1. Seed Users (Mật khẩu mặc định: 123456)
+  // 1. Seed Users (Mật khẩu mặc định: 123456, đăng nhập bằng SĐT)
   const passwordHash = await bcrypt.hash('123456', 10);
   const users = [
     {
@@ -62,7 +62,6 @@ async function seed() {
       role: 'officer' as const,
       department: 'UBND Phường Trấn Biên',
       phone: '0912888999',
-      email: 'admin@tranbien.gov.vn',
       passwordHash,
     },
     {
@@ -72,7 +71,6 @@ async function seed() {
       role: 'leader' as const,
       department: 'Trung tâm IOC Tỉnh Đồng Nai',
       phone: '0903111222',
-      email: 'ioc@dongnai.gov.vn',
       passwordHash,
     },
     {
@@ -82,7 +80,6 @@ async function seed() {
       role: 'volunteer' as const,
       department: 'Đoàn Thanh niên Phường Trấn Biên',
       phone: '0977333444',
-      email: 'doan@tranbien.gov.vn',
       passwordHash,
     },
     {
@@ -92,7 +89,6 @@ async function seed() {
       role: 'citizen' as const,
       department: 'Khu phố 2, Phường Trấn Biên',
       phone: '0988555666',
-      email: 'congdan@tranbien.vn',
       passwordHash,
     },
   ];

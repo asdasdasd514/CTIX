@@ -12,4 +12,12 @@ export async function connectDatabase(): Promise<void> {
   });
 
   console.log(`[MongoDB] Connected to database: ${mongoose.connection.name}`);
+
+  // Xóa index email_1 cũ nếu còn tồn tại để tránh lỗi E11000 khi chỉ dùng SĐT
+  try {
+    await mongoose.connection.collection('users').dropIndex('email_1');
+    console.log('[MongoDB] Dropped legacy email_1 index on users collection.');
+  } catch {
+    // Index không tồn tại -> bỏ qua
+  }
 }
