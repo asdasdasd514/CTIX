@@ -293,7 +293,7 @@ export const MyReportsPage: React.FC = () => {
       {!onlyMyReports && myPendingReviewCount > 0 && (
         <div className="p-3 rounded-[5px] bg-violet-50 border border-violet-200 flex flex-wrap items-center justify-between gap-2 text-xs text-violet-900">
           <span>
-            Bạn đang có <strong>{myPendingReviewCount} phản ánh chờ UBND Phường duyệt</strong> (chưa hiển thị trong danh sách công khai).
+            Bạn đang có <strong>{myPendingReviewCount} phản ánh chờ UBND Đồng Nai duyệt</strong> (chưa hiển thị trong danh sách công khai).
           </span>
           <button
             type="button"

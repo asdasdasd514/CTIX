@@ -528,7 +528,7 @@ export const OfficerInboxPage: React.FC = () => {
                             e.stopPropagation();
                             const reason = window.prompt(
                               `Nhập lý do từ chối tiếp nhận hồ sơ ${item.code}:`,
-                              'Ảnh không rõ hiện trường hoặc ngoài phạm vi Phường Trấn Biên'
+                              'Ảnh không rõ hiện trường hoặc ngoài phạm vi Đồng Nai'
                             );
                             if (reason && reason.trim()) {
                               rejectIncident(item.id, reason.trim(), currentUser.name);

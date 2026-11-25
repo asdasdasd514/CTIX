@@ -50,10 +50,10 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 bg-blue-950 overflow-hidden">
-      {/* Ảnh nền Văn Miếu Trấn Biên */}
+      {/* Ảnh nền Đồng Nai Số */}
       <img
         src="/images/tran-bien-banner.jpg"
-        alt="Văn Miếu Trấn Biên"
+        alt="Đồng Nai Số"
         className="absolute inset-0 w-full h-full object-cover object-center opacity-35"
       />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-950/90 via-slate-950/85 to-blue-900/80" />
@@ -69,7 +69,7 @@ export const RegisterPage: React.FC = () => {
             />
           </div>
           <span className="text-[10px] font-bold uppercase tracking-widest text-amber-300 bg-white/10 px-2.5 py-0.5 rounded-[5px] border border-white/15 inline-block">
-            Cổng Công Dân • Phường Trấn Biên
+            Cổng Công Dân • Đồng Nai
           </span>
           <h1 className="text-lg sm:text-xl font-bold mt-2 text-white tracking-tight">
             Đăng Ký Tài Khoản Công Dân

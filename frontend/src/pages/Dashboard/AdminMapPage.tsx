@@ -208,7 +208,7 @@ export function AdminMapPage() {
         <div>
           <h2>Bản đồ phản ánh hiện trường</h2>
           <p>
-            Phường Trấn Biên · {filtered.length}/{stats.total} vị trí đang hiển
+            Đồng Nai · {filtered.length}/{stats.total} vị trí đang hiển
             thị
             {month ? ` · Tháng ${month}` : ""}
           </p>

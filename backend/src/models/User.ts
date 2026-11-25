@@ -20,13 +20,13 @@ const UserSchema = new Schema<IUser>(
   {
     userId: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true, trim: true },
-    title: { type: String, default: 'Công dân Phường Trấn Biên' },
+    title: { type: String, default: 'Công dân Đồng Nai' },
     role: {
       type: String,
       enum: ['citizen', 'officer', 'leader', 'volunteer'],
       default: 'citizen',
     },
-    department: { type: String, default: 'Phường Trấn Biên, TP. Biên Hòa' },
+    department: { type: String, default: 'Đồng Nai' },
     unitId: { type: String, default: undefined },
     phone: { type: String, required: true, unique: true, trim: true },
     passwordHash: { type: String, required: true },

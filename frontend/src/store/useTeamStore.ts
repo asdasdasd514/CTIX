@@ -54,7 +54,7 @@ const DEFAULT_UNIT_META: Record<string, { description: string; hotline: string }
     hotline: '0251.382.1101',
   },
   'unit-flood': {
-    description: 'Khơi thông cống rãnh, xử lý điểm ngập cục bộ và nắp hố ga trên địa bàn phường.',
+    description: 'Khơi thông cống rãnh, xử lý điểm ngập cục bộ và nắp hố ga trên địa bàn Đồng Nai.',
     hotline: '0251.382.1102',
   },
   'unit-waste': {

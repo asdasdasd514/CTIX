@@ -93,7 +93,7 @@ export async function deleteUnit(req: Request, res: Response) {
       UnitMemberModel.updateMany({ unitId }, { $set: { unitId: '' } }),
       UserModel.updateMany(
         { unitId },
-        { $set: { unitId: '', department: 'UBND Phường Trấn Biên' } }
+        { $set: { unitId: '', department: 'UBND Đồng Nai' } }
       ),
     ]);
     return res.json({ deleted: true });
@@ -156,7 +156,7 @@ export async function updateMember(req: Request, res: Response) {
         const unit = await UnitModel.findOne({ unitId: member.unitId });
         if (unit) userPatch.department = unit.name;
       } else {
-        userPatch.department = 'UBND Phường Trấn Biên';
+        userPatch.department = 'UBND Đồng Nai';
       }
       await UserModel.updateOne({ userId }, { $set: userPatch });
     }

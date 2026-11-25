@@ -242,7 +242,7 @@ async function buildLiveContext(userPhone?: string): Promise<LiveSystemContext> 
       title: String(d.title || 'Phản ánh hiện trường'),
       category: (VALID_CATEGORIES.includes(d.category) ? d.category : 'other') as IncidentCategoryType,
       categoryLabel: CATEGORY_LABELS[d.category as IncidentCategoryType] || 'Sự cố khác',
-      address: String(d.location?.address || 'Phường Trấn Biên'),
+      address: String(d.location?.address || 'Đồng Nai'),
       status: String(d.status || 'pending'),
       statusLabel: STATUS_LABELS_VI[d.status] || String(d.status),
       createdAt: String(d.createdAtIso || ''),
@@ -374,13 +374,13 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     if (cat) {
       return {
         action: 'chat_reply',
-        reply: `Hiện hệ thống đang ghi nhận ${ctx.byCategory[cat]} phản ánh công khai thuộc nhóm ${CATEGORY_LABELS[cat]} trên địa bàn Phường Trấn Biên.`,
+        reply: `Hiện hệ thống đang ghi nhận ${ctx.byCategory[cat]} phản ánh công khai thuộc nhóm ${CATEGORY_LABELS[cat]} trên địa bàn Đồng Nai.`,
         analyzedBy: 'fallback',
       };
     }
     return {
       action: 'chat_reply',
-      reply: `Phường Trấn Biên hiện có ${ctx.totalPublic} phản ánh công khai: ${ctx.resolvedCount} hồ sơ đã hoàn thành (${ctx.resolvedRate}%) và ${ctx.activeCount} hồ sơ đang xử lý (Đèn đường: ${ctx.byCategory.street_light}, Ngập nước: ${ctx.byCategory.flooding}, Rác thải: ${ctx.byCategory.waste}, Mặt đường/Ổ gà: ${ctx.byCategory.road_damage}).`,
+      reply: `Đồng Nai hiện có ${ctx.totalPublic} phản ánh công khai: ${ctx.resolvedCount} hồ sơ đã hoàn thành (${ctx.resolvedRate}%) và ${ctx.activeCount} hồ sơ đang xử lý (Đèn đường: ${ctx.byCategory.street_light}, Ngập nước: ${ctx.byCategory.flooding}, Rác thải: ${ctx.byCategory.waste}, Mặt đường/Ổ gà: ${ctx.byCategory.road_damage}).`,
       analyzedBy: 'fallback',
     };
   }
@@ -390,7 +390,7 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     return {
       action: 'chat_reply',
       reply:
-        'Phản ánh bạn gửi sẽ đi qua 4 bước: (1) UBND Phường Trấn Biên kiểm duyệt tiếp nhận trong vòng 2 giờ → (2) Phân công đội chuyên môn xử lý kèm quy trình từng bước → (3) Đội hiện trường khắc phục & tải ảnh nghiệm thu Trước – Sau → (4) Công dân kiểm tra và đánh giá 1–5 sao.',
+        'Phản ánh bạn gửi sẽ đi qua 4 bước: (1) UBND Đồng Nai kiểm duyệt tiếp nhận trong vòng 2 giờ → (2) Phân công đội chuyên môn xử lý kèm quy trình từng bước → (3) Đội hiện trường khắc phục & tải ảnh nghiệm thu Trước – Sau → (4) Công dân kiểm tra và đánh giá 1–5 sao.',
       analyzedBy: 'fallback',
     };
   }
@@ -400,7 +400,7 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     return {
       action: 'chat_reply',
       reply:
-        'UBND Phường tiếp nhận và duyệt phản ánh trong vòng 2 giờ. Thời gian khắc phục hiện trường thông thường từ 24–48 giờ (trung bình ~3,2 ngày tùy mức độ sự cố). Sự cố có nhiều người đồng phản ánh sẽ được ưu tiên xử lý trước.',
+        'UBND Đồng Nai tiếp nhận và duyệt phản ánh trong vòng 2 giờ. Thời gian khắc phục hiện trường thông thường từ 24–48 giờ (trung bình ~3,2 ngày tùy mức độ sự cố). Sự cố có nhiều người đồng phản ánh sẽ được ưu tiên xử lý trước.',
       analyzedBy: 'fallback',
     };
   }
@@ -420,7 +420,7 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     return {
       action: 'chat_reply',
       reply:
-        'Bạn chỉ có thể chỉnh sửa hoặc hủy phản ánh của chính mình khi hồ sơ đang ở trạng thái "Chờ duyệt" (trong mục Phản ánh của tôi). Khi UBND Phường đã duyệt tiếp nhận và chuyển sang xử lý, hồ sơ sẽ khóa chỉnh sửa.',
+        'Bạn chỉ có thể chỉnh sửa hoặc hủy phản ánh của chính mình khi hồ sơ đang ở trạng thái "Chờ duyệt" (trong mục Phản ánh của tôi). Khi UBND Đồng Nai đã duyệt tiếp nhận và chuyển sang xử lý, hồ sơ sẽ khóa chỉnh sửa.',
       analyzedBy: 'fallback',
     };
   }
@@ -430,7 +430,7 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     return {
       action: 'chat_reply',
       reply:
-        'Phản ánh mới gửi sẽ ở trạng thái "Chờ duyệt" và hiển thị ngay trong mục "Phản ánh của tôi". Sau khi Cán bộ Phường kiểm duyệt tiếp nhận, bài sẽ hiển thị công khai trên Trang chủ, Bản đồ và Danh sách toàn phường.',
+        'Phản ánh mới gửi sẽ ở trạng thái "Chờ duyệt" và hiển thị ngay trong mục "Phản ánh của tôi". Sau khi Cán bộ Đồng Nai kiểm duyệt tiếp nhận, bài sẽ hiển thị công khai trên Trang chủ, Bản đồ và Danh sách toàn tỉnh.',
       analyzedBy: 'fallback',
     };
   }
@@ -460,7 +460,7 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     return {
       action: 'chat_reply',
       reply:
-        'Tổng đài hỗ trợ khẩn cấp 24/7 của Phường Trấn Biên là 1022. Địa chỉ UBND Phường Trấn Biên: Số 128 Đường Nguyễn Ái Quốc, Khu phố 2, Phường Trấn Biên, TP. Biên Hòa, Đồng Nai.',
+        'Tổng đài hỗ trợ khẩn cấp 24/7 của Đồng Nai là 1022. Địa chỉ UBND Đồng Nai: Số 128 Đường Nguyễn Ái Quốc, Khu phố 2, Đồng Nai.',
       analyzedBy: 'fallback',
     };
   }
@@ -470,7 +470,7 @@ function answerDataOrFaqFallback(norm: string, ctx?: LiveSystemContext): Assista
     return {
       action: 'chat_reply',
       reply:
-        'Tôi có thể vừa trò chuyện giải đáp thông tin thực tế của Phường Trấn Biên (phản ánh mới nhất, số liệu thống kê, quy trình, SLA, tổng đài 1022) vừa thực hiện lệnh điều khiển trang: mở Trang chủ, Bản đồ, Phản ánh của tôi, lọc phản ánh, bật chữ lớn, mở Camera chụp ảnh hoặc gửi phản ánh bằng giọng nói.',
+        'Tôi có thể vừa trò chuyện giải đáp thông tin thực tế của Đồng Nai (phản ánh mới nhất, số liệu thống kê, quy trình, SLA, tổng đài 1022) vừa thực hiện lệnh điều khiển trang: mở Trang chủ, Bản đồ, Phản ánh của tôi, lọc phản ánh, bật chữ lớn, mở Camera chụp ảnh hoặc gửi phản ánh bằng giọng nói.',
       analyzedBy: 'fallback',
     };
   }
@@ -486,7 +486,7 @@ function fallbackAssistant(message: string, ctx?: LiveSystemContext): AssistantR
     return {
       action: 'chat_reply',
       reply:
-        'Chào bạn! Tôi là Trợ lý AI Phường Trấn Biên. Bạn có thể hỏi thông tin thực tế (phản ánh gần nhất, quy trình xử lý, số liệu...) hoặc ra lệnh điều khiển trang ngay tại đây.',
+        'Chào bạn! Tôi là Trợ lý AI Đồng Nai Số. Bạn có thể hỏi thông tin thực tế (phản ánh gần nhất, quy trình xử lý, số liệu...) hoặc ra lệnh điều khiển trang ngay tại đây.',
       analyzedBy: 'fallback',
     };
   }
@@ -608,7 +608,7 @@ function fallbackAssistant(message: string, ctx?: LiveSystemContext): AssistantR
       action: 'call_hotline',
       route: '/citizen/help',
       elderlyEnabled: elderlyFlag,
-      reply: 'Tổng đài hỗ trợ khẩn cấp 24/7 của Phường Trấn Biên là 1022. Đang mở trang liên hệ cho bạn.',
+      reply: 'Tổng đài hỗ trợ khẩn cấp 24/7 của Đồng Nai là 1022. Đang mở trang liên hệ cho bạn.',
       analyzedBy: 'fallback',
     };
   }
@@ -648,7 +648,7 @@ function fallbackAssistant(message: string, ctx?: LiveSystemContext): AssistantR
       action: 'navigate',
       route: '/citizen/map',
       elderlyEnabled: elderlyFlag,
-      reply: 'Đang mở Bản đồ phản ánh khu vực Phường Trấn Biên.',
+      reply: 'Đang mở Bản đồ phản ánh khu vực Đồng Nai.',
       analyzedBy: 'fallback',
     };
   }
@@ -702,7 +702,7 @@ function fallbackAssistant(message: string, ctx?: LiveSystemContext): AssistantR
       action: 'navigate',
       route: '/citizen/reports',
       elderlyEnabled: elderlyFlag,
-      reply: 'Đang mở danh sách Phản ánh toàn phường.',
+      reply: 'Đang mở danh sách Phản ánh toàn tỉnh.',
       analyzedBy: 'fallback',
     };
   }
@@ -848,7 +848,7 @@ Các giá trị "action" chính:
 2. "navigate": Chuyển trang:
    - "/citizen/home": Trang chủ
    - "/citizen/submit": Mở trang Tạo phản ánh mới (form trắng)
-   - "/citizen/reports": Danh sách phản ánh toàn phường
+   - "/citizen/reports": Danh sách phản ánh toàn tỉnh
    - "/citizen/reports/<id>": Mở chi tiết 1 phản ánh cụ thể từ danh sách dữ liệu thật
    - "/citizen/map": Bản đồ phản ánh xung quanh
    - "/citizen/help": Trang trợ giúp & hướng dẫn
@@ -910,7 +910,7 @@ export async function runCitizenAssistant(
           .join('\n')
       : '  (Người dùng chưa đăng nhập hoặc chưa có bài gửi)';
 
-    const prompt = `Bạn là Trợ lý AI thông minh, thân thiện của Cổng phản ánh hiện trường CTIX — UBND Phường Trấn Biên, TP. Biên Hòa, Đồng Nai.
+    const prompt = `Bạn là Trợ lý AI thông minh, thân thiện của Cổng phản ánh hiện trường CTIX — UBND Đồng Nai.
 Chế độ hiện tại: ${mode === 'voice' ? 'RA LỆNH GIỌNG NÓI (ngắn gọn 1 câu)' : 'CHATBOT HỎI ĐÁP & ĐIỀU KHIỂN (tự nhiên, thông minh, rõ ràng 1-3 câu)'}.
 
 [DỮ LIỆU THỰC TẾ THỜI GIAN THỰC TỪ MONGODB]:
@@ -920,8 +920,8 @@ Chế độ hiện tại: ${mode === 'voice' ? 'RA LỆNH GIỌNG NÓI (ngắn g
 ${latestPublicText}
 - Phản ánh gần nhất của tài khoản đang đăng nhập:
 ${myLatestText}
-- Quy trình: Công dân gửi phản ánh → UBND Phường duyệt tiếp nhận trong 2h → Phân công đội xử lý → Nghiệm thu ảnh Trước – Sau → Công dân đánh giá 1-5 sao.
-- Tổng đài hỗ trợ khẩn cấp 24/7: 1022. Địa chỉ UBND Phường: 128 Nguyễn Ái Quốc, KP.2, Phường Trấn Biên.
+- Quy trình: Công dân gửi phản ánh → UBND Đồng Nai duyệt tiếp nhận trong 2h → Phân công đội xử lý → Nghiệm thu ảnh Trước – Sau → Công dân đánh giá 1-5 sao.
+- Tổng đài hỗ trợ khẩn cấp 24/7: 1022. Địa chỉ UBND Đồng Nai: 128 Nguyễn Ái Quốc, KP.2, Đồng Nai.
 
 ${CITIZEN_COMMANDS_SPEC}
 
@@ -997,7 +997,7 @@ export async function runCitizenVoiceAudio(
   const cleanMime = (mimeType || 'audio/webm').split(';')[0].trim();
   const base64Audio = audioBuffer.toString('base64');
 
-  const prompt = `Bạn là Trợ lý Giọng nói AI điều khiển trang Công dân trên ứng dụng CTIX Phường Trấn Biên.
+  const prompt = `Bạn là Trợ lý Giọng nói AI điều khiển trang Công dân trên ứng dụng CTIX Đồng Nai.
 Hãy NGHE KỸ đoạn âm thanh đính kèm và tuân thủ NGHIÊM NGẶT các quy tắc sau:
 
 QUY TẮC CHỐNG ẢO GIÁC (QUAN TRỌNG NHẤT):

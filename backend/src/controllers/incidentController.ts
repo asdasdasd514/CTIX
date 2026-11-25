@@ -148,7 +148,7 @@ export async function createIncident(req: AuthRequest, res: Response) {
           cleanupRejectedPhotos();
           return res.status(429).json({
             message:
-              'Bạn hiện có 3 phản ánh đang chờ UBND Phường duyệt. Vui lòng đợi duyệt xong trước khi gửi thêm.',
+              'Bạn hiện có 3 phản ánh đang chờ UBND Đồng Nai duyệt. Vui lòng đợi duyệt xong trước khi gửi thêm.',
           });
         }
 
@@ -200,14 +200,14 @@ export async function createIncident(req: AuthRequest, res: Response) {
         lat,
         lng,
         address: location.address.trim(),
-        ward: location.ward || 'Phường Trấn Biên',
+        ward: location.ward || 'Đồng Nai',
         geo: {
           type: 'Point',
           coordinates: [lng, lat],
         },
       },
       sender: {
-        name: senderName?.trim() || 'Công dân Phường Trấn Biên',
+        name: senderName?.trim() || 'Công dân Đồng Nai',
         phone: senderPhone?.trim() || '0900000000',
       },
       photosBefore: Array.isArray(photosBefore) ? photosBefore : [],
@@ -258,7 +258,7 @@ export async function updateIncident(req: AuthRequest, res: Response) {
         lat,
         lng,
         address: location.address || doc.location.address,
-        ward: location.ward || doc.location.ward || 'Phường Trấn Biên',
+        ward: location.ward || doc.location.ward || 'Đồng Nai',
         geo: {
           type: 'Point',
           coordinates: [lng, lat],
@@ -769,7 +769,7 @@ export async function linkDuplicate(req: Request, res: Response) {
     doc.linkedReports = doc.linkedReports || [];
     doc.linkedReports.push({
       sender: {
-        name: senderName?.trim() || 'Công dân Phường Trấn Biên',
+        name: senderName?.trim() || 'Công dân Đồng Nai',
         phone: senderPhone?.trim() || '0900000000',
       },
       photos: Array.isArray(photos) ? photos : [],

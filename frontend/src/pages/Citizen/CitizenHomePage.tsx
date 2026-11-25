@@ -95,7 +95,7 @@ export const CitizenHomePage: React.FC = () => {
                 Chế độ Người cao tuổi • Dễ nhìn & Dễ bấm
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-950 mt-2">
-                Phường Trấn Biên hỗ trợ cô bác 24/7
+                Đồng Nai hỗ trợ cô bác 24/7
               </h1>
             </div>
           </div>
@@ -133,29 +133,29 @@ export const CitizenHomePage: React.FC = () => {
         </section>
       ) : (
         <>
-          {/* 1. HERO BANNER CHÀO MỪNG VỚI ẢNH NỀN VĂN MIẾU TRẤN BIÊN */}
+          {/* 1. HERO BANNER CHÀO MỪNG ĐỒNG NAI SỐ */}
           <section className="relative bg-blue-950 text-white rounded-[5px] p-5 sm:p-8 lg:p-10 shadow-sm overflow-hidden border border-blue-950">
-            {/* Ảnh nền Văn Miếu Trấn Biên */}
+            {/* Ảnh nền Đồng Nai Số */}
             <img
               src="/images/tran-bien-banner.jpg"
-              alt="Văn Miếu Trấn Biên - Biên Hòa, Đồng Nai"
+              alt="Đồng Nai Số"
               className="absolute inset-0 w-full h-full object-cover object-center opacity-65"
             />
-            {/* Lớp phủ gradient giúp chữ luôn sắc nét mà vẫn nhìn rõ cảnh Văn Miếu Trấn Biên */}
+            {/* Lớp phủ gradient giúp chữ luôn sắc nét mà vẫn nhìn rõ cảnh Đồng Nai Số */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/75 to-blue-900/30" />
 
             <div className="relative z-10 max-w-2xl space-y-3">
               <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-[5px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-white/25">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span>Hệ thống tiếp nhận 24/7 • Phường Trấn Biên</span>
+                <span>Hệ thống tiếp nhận 24/7 • Đồng Nai</span>
               </div>
 
               <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug drop-shadow-sm">
-                Chung tay xây dựng Đô thị Trấn Biên Văn minh - An toàn
+                Chung tay xây dựng Đô thị Đồng Nai Văn minh - An toàn
               </h1>
 
               <p className="text-xs sm:text-sm text-blue-50 font-medium leading-relaxed drop-shadow-sm">
-                Phát hiện đèn đường hỏng, ngập nước, bãi rác tự phát hay ổ gà nguy hiểm? Chụp ảnh và gửi ngay để UBND Phường tiếp nhận xử lý đúng thời hạn cam kết.
+                Phát hiện đèn đường hỏng, ngập nước, bãi rác tự phát hay ổ gà nguy hiểm? Chụp ảnh và gửi ngay để UBND Đồng Nai tiếp nhận xử lý đúng thời hạn cam kết.
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
@@ -184,7 +184,7 @@ export const CitizenHomePage: React.FC = () => {
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-blue-700 shadow-sm">
               <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Thời gian xử lý trung bình</div>
               <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1">{avgDaysFormatted} ngày</div>
-              <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">● Phường Trấn Biên (11/2026)</div>
+              <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">● Đồng Nai (11/2026)</div>
             </div>
 
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-emerald-600 shadow-sm">
@@ -212,7 +212,7 @@ export const CitizenHomePage: React.FC = () => {
         </>
       )}
 
-      {/* 3. THÔNG BÁO KHẨN TỪ UBND PHƯỜNG */}
+      {/* 3. THÔNG BÁO KHẨN TỪ UBND ĐỒNG NAI */}
       <section className="bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-[5px] p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -221,7 +221,7 @@ export const CitizenHomePage: React.FC = () => {
               Cảnh báo triều cường ngập cục bộ tại một số tuyến đường (11/2026)
             </h3>
             <p className="text-xs text-amber-900/90 leading-relaxed font-medium">
-              UBND Phường Trấn Biên khuyến cáo người dân hạn chế di chuyển qua đoạn đường ven sông Đồng Nai và ngã 3 Tân Mai từ 17h00 - 19h00. Nếu phát hiện cống nghẹt hoặc cây ngã, vui lòng gửi phản ánh ngay.
+              UBND Đồng Nai khuyến cáo người dân hạn chế di chuyển qua đoạn đường ven sông Đồng Nai và ngã 3 Tân Mai từ 17h00 - 19h00. Nếu phát hiện cống nghẹt hoặc cây ngã, vui lòng gửi phản ánh ngay.
             </p>
           </div>
         </div>
@@ -570,7 +570,7 @@ export const CitizenHomePage: React.FC = () => {
           <div className="space-y-2 text-xs">
             <div className="p-2.5 rounded-[5px] bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="font-bold text-slate-800 truncate">Trực ban Công an Phường</div>
+                <div className="font-bold text-slate-800 truncate">Trực ban Công an Đồng Nai</div>
                 <div className="text-[11px] text-slate-500 truncate">Tiếp nhận an ninh trật tự</div>
               </div>
               <a href="tel:02513822113" className="font-mono font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0">

@@ -205,7 +205,7 @@ export const IocDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* 1. HÀNG 4 THẺ KPI CHÍNH (ĐÚNG BỐ CỤC ẢNH 2, DỮ LIỆU THẬT PHƯỜNG TRẤN BIÊN) */}
+      {/* 1. HÀNG 4 THẺ KPI CHÍNH (ĐÚNG BỐ CỤC ẢNH 2, DỮ LIỆU THẬT ĐỒNG NAI) */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-[5px] border border-slate-200 border-t-2 border-t-blue-700 shadow-sm p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -220,7 +220,7 @@ export const IocDashboardPage: React.FC = () => {
           <div className="text-xs font-bold text-emerald-600 mt-1.5 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
             <span>
-              Đã tiếp nhận{pendingReviewCount > 0 ? ` • +${pendingReviewCount} chờ duyệt` : ' • Phường Trấn Biên'}
+              Đã tiếp nhận{pendingReviewCount > 0 ? ` • +${pendingReviewCount} chờ duyệt` : ' • Đồng Nai'}
             </span>
           </div>
         </div>
@@ -254,7 +254,7 @@ export const IocDashboardPage: React.FC = () => {
             {avgDays} <span className="text-sm font-bold text-slate-500">ngày/vụ</span>
           </div>
           <div className="text-xs font-bold text-emerald-600 mt-1.5">
-            Đạt chuẩn cam kết SLA của Phường
+            Đạt chuẩn cam kết SLA của Đồng Nai
           </div>
         </div>
 

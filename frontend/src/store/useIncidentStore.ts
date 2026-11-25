@@ -563,7 +563,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
           ...(item.linkedReports || []),
           {
             sender: {
-              name: payload.senderName.trim() || "Công dân Phường Trấn Biên",
+              name: payload.senderName.trim() || "Công dân Đồng Nai",
               phone: payload.senderPhone.trim() || "0900000000",
             },
             photos: payload.photos,

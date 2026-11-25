@@ -31,7 +31,7 @@ export const AdminSettingsPage: React.FC = () => {
   const handleResetDemo = () => {
     if (
       window.confirm(
-        'Khôi phục 64 hồ sơ mẫu Phường Trấn Biên trên bộ nhớ cục bộ? Các thay đổi cục bộ chưa đồng bộ sẽ được đặt lại.'
+        'Khôi phục 64 hồ sơ mẫu Đồng Nai trên bộ nhớ cục bộ? Các thay đổi cục bộ chưa đồng bộ sẽ được đặt lại.'
       )
     ) {
       resetToDefaultData();
@@ -46,7 +46,7 @@ export const AdminSettingsPage: React.FC = () => {
           {isFieldStaff ? 'Cài Đặt Tài Khoản Hiện Trường' : 'Cài Đặt Hệ Thống Quản Trị'}
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-          Quản lý cấu hình hiển thị, thông tin tài khoản và đồng bộ dữ liệu vận hành UBND Phường Trấn Biên
+          Quản lý cấu hình hiển thị, thông tin tài khoản và đồng bộ dữ liệu vận hành UBND Đồng Nai
         </p>
       </div>
 
@@ -69,7 +69,7 @@ export const AdminSettingsPage: React.FC = () => {
             <div className="flex justify-between gap-2 py-2 border-b border-slate-100">
               <span className="text-slate-500 font-medium">Đơn vị công tác:</span>
               <strong className="text-slate-900 text-right">
-                {currentUser.department || 'UBND Phường Trấn Biên'}
+                {currentUser.department || 'UBND Đồng Nai'}
               </strong>
             </div>
             <div className="flex justify-between gap-2 py-2 border-b border-slate-100">

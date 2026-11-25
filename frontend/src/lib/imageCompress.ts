@@ -4,7 +4,7 @@
  * - Watermark góc dưới trái đúng chuẩn Timestamp Camera:
  *     08:14 | 23 Tháng 11, 2026
  *           | Thứ Hai
- *     128 Nguyễn Ái Quốc, Khu phố 2, Phường Trấn Biên
+ *     128 Nguyễn Ái Quốc, Khu vực 2, Đồng Nai
  */
 
 const VI_WEEKDAYS = [
@@ -111,7 +111,7 @@ export async function stampTimestampWatermark(
   const timeText = `${hh}:${mm}`;
   const dateText = `${now.getDate()} Tháng ${now.getMonth() + 1}, ${now.getFullYear()}`;
   const weekdayText = VI_WEEKDAYS[now.getDay()] || '';
-  const addressText = (options.address || 'Phường Trấn Biên, TP. Biên Hòa, Đồng Nai').trim();
+  const addressText = (options.address || 'Đồng Nai').trim();
 
   return new Promise((resolve) => {
     const objectUrl = URL.createObjectURL(file);

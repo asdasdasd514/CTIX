@@ -23,7 +23,7 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
     'Hiện trường sạch sẽ, khắc phục triệt để',
   ]);
   const [comment, setComment] = useState<string>(
-    'Tôi rất hài lòng với tốc độ khắc phục của UBND Phường. Cảm ơn các cán bộ!'
+    'Tôi rất hài lòng với tốc độ khắc phục của UBND Đồng Nai. Cảm ơn các cán bộ!'
   );
 
   const toggleCriteria = (item: string) => {
@@ -38,7 +38,7 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
     e.preventDefault();
     rateIncident(incident.id, stars, selectedCriteria, comment);
     alert(
-      'Cảm ơn Bác/Cô/Anh/Chị đã gửi đánh giá hài lòng! Ý kiến này sẽ được chuyển trực tiếp tới Lãnh đạo Phường Trấn Biên.'
+      'Cảm ơn Bác/Cô/Anh/Chị đã gửi đánh giá hài lòng! Ý kiến này sẽ được chuyển trực tiếp tới Lãnh đạo Đồng Nai.'
     );
     onClose();
   };
@@ -53,7 +53,7 @@ export const CitizenRatingModal: React.FC<Props> = ({ incident, onClose }) => {
               Đánh giá mức độ hài lòng
             </span>
             <h3 className="text-base sm:text-lg font-bold mt-1 truncate">Đánh Giá Kết Quả Xử Lý</h3>
-            <p className="text-xs text-blue-100 truncate">Phường Trấn Biên • TP. Biên Hòa</p>
+            <p className="text-xs text-blue-100 truncate">Đồng Nai</p>
           </div>
           <button
             type="button"

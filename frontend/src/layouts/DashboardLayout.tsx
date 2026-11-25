@@ -41,8 +41,8 @@ export function DashboardLayout() {
             : pathname.includes('settings')
               ? { title: 'Cài đặt', subtitle: 'Cấu hình hệ thống cổng quản trị', icon: Settings }
               : pathname.includes('map')
-                ? { title: 'Bản đồ', subtitle: 'Bản đồ số hiện trường Phường Trấn Biên', icon: MapPin }
-                : { title: 'Dashboard', subtitle: 'Trung tâm điều hành thông minh Phường Trấn Biên', icon: LayoutDashboard };
+                ? { title: 'Bản đồ', subtitle: 'Bản đồ số hiện trường Đồng Nai', icon: MapPin }
+                : { title: 'Dashboard', subtitle: 'Trung tâm điều hành thông minh Đồng Nai', icon: LayoutDashboard };
 
   const PageIcon = routeMeta.icon;
 
@@ -139,7 +139,7 @@ export function DashboardLayout() {
                   {routeMeta.title}
                 </h1>
                 <span className="hidden md:inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-[4px] bg-slate-100 text-slate-600 border border-slate-200/80">
-                  Phường Trấn Biên
+                  Đồng Nai
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
@@ -189,7 +189,7 @@ export function DashboardLayout() {
                     {currentUser.name}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-                    Cán bộ điều hành • UBND P. Trấn Biên
+                    Cán bộ điều hành • UBND Đồng Nai
                   </div>
                 </div>
                 <div className="p-1">

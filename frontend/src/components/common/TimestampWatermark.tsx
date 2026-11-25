@@ -45,7 +45,7 @@ export const TimestampWatermark: React.FC<TimestampWatermarkProps> = ({
   const timeText = `${hh}:${mm}`;
   const dateText = `${dateObj.getDate()} Tháng ${dateObj.getMonth() + 1}, ${dateObj.getFullYear()}`;
   const weekdayText = VI_WEEKDAYS[dateObj.getDay()] || '';
-  const addrText = (address || 'Phường Trấn Biên, TP. Biên Hòa, Đồng Nai').trim();
+  const addrText = (address || 'Đồng Nai').trim();
   const isRight = align === 'right';
 
   return (

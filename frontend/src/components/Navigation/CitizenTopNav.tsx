@@ -61,7 +61,7 @@ export const CitizenTopNav: React.FC = () => {
                 CỔNG DÂN SINH
               </span>
               <span className="font-medium truncate text-blue-100 hidden md:inline">
-                UBND Phường Trấn Biên • TP. Biên Hòa, Tỉnh Đồng Nai
+                UBND Đồng Nai • Đồng Nai Số
               </span>
             </div>
 
@@ -91,14 +91,14 @@ export const CitizenTopNav: React.FC = () => {
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-[5px] overflow-hidden bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0">
                 <img
                   src="/images/ctix-logo.jpg"
-                  alt="Trấn Biên SmartCity Logo"
+                  alt="Đồng Nai Số Logo"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="text-sm sm:text-base lg:text-lg font-bold text-slate-800 tracking-tight leading-none truncate">
-                    Trấn Biên SmartCity
+                    Đồng Nai Số
                   </span>
                   <span className="hidden sm:inline-block bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
                     Dân Sinh
