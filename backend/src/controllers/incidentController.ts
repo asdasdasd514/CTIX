@@ -630,40 +630,48 @@ export async function resolveIncident(req: Request, res: Response) {
   }
 }
 
-// PATCH /api/incidents/:id/workflow/:stepId — Tick hoàn thành / bỏ tick 1 bước quy trình hiện trường
+// PATCH /api/incidents/:id/workflow/:stepId — Tick hoàn thành / bỏ tick 1 bước quy trình hiện trường (atomic update tránh VersionError khi tick nhanh)
 export async function toggleWorkflowStep(req: Request, res: Response) {
   try {
-    const doc = await IncidentModel.findOne({ incidentId: req.params.id });
-    if (!doc) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
-    if (!doc.workflowSteps || doc.workflowSteps.length === 0) {
-      return res.status(400).json({ message: 'Hồ sơ này chưa có quy trình xử lý.' });
-    }
-
     const stepId = req.params.stepId;
     const actorName = req.body?.actorName || 'Đội hiện trường';
     const nowIso = new Date().toISOString();
 
-    let found = false;
-    doc.workflowSteps = doc.workflowSteps.map((s) => {
-      if (s.id !== stepId) return s;
-      found = true;
-      const nextDone = !s.completed;
-      return {
-        id: s.id,
-        title: s.title,
-        completed: nextDone,
-        completedAt: nextDone ? nowIso : undefined,
-        completedBy: nextDone ? actorName : undefined,
-      };
-    });
+    const current = await IncidentModel.findOne(
+      { incidentId: req.params.id },
+      { workflowSteps: 1 }
+    ).lean();
+    if (!current) return res.status(404).json({ message: 'Không tìm thấy hồ sơ.' });
+    if (!current.workflowSteps || current.workflowSteps.length === 0) {
+      return res.status(400).json({ message: 'Hồ sơ này chưa có quy trình xử lý.' });
+    }
 
-    if (!found) {
+    const targetStep = current.workflowSteps.find((s) => s.id === stepId);
+    if (!targetStep) {
       return res.status(404).json({ message: 'Không tìm thấy bước quy trình.' });
     }
 
-    doc.updatedAtIso = nowIso;
-    await doc.save();
-    return res.json({ incident: serializeIncident(doc) });
+    const nextDone =
+      typeof req.body?.completed === 'boolean' ? req.body.completed : !targetStep.completed;
+
+    const updated = await IncidentModel.findOneAndUpdate(
+      { incidentId: req.params.id, 'workflowSteps.id': stepId },
+      {
+        $set: {
+          'workflowSteps.$.completed': nextDone,
+          'workflowSteps.$.completedAt': nextDone ? nowIso : undefined,
+          'workflowSteps.$.completedBy': nextDone ? actorName : undefined,
+          updatedAtIso: nowIso,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Không tìm thấy bước quy trình.' });
+    }
+
+    return res.json({ incident: serializeIncident(updated) });
   } catch (err) {
     console.error('[Incidents] toggleWorkflowStep error:', err);
     return res.status(500).json({ message: 'Không thể cập nhật bước quy trình.' });
