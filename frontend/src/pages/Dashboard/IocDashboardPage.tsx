@@ -254,7 +254,7 @@ export const IocDashboardPage: React.FC = () => {
             {avgDays} <span className="text-sm font-bold text-slate-500">ngày/vụ</span>
           </div>
           <div className="text-xs font-bold text-emerald-600 mt-1.5">
-            Đạt chuẩn cam kết SLA của Phường
+            Đạt chuẩn SLA
           </div>
         </div>
 
@@ -282,15 +282,10 @@ export const IocDashboardPage: React.FC = () => {
           {/* Biểu đồ xu hướng tiếp nhận & xử lý theo tuần (đặt ngay phía trên Cơ cấu 4 nhóm sự cố) */}
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-blue-700" />
-                  <span>Biểu đồ tiếp nhận & xử lý phản ánh (Tháng 11/2026)</span>
-                </h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  So sánh số lượng hồ sơ tiếp nhận mới và hồ sơ đã hoàn thành theo từng tuần
-                </p>
-              </div>
+              <h2 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-blue-700" />
+                <span>Tiếp nhận & Xử lý (Tháng 11/2026)</span>
+              </h2>
               <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-[2px] bg-blue-600" /> Tiếp nhận
@@ -409,17 +404,12 @@ export const IocDashboardPage: React.FC = () => {
           {/* Bảng xếp hạng thi đua các tổ đội */}
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-amber-500" />
-                  <span>Xếp hạng thi đua các Tổ đội</span>
-                </h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Đánh giá theo tỷ lệ giải quyết đúng hạn và độ hài lòng
-                </p>
-              </div>
+              <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-500" />
+                <span>Xếp hạng Tổ đội</span>
+              </h2>
               <span className="text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-[5px] border border-blue-200 shrink-0">
-                Tháng 11/2026
+                11/2026
               </span>
             </div>
 

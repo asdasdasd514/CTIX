@@ -96,16 +96,8 @@ export const CitizenTopNav: React.FC = () => {
                 />
               </div>
               <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm sm:text-base lg:text-lg font-bold text-slate-800 tracking-tight leading-none truncate">
-                    Trấn Biên SmartCity
-                  </span>
-                  <span className="hidden sm:inline-block bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] uppercase tracking-wider shrink-0">
-                    Dân Sinh
-                  </span>
-                </div>
-                <span className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1 truncate">
-                  Cổng Tiếp Nhận Phản Ánh Hiện Trường
+                <span className="text-sm sm:text-base lg:text-lg font-bold text-slate-800 tracking-tight leading-none truncate">
+                  Trấn Biên SmartCity
                 </span>
               </div>
             </button>

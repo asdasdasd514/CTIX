@@ -173,8 +173,8 @@ export function StatisticsPage() {
           <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
             Thống kê phản ánh
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Hồ sơ tiếp nhận trong kỳ, trạng thái tính đến thời điểm cập nhật · Cập nhật {formatDate(lastSyncedAt)}
+          <p className="text-xs text-slate-400 mt-0.5">
+            Cập nhật {formatDate(lastSyncedAt)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">

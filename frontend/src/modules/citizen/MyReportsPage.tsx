@@ -265,27 +265,17 @@ export const MyReportsPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* 1. THANH TIÊU ĐỀ & NÚT "+ THÊM PHẢN ÁNH" */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
-              Danh Sách Phản Ánh Hiện Trường
-            </h1>
-            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-[5px] uppercase tracking-wider border border-blue-200">
-              Công Dân
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Bấm vào từng phản ánh để mở trang xem chi tiết tiến độ xử lý và đánh giá sao
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3.5">
+        <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+          Danh Sách Phản Ánh
+        </h1>
 
         <button
           onClick={() => navigate('/citizen/submit')}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-[5px] shadow-sm transition active:scale-[0.99] text-xs sm:text-sm uppercase tracking-wider border border-blue-900 shrink-0"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-bold px-4 py-2.5 rounded-[5px] shadow-sm transition text-xs sm:text-sm shrink-0"
         >
           <PlusCircle className="w-4 h-4 text-white shrink-0" />
-          <span>+ Thêm phản ánh</span>
+          <span>+ Gửi phản ánh</span>
         </button>
       </div>
 
@@ -500,14 +490,11 @@ export const MyReportsPage: React.FC = () => {
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-blue-700 transition line-clamp-1">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-blue-700 transition line-clamp-2 leading-snug">
                           {item.title}
                         </h3>
-                        <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                          {item.description}
-                        </p>
-                        <div className="text-xs text-slate-600 flex items-center gap-1 mt-2 font-medium min-w-0">
+                        <div className="text-xs text-slate-500 flex items-center gap-1 font-medium min-w-0">
                           <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                           <span className="truncate">{item.location.address}</span>
                         </div>

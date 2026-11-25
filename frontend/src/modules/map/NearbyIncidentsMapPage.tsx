@@ -56,28 +56,18 @@ export const NearbyIncidentsMapPage: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* 1. HEADER (GÓC VUÔNG, CÂN ĐỐI PC & MOBILE) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
-              Bản Đồ Phản Ánh Hiện Trường
-            </h1>
-            <span className="bg-blue-50 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-none uppercase tracking-wider border border-blue-200">
-              Bản Đồ Số
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Trực quan hóa vị trí sự cố đô thị thời gian thực • Bấm vào điểm ghim để xem chi tiết
-          </p>
-        </div>
+      {/* 1. HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3.5">
+        <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+          Bản Đồ Phản Ánh Hiện Trường
+        </h1>
 
         <button
           onClick={() => navigate('/citizen/submit')}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black px-5 py-3 rounded-none shadow-sm transition shrink-0 active:scale-[0.99] text-xs sm:text-sm border border-blue-900 uppercase tracking-wider"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-bold px-4 py-2.5 rounded-[5px] shadow-sm transition shrink-0 text-xs sm:text-sm"
         >
           <Camera className="w-4 h-4 text-white shrink-0" />
-          <span>+ Gửi phản ánh mới</span>
+          <span>+ Gửi phản ánh</span>
         </button>
       </div>
 

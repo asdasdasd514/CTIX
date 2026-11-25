@@ -181,9 +181,6 @@ export function FieldTasksPage() {
               {isFieldStaff ? currentUser.department || 'Tổ xử lý' : 'Toàn phường'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Bấm vào từng nhiệm vụ để xem chi tiết hiện trường, tick từng bước SOP và chụp ảnh nghiệm thu
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -219,12 +216,11 @@ export function FieldTasksPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div className="bg-white rounded-[5px] border border-slate-200 border-l-4 border-l-blue-600 p-4 shadow-sm flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold text-slate-500 uppercase">Đang cần xử lý</div>
+            <div className="text-xs font-bold text-slate-500 uppercase">Cần xử lý</div>
             <div className="text-2xl font-black text-blue-900 mt-0.5">{groups.assigned.length}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Hồ sơ đã giao & đang thực hiện</div>
           </div>
-          <div className="w-11 h-11 rounded-[5px] bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-            <ClipboardCheck className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-[5px] bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+            <ClipboardCheck className="w-5 h-5" />
           </div>
         </div>
 
@@ -241,12 +237,9 @@ export function FieldTasksPage() {
           <div>
             <div className="text-xs font-bold text-slate-500 uppercase">Quá hạn SLA</div>
             <div className="text-2xl font-black text-rose-700 mt-0.5">{overdueActiveCount}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              {overdueOnly ? 'Đang lọc hồ sơ quá hạn (bấm để bỏ lọc)' : 'Bấm để lọc các hồ sơ quá hạn'}
-            </div>
           </div>
-          <div className="w-11 h-11 rounded-[5px] bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-[5px] bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5" />
           </div>
         </button>
 
@@ -254,10 +247,9 @@ export function FieldTasksPage() {
           <div>
             <div className="text-xs font-bold text-slate-500 uppercase">Đã hoàn thành</div>
             <div className="text-2xl font-black text-emerald-700 mt-0.5">{groups.completed.length}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Có ảnh nghiệm thu Before – After</div>
           </div>
-          <div className="w-11 h-11 rounded-[5px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-[5px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -446,12 +438,11 @@ export function FieldTasksPage() {
                         className="w-20 h-20 sm:w-24 sm:h-24 rounded-[5px] object-cover border border-slate-200 shrink-0"
                       />
                     )}
-                    <div className="min-w-0 flex-1 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1.5">
                       <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-700">
                         {item.title}
                       </h3>
-                      <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
-                      <div className="flex items-start gap-1 text-[11px] text-slate-500 pt-0.5">
+                      <div className="flex items-start gap-1 text-[11px] text-slate-500">
                         <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
                         <span className="line-clamp-1">{item.location.address}</span>
                       </div>
@@ -526,7 +517,7 @@ export function FieldTasksPage() {
                         : 'bg-blue-700 hover:bg-blue-800 text-white'
                     }`}
                   >
-                    <span>{completed ? 'Xem chi tiết & Ảnh Trước–Sau' : 'Xem chi tiết & Xử lý'}</span>
+                    <span>{completed ? 'Chi tiết' : 'Xử lý'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

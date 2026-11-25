@@ -388,7 +388,7 @@ export const OfficerInboxPage: React.FC = () => {
         {/* Hàng 2: Chọn nhiều loại sự cố giống trang công dân */}
         <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-slate-100">
           <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">
-            Loại sự cố <span className="normal-case font-medium text-slate-400">(chọn nhiều):</span>
+            Loại:
           </span>
 
           <button
@@ -484,14 +484,11 @@ export const OfficerInboxPage: React.FC = () => {
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-blue-700 transition line-clamp-1">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-blue-700 transition line-clamp-2 leading-snug">
                           {item.title}
                         </h3>
-                        <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                          {item.description}
-                        </p>
-                        <div className="text-xs text-slate-600 flex items-center gap-1 mt-2 font-medium min-w-0">
+                        <div className="text-xs text-slate-500 flex items-center gap-1 font-medium min-w-0">
                           <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                           <span className="truncate">{item.location.address}</span>
                         </div>

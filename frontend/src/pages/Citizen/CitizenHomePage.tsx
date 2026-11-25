@@ -145,26 +145,21 @@ export const CitizenHomePage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/75 to-blue-900/30" />
 
             <div className="relative z-10 max-w-2xl space-y-3">
-              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-[5px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-white/25">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span>Hệ thống tiếp nhận 24/7 • Phường Trấn Biên</span>
-              </div>
-
               <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug drop-shadow-sm">
-                Chung tay xây dựng Đô thị Trấn Biên Văn minh - An toàn
+                Phản ánh hiện trường Phường Trấn Biên
               </h1>
 
-              <p className="text-xs sm:text-sm text-blue-50 font-medium leading-relaxed drop-shadow-sm">
-                Phát hiện đèn đường hỏng, ngập nước, bãi rác tự phát hay ổ gà nguy hiểm? Chụp ảnh và gửi ngay để UBND Phường tiếp nhận xử lý đúng thời hạn cam kết.
+              <p className="text-xs sm:text-sm text-blue-50 font-medium drop-shadow-sm">
+                Chụp ảnh, gửi nhanh — xử lý minh bạch 24/7.
               </p>
 
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
                 <button
                   onClick={() => navigate('/citizen/submit')}
                   className="flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-[5px] shadow-md transition active:scale-[0.99] border border-amber-500 uppercase tracking-wide px-5 py-3 text-xs sm:text-sm"
                 >
                   <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-slate-900 shrink-0" />
-                  <span>Gửi phản ánh mới (2 bước)</span>
+                  <span>Gửi phản ánh</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
 
@@ -173,71 +168,63 @@ export const CitizenHomePage: React.FC = () => {
                   className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold px-5 py-3 rounded-[5px] border border-white/30 transition text-xs sm:text-sm"
                 >
                   <ClipboardList className="w-4 h-4 shrink-0" />
-                  <span>Xem danh sách phản ánh</span>
+                  <span>Theo dõi tiến độ</span>
                 </button>
               </div>
             </div>
           </section>
 
-          {/* 2. THỐNG KÊ NHANH (Ẩn bớt khi bật chế độ Người cao tuổi để đỡ rối mắt) */}
+          {/* 2. THỐNG KÊ NHANH (Gọn gàng, tập trung số liệu) */}
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-blue-700 shadow-sm">
-              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Thời gian xử lý trung bình</div>
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Xử lý trung bình</div>
               <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1">{avgDaysFormatted} ngày</div>
-              <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">● Phường Trấn Biên (11/2026)</div>
             </div>
 
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-emerald-600 shadow-sm">
-              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đã khắc phục hoàn thành</div>
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đã hoàn thành</div>
               <div className="text-lg sm:text-2xl font-black text-emerald-600 mt-1">
-                {resolvedCount} / {incidents.length}
-              </div>
-              <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                Đạt {resolvedRate}% • Có ảnh nghiệm thu
+                {resolvedCount}/{incidents.length}{' '}
+                <span className="text-xs font-bold text-slate-500">({resolvedRate}%)</span>
               </div>
             </div>
 
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-amber-500 shadow-sm">
-              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đang khẩn trương xử lý</div>
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đang xử lý</div>
               <div className="text-lg sm:text-2xl font-black text-amber-600 mt-1">{pendingCount} sự cố</div>
-              <div className="text-[11px] text-blue-600 font-medium mt-0.5">Đúng hạn cam kết SLA</div>
             </div>
 
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-indigo-600 shadow-sm">
-              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Mức độ hài lòng của dân</div>
-              <div className="text-lg sm:text-2xl font-black text-blue-700 mt-1">96,8%</div>
-              <div className="text-[11px] text-amber-500 font-bold mt-0.5">★★★★★ (4.9/5)</div>
+              <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Hài lòng</div>
+              <div className="text-lg sm:text-2xl font-black text-blue-700 mt-1">
+                96,8% <span className="text-xs text-amber-500">★ 4.9</span>
+              </div>
             </div>
           </section>
         </>
       )}
 
-      {/* 3. THÔNG BÁO KHẨN TỪ UBND PHƯỜNG */}
-      <section className="bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-[5px] p-4 sm:p-5 shadow-sm">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-1 min-w-0">
-            <h3 className="font-extrabold text-sm sm:text-base text-amber-950 leading-snug">
-              Cảnh báo triều cường ngập cục bộ tại một số tuyến đường (11/2026)
-            </h3>
-            <p className="text-xs text-amber-900/90 leading-relaxed font-medium">
-              UBND Phường Trấn Biên khuyến cáo người dân hạn chế di chuyển qua đoạn đường ven sông Đồng Nai và ngã 3 Tân Mai từ 17h00 - 19h00. Nếu phát hiện cống nghẹt hoặc cây ngã, vui lòng gửi phản ánh ngay.
-            </p>
-          </div>
+      {/* 3. THÔNG BÁO KHẨN (Gọn 1 dòng) */}
+      <section className="bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-[5px] px-4 py-2.5 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-950 font-semibold truncate">
+            <strong>Cảnh báo triều cường (17h–19h):</strong> Hạn chế qua đường ven sông Đồng Nai & ngã 3 Tân Mai.
+          </p>
         </div>
       </section>
 
       {/* 4. CÁC DANH MỤC PHẢN ÁNH THƯỜNG GẶP */}
       <section className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-            Bạn cần phản ánh vấn đề gì?
+            Chọn loại sự cố
           </h2>
           <button
             onClick={() => navigate('/citizen/submit')}
-            className="text-xs font-bold text-blue-700 hover:text-blue-900 transition flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-bold text-blue-700 hover:text-blue-900 transition flex items-center gap-1"
           >
-            <span>Gửi phản ánh ngay</span>
+            <span>Gửi ngay</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -245,74 +232,62 @@ export const CitizenHomePage: React.FC = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <button
             onClick={() => navigate('/citizen/submit')}
-            className="p-3.5 sm:p-4 bg-white hover:bg-amber-50/70 rounded-[5px] border border-slate-200 hover:border-amber-400 shadow-sm text-left group transition flex flex-col justify-between min-w-0"
+            className="p-3.5 bg-white hover:bg-amber-50/70 rounded-[5px] border border-slate-200 hover:border-amber-400 shadow-sm text-left transition flex items-center justify-between gap-2 min-w-0"
           >
-            <div className="flex items-center justify-between w-full mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[5px] bg-amber-100 text-amber-700 flex items-center justify-center border border-amber-200 shrink-0">
-                <Lightbulb className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-[5px] bg-amber-100 text-amber-700 flex items-center justify-center border border-amber-200 shrink-0">
+                <Lightbulb className="w-4 h-4" />
               </div>
-              <span className="text-[11px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-[5px] border border-amber-200">
-                {streetLightCount} phản ánh
-              </span>
+              <div className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">Đèn đường</div>
             </div>
-            <div className="min-w-0">
-              <div className="font-extrabold text-xs sm:text-sm text-slate-900">Đèn Chiếu Sáng</div>
-              <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">Bóng cháy, mất điện, chập chờn</div>
-            </div>
+            <span className="text-xs font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-[5px] border border-amber-200 shrink-0">
+              {streetLightCount}
+            </span>
           </button>
 
           <button
             onClick={() => navigate('/citizen/submit')}
-            className="p-3.5 sm:p-4 bg-white hover:bg-blue-50/70 rounded-[5px] border border-slate-200 hover:border-blue-400 shadow-sm text-left group transition flex flex-col justify-between min-w-0"
+            className="p-3.5 bg-white hover:bg-blue-50/70 rounded-[5px] border border-slate-200 hover:border-blue-400 shadow-sm text-left transition flex items-center justify-between gap-2 min-w-0"
           >
-            <div className="flex items-center justify-between w-full mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[5px] bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200 shrink-0">
-                <Waves className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-[5px] bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200 shrink-0">
+                <Waves className="w-4 h-4" />
               </div>
-              <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200">
-                {floodingCount} phản ánh
-              </span>
+              <div className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">Ngập nước</div>
             </div>
-            <div className="min-w-0">
-              <div className="font-extrabold text-xs sm:text-sm text-slate-900">Ngập Nước Sau Mưa</div>
-              <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">Cống nghẹt, đọng nước sâu</div>
-            </div>
+            <span className="text-xs font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[5px] border border-blue-200 shrink-0">
+              {floodingCount}
+            </span>
           </button>
 
           <button
             onClick={() => navigate('/citizen/submit')}
-            className="p-3.5 sm:p-4 bg-white hover:bg-emerald-50/70 rounded-[5px] border border-slate-200 hover:border-emerald-400 shadow-sm text-left group transition flex flex-col justify-between min-w-0"
+            className="p-3.5 bg-white hover:bg-emerald-50/70 rounded-[5px] border border-slate-200 hover:border-emerald-400 shadow-sm text-left transition flex items-center justify-between gap-2 min-w-0"
           >
-            <div className="flex items-center justify-between w-full mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[5px] bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 shrink-0">
-                <Trash2 className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-[5px] bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 shrink-0">
+                <Trash2 className="w-4 h-4" />
               </div>
-              <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-[5px] border border-emerald-200">
-                {wasteCount} phản ánh
-              </span>
+              <div className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">Rác thải</div>
             </div>
-            <div className="min-w-0">
-              <div className="font-extrabold text-xs sm:text-sm text-slate-900">Rác Thải Tự Phát</div>
-              <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">Bãi rác trái phép, bốc mùi hôi</div>
-            </div>
+            <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-[5px] border border-emerald-200 shrink-0">
+              {wasteCount}
+            </span>
           </button>
 
           <button
             onClick={() => navigate('/citizen/submit')}
-            className="p-3.5 sm:p-4 bg-white hover:bg-rose-50/70 rounded-[5px] border border-slate-200 hover:border-rose-400 shadow-sm text-left group transition flex flex-col justify-between min-w-0"
+            className="p-3.5 bg-white hover:bg-rose-50/70 rounded-[5px] border border-slate-200 hover:border-rose-400 shadow-sm text-left transition flex items-center justify-between gap-2 min-w-0"
           >
-            <div className="flex items-center justify-between w-full mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[5px] bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-200 shrink-0">
-                <Construction className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-[5px] bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-200 shrink-0">
+                <Construction className="w-4 h-4" />
               </div>
-              <span className="text-[11px] font-extrabold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-[5px] border border-rose-200">
-                {roadDamageCount} phản ánh
-              </span>
+              <div className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">Mặt đường</div>
             </div>
-            <div className="min-w-0">
-              <div className="font-extrabold text-xs sm:text-sm text-slate-900">Mặt Đường & Ổ Gà</div>
-              <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">Hố sâu, sụt lún nguy hiểm</div>
-            </div>
+            <span className="text-xs font-extrabold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-[5px] border border-rose-200 shrink-0">
+              {roadDamageCount}
+            </span>
           </button>
         </div>
       </section>
