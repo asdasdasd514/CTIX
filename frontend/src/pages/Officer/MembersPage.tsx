@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
-  UserPlus,
+  UserCog,
   Search,
   Phone,
   Building2,
@@ -20,7 +21,7 @@ import { CATEGORIES } from '../../lib/incidents';
 import type { IncidentCategory } from '../../types/incident';
 
 export const MembersPage: React.FC = () => {
-  const { units, members, addMember, updateMember, removeMember, addUnit, updateUnit, removeUnit } =
+  const { units, members, updateMember, removeMember, addUnit, updateUnit, removeUnit } =
     useTeamStore();
   const { incidents } = useIncidentStore();
 
@@ -149,17 +150,7 @@ export const MembersPage: React.FC = () => {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // Mở modal Thành viên
-  const openAddMember = (preselectUnitId?: string) => {
-    setEditingMember(null);
-    setMName('');
-    setMRole('');
-    setMPhone('');
-    setMUnitId(preselectUnitId || units[0]?.id || '');
-    setMStatus('available');
-    setMemberModalOpen(true);
-  };
-
+  // Mở modal chỉnh sửa Thành viên (thành viên mới được đồng bộ tự động từ trang Tài khoản Admin & Tổ xử lý)
   const openEditMember = (member: StaffMember) => {
     setEditingMember(member);
     setMName(member.name);
@@ -172,24 +163,14 @@ export const MembersPage: React.FC = () => {
 
   const handleSaveMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mName.trim() || !mUnitId) return;
-    if (editingMember) {
-      updateMember(editingMember.id, {
-        name: mName.trim(),
-        role: mRole.trim() || 'Tổ viên hiện trường',
-        phone: mPhone.trim() || 'Chưa cập nhật',
-        unitId: mUnitId,
-        status: mStatus,
-      });
-    } else {
-      addMember({
-        name: mName.trim(),
-        role: mRole.trim() || 'Tổ viên hiện trường',
-        phone: mPhone.trim() || 'Chưa cập nhật',
-        unitId: mUnitId,
-        status: mStatus,
-      });
-    }
+    if (!editingMember || !mName.trim() || !mUnitId) return;
+    updateMember(editingMember.id, {
+      name: mName.trim(),
+      role: mRole.trim() || 'Tổ viên hiện trường',
+      phone: mPhone.trim() || 'Chưa cập nhật',
+      unitId: mUnitId,
+      status: mStatus,
+    });
     setMemberModalOpen(false);
   };
 
@@ -245,7 +226,7 @@ export const MembersPage: React.FC = () => {
             Danh sách cán bộ hiện trường và các nhóm chuyên môn phục vụ điều phối xử lý sự cố Phường Trấn Biên
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={openAddUnit}
@@ -254,14 +235,13 @@ export const MembersPage: React.FC = () => {
             <Plus className="w-4 h-4 text-blue-600" />
             <span>Thêm nhóm</span>
           </button>
-          <button
-            type="button"
-            onClick={() => openAddMember()}
+          <Link
+            to="/admin/accounts"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[5px] bg-blue-700 hover:bg-blue-800 text-xs font-semibold text-white shadow-sm transition"
           >
-            <UserPlus className="w-4 h-4" />
-            <span>Thêm thành viên</span>
-          </button>
+            <UserCog className="w-4 h-4" />
+            <span>Quản lý tài khoản nhân sự →</span>
+          </Link>
         </div>
       </div>
 

@@ -35,16 +35,26 @@ const RequireAdmin: React.FC<{ children: React.ReactElement }> = ({ children }) 
   return children;
 };
 
+// Bảo vệ các trang Quản trị / Điều phối (chỉ officer/leader; Tổ xử lý volunteer bị chặn và đưa về /admin/field-tasks)
+const RequireManager: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { currentUser } = useAuthStore();
+  if (currentUser.role === 'volunteer') {
+    return <Navigate to="/admin/field-tasks" replace />;
+  }
+  return children;
+};
+
+function getHomePathForRole(role: string): string {
+  if (role === 'citizen') return '/citizen/home';
+  if (role === 'volunteer') return '/admin/field-tasks';
+  return '/admin/dashboard';
+}
+
 // Bảo vệ trang Login/Register: Đã đăng nhập thì điều hướng thẳng về đúng phân hệ
 const GuestOnly: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isAuthenticated, currentUser } = useAuthStore();
   if (isAuthenticated) {
-    return (
-      <Navigate
-        to={currentUser.role === 'citizen' ? '/citizen/home' : '/admin/dashboard'}
-        replace
-      />
-    );
+    return <Navigate to={getHomePathForRole(currentUser.role)} replace />;
   }
   return children;
 };
@@ -59,8 +69,9 @@ export const App: React.FC = () => {
   const { storageError, resetToDefaultData } = useIncidentStore();
   const { isAuthenticated, currentUser } = useAuthStore();
 
-  const defaultHomePath =
-    isAuthenticated && currentUser.role !== 'citizen' ? '/admin/dashboard' : '/citizen/home';
+  const defaultHomePath = isAuthenticated
+    ? getHomePathForRole(currentUser.role)
+    : '/citizen/home';
 
   return (
     <BrowserRouter>
@@ -131,16 +142,66 @@ export const App: React.FC = () => {
             </RequireAdmin>
           }
         >
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={<IocDashboardPage />} />
+          <Route
+            index
+            element={
+              <Navigate
+                to={currentUser.role === 'volunteer' ? '/admin/field-tasks' : '/admin/dashboard'}
+                replace
+              />
+            }
+          />
+          <Route
+            path="dashboard"
+            element={
+              <RequireManager>
+                <IocDashboardPage />
+              </RequireManager>
+            }
+          />
           <Route path="map" element={<AdminMapPage />} />
-          <Route path="inbox" element={<OfficerInboxPage />} />
-          <Route path="dispatch/:id" element={<DispatchDetailPage />} />
-          <Route path="members" element={<MembersPage />} />
-          <Route path="accounts" element={<AccountsPage />} />
+          <Route
+            path="inbox"
+            element={
+              <RequireManager>
+                <OfficerInboxPage />
+              </RequireManager>
+            }
+          />
+          <Route
+            path="dispatch/:id"
+            element={
+              <RequireManager>
+                <DispatchDetailPage />
+              </RequireManager>
+            }
+          />
+          <Route
+            path="members"
+            element={
+              <RequireManager>
+                <MembersPage />
+              </RequireManager>
+            }
+          />
+          <Route
+            path="accounts"
+            element={
+              <RequireManager>
+                <AccountsPage />
+              </RequireManager>
+            }
+          />
           <Route path="field-tasks" element={<FieldTasksPage />} />
           <Route path="verify" element={<Navigate to="/admin/field-tasks" replace />} />
-          <Route path="statistics" element={<StatisticsPage />} />
+          <Route
+            path="statistics"
+            element={
+              <RequireManager>
+                <StatisticsPage />
+              </RequireManager>
+            }
+          />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
 

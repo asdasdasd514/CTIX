@@ -4,6 +4,12 @@ import type { IncidentCategoryType } from '../models/Unit';
 import { analyzeDuplicatesWithAI, distanceMeters } from '../services/aiDuplicateService';
 import { deleteCloudinaryUrls } from '../config/cloudinary';
 import type { AuthRequest } from '../middlewares/auth';
+import {
+  checkIpRateLimit,
+  getClientIp,
+  recordIpSubmission,
+  validateIncidentContent,
+} from '../utils/antiSpam';
 
 function normalizePhone(phone?: string): string {
   return String(phone || '').replace(/\D/g, '').trim();
@@ -84,8 +90,8 @@ export async function getIncidentById(req: Request, res: Response) {
   }
 }
 
-// POST /api/incidents (MOD-01: Công dân tạo phản ánh mới)
-export async function createIncident(req: Request, res: Response) {
+// POST /api/incidents (MOD-01: Công dân tạo phản ánh mới — có chống spam theo IP 2 phút & lọc rác)
+export async function createIncident(req: AuthRequest, res: Response) {
   try {
     const {
       title,
@@ -101,6 +107,55 @@ export async function createIncident(req: Request, res: Response) {
       return res.status(400).json({
         message: 'Vui lòng nhập đầy đủ loại sự cố, mô tả và vị trí phản ánh.',
       });
+    }
+
+    const isStaffUser = Boolean(req.user && req.user.role !== 'citizen');
+    const clientIp = getClientIp(req);
+
+    if (!isStaffUser) {
+      // 1. Giới hạn tần suất gửi theo IP: 2 phút / lần
+      const ipCheck = checkIpRateLimit(clientIp);
+      if (!ipCheck.ok) {
+        return res.status(429).json({
+          message: ipCheck.message,
+          retryAfterSec: ipCheck.retryAfterSec,
+        });
+      }
+
+      // 2. Bộ lọc nội dung rác / spam / từ khóa quảng cáo
+      const contentCheck = validateIncidentContent(description, title);
+      if (!contentCheck.ok) {
+        return res.status(400).json({ message: contentCheck.message });
+      }
+
+      // 3. Chống gửi quá nhiều bài Chờ duyệt hoặc gửi đúp y hệt từ cùng 1 SĐT
+      const cleanPhone = normalizePhone(senderPhone);
+      if (cleanPhone.length >= 9) {
+        const myPendingDocs = await IncidentModel.find(
+          { status: 'pending_review', 'sender.phone': { $regex: cleanPhone.slice(-9) } },
+          { description: 1, createdAtIso: 1 }
+        ).lean();
+
+        if (myPendingDocs.length >= 3) {
+          return res.status(429).json({
+            message:
+              'Bạn hiện có 3 phản ánh đang chờ UBND Phường duyệt. Vui lòng đợi duyệt xong trước khi gửi thêm.',
+          });
+        }
+
+        const fifteenMinsAgo = Date.now() - 15 * 60 * 1000;
+        const normalizedNewDesc = description.trim().toLowerCase();
+        const isExactDup = myPendingDocs.some(
+          (d) =>
+            Date.parse(String(d.createdAtIso || '')) >= fifteenMinsAgo &&
+            String(d.description || '').trim().toLowerCase() === normalizedNewDesc
+        );
+        if (isExactDup) {
+          return res.status(409).json({
+            message: 'Bạn vừa gửi phản ánh có nội dung tương tự trong 15 phút qua. Không cần gửi lặp lại.',
+          });
+        }
+      }
     }
 
     const nowIso = new Date().toISOString();
@@ -151,6 +206,10 @@ export async function createIncident(req: Request, res: Response) {
       createdAtIso: nowIso,
       updatedAtIso: nowIso,
     });
+
+    if (!isStaffUser) {
+      recordIpSubmission(clientIp);
+    }
 
     return res.status(201).json({ incident: serializeIncident(doc) });
   } catch (err) {

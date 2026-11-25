@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Incident, IncidentCategory, IncidentPriority } from '../../types/incident';
@@ -82,18 +82,41 @@ function getCategoryBadge(category: IncidentCategory) {
 
 export const OfficerInboxPage: React.FC = () => {
   const navigate = useNavigate();
-  const { incidents, approveIncident, rejectIncident } = useIncidentStore();
+  const [searchParams] = useSearchParams();
+  const { incidents, approveIncident, rejectIncident, refreshIncidents } = useIncidentStore();
   const { currentUser } = useAuthStore();
+
+  useEffect(() => {
+    void refreshIncidents();
+  }, [refreshIncidents]);
 
   const reviewCount = incidents.filter((i) => i.status === 'pending_review').length;
   const rejectedCount = incidents.filter((i) => i.status === 'rejected').length;
 
+  const urlStatus = searchParams.get('status');
+  const urlCategory = searchParams.get('category') as IncidentCategory | null;
+  const urlQuery = searchParams.get('q') || '';
+
   const [statusTab, setStatusTab] = useState<
     'pending_review' | 'pending' | 'open' | 'all' | 'overdue' | 'resolved' | 'rejected'
-  >(() => (incidents.some((i) => i.status === 'pending_review') ? 'pending_review' : 'pending'));
-  const [selectedCategories, setSelectedCategories] = useState<IncidentCategory[]>([]);
+  >(() => {
+    if (
+      urlStatus &&
+      ['pending_review', 'pending', 'open', 'all', 'overdue', 'resolved', 'rejected'].includes(
+        urlStatus
+      )
+    ) {
+      return urlStatus as 'pending_review' | 'pending' | 'open' | 'all' | 'overdue' | 'resolved' | 'rejected';
+    }
+    return incidents.some((i) => i.status === 'pending_review') ? 'pending_review' : 'pending';
+  });
+  const [selectedCategories, setSelectedCategories] = useState<IncidentCategory[]>(() =>
+    urlCategory && ['street_light', 'flooding', 'waste', 'road_damage', 'other'].includes(urlCategory)
+      ? [urlCategory]
+      : []
+  );
   const [priorityFilter, setPriorityFilter] = useState<'all' | IncidentPriority>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(urlQuery);
   const [currentPage, setCurrentPage] = useState(1);
 
   const now = Date.now();

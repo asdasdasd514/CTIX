@@ -14,6 +14,7 @@ import {
   useIncidentStore,
   type AdminMapFilter,
 } from "../../store/useIncidentStore";
+import { useAuthStore } from "../../store/useAuthStore";
 import { OpenStreetMap } from "../../components/Map/OpenStreetMap";
 import {
   CATEGORIES,
@@ -51,7 +52,14 @@ export function AdminMapPage() {
     setSelectedIncidentId,
     mapScreenState,
     setMapScreenState,
+    refreshIncidents,
   } = useIncidentStore();
+  const { currentUser } = useAuthStore();
+  const isFieldStaff = currentUser.role === "volunteer";
+
+  useEffect(() => {
+    void refreshIncidents();
+  }, [refreshIncidents]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [now, setNow] = useState(() => Date.now());
@@ -109,8 +117,30 @@ export function AdminMapPage() {
     () =>
       incidents
         .filter((item) => {
+          // Tài khoản Tổ xử lý chỉ thấy các điểm được giao cho Tổ / cá nhân mình
+          if (isFieldStaff) {
+            if (item.status === "pending_review" || item.status === "rejected")
+              return false;
+            const myDept = (currentUser.department || "").trim().toLowerCase();
+            const myName = (currentUser.name || "").trim().toLowerCase();
+            const matchUnit =
+              myDept &&
+              item.assignedTo?.unitName &&
+              item.assignedTo.unitName.trim().toLowerCase() === myDept;
+            const matchAssignee =
+              myName &&
+              item.assignedTo?.assigneeName &&
+              item.assignedTo.assigneeName.trim().toLowerCase() === myName;
+            if (!matchUnit && !matchAssignee) return false;
+          }
           if (month && incidentMonthKey(item.createdAt) !== month) return false;
-          if (filter === "open" && isComplete(item)) return false;
+          if (
+            filter === "open" &&
+            (isComplete(item) ||
+              item.status === "rejected" ||
+              item.status === "pending_review")
+          )
+            return false;
           if (filter === "pending" && item.status !== "pending") return false;
           if (filter === "assigned" && item.status !== "assigned") return false;
           if (filter === "in_progress" && item.status !== "in_progress")
@@ -167,9 +197,11 @@ export function AdminMapPage() {
   if (month) dispatchListParams.set("month", month);
   if (urgentOnly) dispatchListParams.set("urgent", "1");
   if (query.trim()) dispatchListParams.set("q", query.trim());
-  const dispatchListUrl = dispatchListParams.toString()
-    ? `/admin/inbox?${dispatchListParams.toString()}`
-    : "/admin/inbox";
+  const dispatchListUrl = isFieldStaff
+    ? "/admin/field-tasks"
+    : dispatchListParams.toString()
+      ? `/admin/inbox?${dispatchListParams.toString()}`
+      : "/admin/inbox";
 
   return (
     <div className="officer-workbench">

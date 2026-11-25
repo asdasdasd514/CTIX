@@ -20,6 +20,8 @@ export const LoginPage: React.FC = () => {
       const user = await loginWithCredentials(username, password);
       if (user.role === 'citizen') {
         navigate('/citizen/home', { replace: true });
+      } else if (user.role === 'volunteer') {
+        navigate('/admin/field-tasks', { replace: true });
       } else {
         navigate('/admin/dashboard', { replace: true });
       }

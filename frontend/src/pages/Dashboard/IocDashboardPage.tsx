@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useTeamStore } from '../../store/useTeamStore';
 import { DEMO_UNITS, isOverdue } from '../../lib/incidents';
 import {
   Inbox,
@@ -18,11 +19,18 @@ import {
 
 export const IocDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { incidents } = useIncidentStore();
+  const { incidents, refreshIncidents } = useIncidentStore();
+  const { units } = useTeamStore();
   const now = Date.now();
 
-  const totalCount = incidents.length;
-  const resolvedList = incidents.filter((i) => i.status === 'resolved' || i.status === 'closed');
+  useEffect(() => {
+    void refreshIncidents();
+  }, [refreshIncidents]);
+
+  // Loại bỏ hồ sơ đã bị Từ chối khỏi KPI điều hành để tỷ lệ xử lý chính xác 100%
+  const operationalIncidents = incidents.filter((i) => i.status !== 'rejected');
+  const totalCount = operationalIncidents.length;
+  const resolvedList = operationalIncidents.filter((i) => i.status === 'resolved' || i.status === 'closed');
   const resolvedCount = resolvedList.length;
   const resolvedRate = totalCount > 0 ? ((resolvedCount / totalCount) * 100).toFixed(1).replace('.', ',') : '0,0';
 
@@ -111,13 +119,20 @@ export const IocDashboardPage: React.FC = () => {
     { label: 'Vá thảm mặt đường & ổ gà', value: '3,9 ngày', standard: 'Chuẩn 5 ngày', pct: 88, color: 'bg-indigo-700' },
   ];
 
-  // Bảng xếp hạng các tổ đội xử lý tại Phường Trấn Biên
-  const unitRankings = DEMO_UNITS.slice(0, 4).map((unit, idx) => {
-    const unitItems = incidents.filter((i) => i.assignedTo?.unitName === unit.name);
+  // Bảng xếp hạng các tổ đội xử lý thực tế tại Phường Trấn Biên (dữ liệu thật từ useTeamStore & đánh giá thật)
+  const sourceUnits = units.length > 0 ? units : DEMO_UNITS;
+  const unitRankings = sourceUnits.slice(0, 5).map((unit, idx) => {
+    const unitItems = operationalIncidents.filter((i) => i.assignedTo?.unitName === unit.name);
     const unitResolved = unitItems.filter((i) => i.status === 'resolved' || i.status === 'closed').length;
     const unitOverdue = unitItems.filter((i) => isOverdue(i, now)).length;
-    const rate = unitItems.length > 0 ? Math.round((unitResolved / unitItems.length) * 100) : 95 - idx * 2;
-    const stars = (4.95 - idx * 0.06).toFixed(2);
+    const rate = unitItems.length > 0 ? Math.round((unitResolved / unitItems.length) * 100) : 0;
+    const ratedUnitItems = unitItems.filter((i) => i.rating);
+    const stars =
+      ratedUnitItems.length > 0
+        ? (
+            ratedUnitItems.reduce((s, i) => s + (i.rating?.stars || 5), 0) / ratedUnitItems.length
+          ).toFixed(2)
+        : '5.00';
     return {
       name: unit.name,
       rate,

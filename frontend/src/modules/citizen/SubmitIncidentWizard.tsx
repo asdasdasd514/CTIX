@@ -4,7 +4,7 @@ import { useIncidentStore } from '../../store/useIncidentStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { incidentsApi, mediaApi, type AiReportDraft, type DuplicateCandidate } from '../../services/api';
 import { saveGuestReport } from '../../lib/guestReports';
-import { compressImageFiles } from '../../lib/imageCompress';
+import { compressImageFiles, stampTimestampWatermarks } from '../../lib/imageCompress';
 import { IncidentCategory, IncidentLocation } from '../../types/incident';
 import { OpenStreetMap } from '../../components/Map/OpenStreetMap';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
@@ -256,23 +256,29 @@ export const SubmitIncidentWizard: React.FC = () => {
     }
   };
 
-  // Chỉ upload đúng những ảnh cuối cùng lên Cloudinary vào thư mục theo phase & category khi bấm Gửi
+  // Chỉ đóng dấu Thời gian + Địa chỉ (Timestamp Camera) & upload Cloudinary ĐÚNG LÚC BẤM GỬI
   const uploadStagedPhotos = async (
     phase: 'before' | 'linked',
-    category: IncidentCategory
+    category: IncidentCategory,
+    addressText: string
   ): Promise<string[]> => {
     if (photos.length === 0) return [];
     const filesToUpload = photos.map((p) => p.file).filter((f): f is File => Boolean(f));
     const alreadyUploaded = photos.filter((p) => !p.file).map((p) => p.url);
     if (filesToUpload.length === 0) return alreadyUploaded;
 
+    const watermarkedFiles = await stampTimestampWatermarks(filesToUpload, {
+      timestamp: new Date(),
+      address: addressText,
+    });
+
     try {
-      const urls = await mediaApi.uploadFiles(filesToUpload, phase, category);
+      const urls = await mediaApi.uploadFiles(watermarkedFiles, phase, category);
       return [...alreadyUploaded, ...urls];
     } catch {
-      // Fallback sang dataURL đã nén (chỉ ~150-300KB/ảnh) khi mất kết nối Cloudinary
+      // Fallback sang dataURL đã nén & đóng dấu khi mất kết nối Cloudinary
       const dataUrls = await Promise.all(
-        filesToUpload.map(
+        watermarkedFiles.map(
           (file) =>
             new Promise<string>((resolve) => {
               const reader = new FileReader();
@@ -398,42 +404,74 @@ export const SubmitIncidentWizard: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Chỉ upload ảnh lên Cloudinary ĐÚNG LÚC XÁC NHẬN GỬI (vào đúng thư mục before/{category})
-      const finalPhotoUrls = await uploadStagedPhotos('before', selectedCategory);
-
       const categoryLabel =
         selectedCategory === 'other'
           ? customCategoryName.trim() || 'Sự cố khác'
           : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Phản ánh sự cố';
-      const result = addIncident({
-        title: `${categoryLabel}: ${description.slice(0, 48)}${description.length > 48 ? '...' : ''}`,
-        description,
-        category: selectedCategory,
-        location,
-        photosBefore: finalPhotoUrls,
-        senderPhone: cleanPhone,
-        senderName: senderName.trim(),
-        status: 'pending_review',
-      });
+      const finalTitle = `${categoryLabel}: ${description.slice(0, 48)}${description.length > 48 ? '...' : ''}`;
 
-      // Chỉ lưu dấu trên thiết bị khi là KHÁCH chưa đăng nhập (tài khoản đã đăng nhập khớp trực tiếp qua SĐT)
-      if (!isAuthenticated) {
-        saveGuestReport(result.incident.id, cleanPhone);
-      }
+      // Đóng dấu Thời gian gửi + Địa chỉ (Timestamp Camera) & upload lên Cloudinary
+      const finalPhotoUrls = await uploadStagedPhotos(
+        'before',
+        selectedCategory,
+        location.address
+      );
 
-      if (result.isDuplicateGrouped) {
-        setNotification({
-          type: 'duplicate',
-          message: `Hệ thống phát hiện đã có phản ánh cùng sự cố tại vị trí này (${result.existingCode || 'PA-xxx'}). Đã tự động gộp phản ánh của bạn để tăng độ khẩn cấp!`,
-          code: result.existingCode || 'PA-GOP',
+      // Gọi trực tiếp API để kiểm tra chống spam (IP 2 phút + lọc nội dung rác) trước khi xác nhận
+      try {
+        const apiRes = await incidentsApi.create({
+          title: finalTitle,
+          description: description.trim(),
+          category: selectedCategory,
+          location,
+          photosBefore: finalPhotoUrls,
+          senderPhone: cleanPhone,
+          senderName: senderName.trim(),
         });
-      } else {
+
+        const created = apiRes.incident;
+        if (!isAuthenticated) {
+          saveGuestReport(created.id, cleanPhone);
+        }
+        // Đồng bộ ngay vào store local
+        useIncidentStore.setState((state) => ({
+          incidents: [created, ...state.incidents.filter((i) => i.id !== created.id)],
+          selectedIncidentId: created.id,
+          lastSyncedAt: new Date().toISOString(),
+        }));
+
         setNotification({
           type: 'success',
           message:
             finalPhotoUrls.length > 0
-              ? `Đã gửi phản ánh thành công kèm ${finalPhotoUrls.length} ảnh hiện trường! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`
+              ? `Đã gửi phản ánh thành công kèm ${finalPhotoUrls.length} ảnh đã đóng dấu thời gian & địa chỉ! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận.`
               : `Đã gửi phản ánh thành công! Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận. Bạn có thể theo dõi, chỉnh sửa hoặc hủy trong mục "Phản ánh của tôi".`,
+          code: created.code,
+        });
+      } catch (apiErr) {
+        const msg = apiErr instanceof Error ? apiErr.message : '';
+        // Nếu là lỗi nghiệp vụ/chống spam từ Backend (429/400/409) -> chặn ngay và hiện thông báo đỏ
+        if (msg && !msg.includes('Failed to fetch') && !msg.includes('NetworkError')) {
+          setFormError(msg);
+          return;
+        }
+        // Fallback offline chỉ khi không kết nối được máy chủ
+        const result = addIncident({
+          title: finalTitle,
+          description,
+          category: selectedCategory,
+          location,
+          photosBefore: finalPhotoUrls,
+          senderPhone: cleanPhone,
+          senderName: senderName.trim(),
+          status: 'pending_review',
+        });
+        if (!isAuthenticated) {
+          saveGuestReport(result.incident.id, cleanPhone);
+        }
+        setNotification({
+          type: 'success',
+          message: `Đã ghi nhận phản ánh (${finalPhotoUrls.length} ảnh). Hồ sơ đang chờ UBND Phường Trấn Biên duyệt tiếp nhận.`,
           code: result.incident.code,
         });
       }
@@ -1165,7 +1203,8 @@ export const SubmitIncidentWizard: React.FC = () => {
                                     const cleanPhone = phone.replace(/[\s.-]/g, '').trim();
                                     const uploadedLinked = await uploadStagedPhotos(
                                       'linked',
-                                      cand.incident.category
+                                      cand.incident.category,
+                                      location.address || cand.incident.location.address
                                     );
                                     linkDuplicateIncident(cand.incident.id, {
                                       senderName: senderName.trim() || 'Công dân Phường Trấn Biên',
@@ -1198,6 +1237,12 @@ export const SubmitIncidentWizard: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {formError && (
+                  <div className="p-3 rounded-[5px] bg-rose-50 border border-rose-300 text-xs text-rose-800 font-bold">
+                    {formError}
                   </div>
                 )}
 

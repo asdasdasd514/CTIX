@@ -10,6 +10,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useIncidentStore } from '../../store/useIncidentStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export function Sidebar({
   onCloseMobile,
@@ -17,20 +18,44 @@ export function Sidebar({
   onCloseMobile?: () => void;
 }) {
   const { sidebarCollapsed, toggleSidebar, incidents } = useIncidentStore();
+  const { currentUser } = useAuthStore();
   const collapsed = sidebarCollapsed && !onCloseMobile;
+  const isFieldStaff = currentUser.role === 'volunteer';
+
   const pending = incidents.filter(
     (i) => i.status === 'pending_review' || i.status === 'pending'
   ).length;
 
-  const mainItems = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/admin/map', label: 'Bản đồ', icon: MapPin },
-    { path: '/admin/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
-    { path: '/admin/members', label: 'Thành viên & Nhóm', icon: Users },
-    { path: '/admin/accounts', label: 'Tài khoản', icon: UserCog },
-    { path: '/admin/field-tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
-    { path: '/admin/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
-  ];
+  // Số nhiệm vụ đang giao cho Tổ / cá nhân của nhân viên Tổ xử lý
+  const myFieldActiveCount = incidents.filter((i) => {
+    if (i.status !== 'assigned' && i.status !== 'in_progress') return false;
+    const matchAssignee = i.assignedTo?.assigneeName?.trim() === currentUser.name;
+    const matchUnit =
+      currentUser.department &&
+      i.assignedTo?.unitName &&
+      i.assignedTo.unitName.toLowerCase() === currentUser.department.toLowerCase();
+    return matchAssignee || matchUnit;
+  }).length;
+
+  const mainItems = isFieldStaff
+    ? [
+        {
+          path: '/admin/field-tasks',
+          label: 'Nhiệm vụ hiện trường',
+          icon: ClipboardList,
+          badge: myFieldActiveCount,
+        },
+        { path: '/admin/map', label: 'Bản đồ hiện trường', icon: MapPin },
+      ]
+    : [
+        { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/admin/map', label: 'Bản đồ', icon: MapPin },
+        { path: '/admin/inbox', label: 'Tiếp nhận', icon: Inbox, badge: pending },
+        { path: '/admin/members', label: 'Thành viên & Nhóm', icon: Users },
+        { path: '/admin/accounts', label: 'Tài khoản', icon: UserCog },
+        { path: '/admin/field-tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
+        { path: '/admin/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
+      ];
 
   return (
     <aside className={`officer-sidebar ${collapsed ? 'collapsed' : ''}`}>
