@@ -5,7 +5,11 @@ import {
   ChevronDown,
   Send,
   MessageSquare,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
+import { feedbacksApi } from '../../services/api';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const FAQS = [
   {
@@ -31,19 +35,36 @@ const FAQS = [
 ];
 
 export const CitizenHelpPage: React.FC = () => {
+  const { isAuthenticated, currentUser } = useAuthStore();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [feedback, setFeedback] = useState<string>('');
-  const [feedbackSent, setFeedbackSent] = useState<boolean>(false);
+  const [sending, setSending] = useState<boolean>(false);
+  const [sentSuccess, setSentSuccess] = useState<boolean>(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
-  const handleSendFeedback = (e: React.FormEvent) => {
+  const handleSendFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedback.trim()) return;
-    setFeedbackSent(true);
-    setTimeout(() => {
+    const trimmed = feedback.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    setSendError(null);
+    setSentSuccess(false);
+    try {
+      await feedbacksApi.create({
+        content: trimmed,
+        senderName: isAuthenticated ? currentUser.name : undefined,
+        senderPhone: isAuthenticated ? currentUser.phone : undefined,
+      });
       setFeedback('');
-      setFeedbackSent(false);
-      alert('Cảm ơn ý kiến đóng góp của bạn! UBND Phường Trấn Biên đã ghi nhận phản hồi.');
-    }, 1000);
+      setSentSuccess(true);
+      window.setTimeout(() => setSentSuccess(false), 5000);
+    } catch (err) {
+      setSendError(
+        err instanceof Error ? err.message : 'Không thể gửi góp ý lúc này. Vui lòng thử lại.'
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -206,25 +227,39 @@ export const CitizenHelpPage: React.FC = () => {
           <div className="bg-white rounded-[5px] border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Gửi câu hỏi / Góp ý cho UBND Phường</span>
+              <span>Gửi góp ý</span>
             </h3>
+
+            {sentSuccess && (
+              <div className="p-2.5 rounded-[5px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Cảm ơn bạn! Góp ý đã được gửi tới UBND Phường.</span>
+              </div>
+            )}
+
+            {sendError && (
+              <div className="p-2.5 rounded-[5px] bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{sendError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSendFeedback} className="space-y-3">
               <textarea
                 rows={3}
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Bạn có thắc mắc hoặc góp ý gì để cải thiện ứng dụng..."
+                placeholder="Nhập ý kiến đóng góp để cải thiện dịch vụ..."
                 className="w-full p-3 border border-slate-300 rounded-[5px] text-xs focus:ring-1 focus:ring-blue-600 focus:outline-none"
                 required
               />
               <button
                 type="submit"
-                disabled={feedbackSent}
-                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm border border-blue-900"
+                disabled={sending}
+                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white rounded-[5px] text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm"
               >
                 <Send className="w-3.5 h-3.5 shrink-0" />
-                <span>{feedbackSent ? 'Đang gửi...' : 'Gửi ý kiến đóng góp'}</span>
+                <span>{sending ? 'Đang gửi...' : 'Gửi góp ý'}</span>
               </button>
             </form>
           </div>

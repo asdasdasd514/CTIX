@@ -372,3 +372,31 @@ export const aiApi = {
     });
   },
 };
+
+// 7. Feedbacks API (Góp ý công dân -> Admin xem)
+export interface FeedbackRecord {
+  id: string;
+  senderName: string;
+  senderPhone: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const feedbacksApi = {
+  create: (payload: { content: string; senderName?: string; senderPhone?: string }) =>
+    apiRequest<{ feedback: FeedbackRecord }>('/feedbacks', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  list: () => apiRequest<{ feedbacks: FeedbackRecord[]; total: number }>('/feedbacks'),
+  toggleRead: (id: string, isRead?: boolean) =>
+    apiRequest<{ feedback: FeedbackRecord }>(`/feedbacks/${encodeURIComponent(id)}/read`, {
+      method: 'PATCH',
+      body: JSON.stringify(isRead !== undefined ? { isRead } : {}),
+    }),
+  remove: (id: string) =>
+    apiRequest<{ deleted: boolean }>(`/feedbacks/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+};

@@ -7,6 +7,7 @@ import {
   UserCog,
   ClipboardList,
   ChartNoAxesCombined,
+  MessageSquare,
   Settings,
 } from 'lucide-react';
 import { useIncidentStore } from '../../store/useIncidentStore';
@@ -55,6 +56,7 @@ export function Sidebar({
         { path: '/admin/accounts', label: 'Tài khoản', icon: UserCog },
         { path: '/admin/field-tasks', label: 'Nhiệm vụ hiện trường', icon: ClipboardList },
         { path: '/admin/statistics', label: 'Thống kê', icon: ChartNoAxesCombined },
+        { path: '/admin/feedbacks', label: 'Góp ý', icon: MessageSquare },
       ];
 
   return (

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { UserModel, type IUser, type UserRoleType } from '../models/User';
 import { UnitModel } from '../models/Unit';
 import { UnitMemberModel } from '../models/UnitMember';
+import { IncidentModel } from '../models/Incident';
 import type { AuthRequest } from '../middlewares/auth';
 
 const STAFF_ROLES: UserRoleType[] = ['officer', 'leader', 'volunteer'];
@@ -149,17 +150,21 @@ export async function updateUser(req: AuthRequest, res: Response) {
       isActive?: boolean;
     };
 
+    const previousPhone = user.phone;
     if (name !== undefined && name.trim()) user.name = name.trim();
-    if (phone !== undefined && phone.trim()) {
+    // Chỉ Quản trị viên mới được phép đổi SĐT đăng nhập; tự đồng bộ sang hồ sơ cũ để không mất lịch sử
+    if (isManager && phone !== undefined && phone.trim()) {
       const cleanPhone = phone.replace(/[\s.-]/g, '').trim();
-      const dupPhone = await UserModel.findOne({
-        phone: cleanPhone,
-        userId: { $ne: user.userId },
-      });
-      if (dupPhone) {
-        return res.status(409).json({ message: 'Số điện thoại này đã được sử dụng bởi tài khoản khác.' });
+      if (cleanPhone !== user.phone) {
+        const dupPhone = await UserModel.findOne({
+          phone: cleanPhone,
+          userId: { $ne: user.userId },
+        });
+        if (dupPhone) {
+          return res.status(409).json({ message: 'Số điện thoại này đã được sử dụng bởi tài khoản khác.' });
+        }
+        user.phone = cleanPhone;
       }
-      user.phone = cleanPhone;
     }
     if (isManager && role !== undefined) user.role = role;
     if (isManager && title !== undefined) user.title = title.trim() || defaultTitleByRole(user.role);
@@ -182,6 +187,14 @@ export async function updateUser(req: AuthRequest, res: Response) {
 
     await user.save();
     await syncUserToTeamMember(user);
+
+    // Đồng bộ SĐT mới sang các hồ sơ phản ánh cũ khi Admin đổi SĐT giúp người dùng
+    if (isManager && previousPhone && user.phone !== previousPhone) {
+      await IncidentModel.updateMany(
+        { 'sender.phone': previousPhone },
+        { $set: { 'sender.phone': user.phone } }
+      );
+    }
 
     return res.json({ user: serializeAccount(user) });
   } catch (err) {

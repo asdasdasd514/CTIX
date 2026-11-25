@@ -14,6 +14,7 @@ import { OfficerInboxPage } from './pages/Officer/OfficerInboxPage';
 import { DispatchDetailPage } from './pages/Officer/DispatchDetailPage';
 import { MembersPage } from './pages/Officer/MembersPage';
 import { AccountsPage } from './pages/Officer/AccountsPage';
+import { AdminFeedbacksPage } from './pages/Officer/AdminFeedbacksPage';
 import { NearbyIncidentsMapPage } from './modules/map/NearbyIncidentsMapPage';
 import { SubmitIncidentWizard } from './modules/citizen/SubmitIncidentWizard';
 import { MyReportsPage } from './modules/citizen/MyReportsPage';
@@ -201,6 +202,14 @@ export const App: React.FC = () => {
             element={
               <RequireManager>
                 <StatisticsPage />
+              </RequireManager>
+            }
+          />
+          <Route
+            path="feedbacks"
+            element={
+              <RequireManager>
+                <AdminFeedbacksPage />
               </RequireManager>
             }
           />

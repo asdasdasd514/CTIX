@@ -97,8 +97,8 @@ export const CitizenAccountPage: React.FC = () => {
     setError(null);
     setSuccess(null);
 
-    if (!name.trim() || !phone.trim()) {
-      setError('Vui lòng nhập đầy đủ Họ và tên và Số điện thoại.');
+    if (!name.trim()) {
+      setError('Vui lòng nhập đầy đủ Họ và tên.');
       return;
     }
     if (newPassword && newPassword.length < 6) {
@@ -114,12 +114,10 @@ export const CitizenAccountPage: React.FC = () => {
     try {
       const updated = await usersApi.update(currentUser.id, {
         name: name.trim(),
-        phone: phone.trim(),
         ...(newPassword ? { password: newPassword } : {}),
       });
       updateCurrentUser({
         name: updated.user.name,
-        phone: updated.user.phone,
       });
       setNewPassword('');
       setConfirmPassword('');
@@ -298,18 +296,21 @@ export const CitizenAccountPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Số điện thoại *
+                  Số điện thoại (cố định)
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
-                    required
+                    disabled
+                    readOnly
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="w-full h-10 pl-9 pr-3 rounded-[5px] border border-slate-200 bg-slate-100 text-slate-500 font-mono text-xs sm:text-sm cursor-not-allowed"
                   />
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  SĐT là tên đăng nhập cố định, không thể tự thay đổi.
+                </p>
               </div>
             </div>
 

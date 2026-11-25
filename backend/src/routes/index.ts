@@ -6,6 +6,7 @@ import * as teamCtrl from '../controllers/teamController';
 import * as statsCtrl from '../controllers/statsController';
 import * as userCtrl from '../controllers/userController';
 import * as aiCtrl from '../controllers/aiController';
+import * as feedbackCtrl from '../controllers/feedbackController';
 import { requireAuth, optionalAuth, requireRole } from '../middlewares/auth';
 import { uploadImages, uploadAudio } from '../middlewares/upload';
 
@@ -58,6 +59,12 @@ apiRouter.delete('/users/:id', requireAuth, requireRole('officer', 'leader'), us
 // AI Assistant (Chatbot & Direct Audio Voice Command)
 apiRouter.post('/ai/assistant', optionalAuth, aiCtrl.citizenAssistant);
 apiRouter.post('/ai/voice-command', optionalAuth, uploadAudio.single('audio'), aiCtrl.citizenVoiceCommand);
+
+// Feedbacks (Góp ý công dân -> Admin xem)
+apiRouter.post('/feedbacks', optionalAuth, feedbackCtrl.createFeedback);
+apiRouter.get('/feedbacks', requireAuth, requireRole('officer', 'leader'), feedbackCtrl.listFeedbacks);
+apiRouter.patch('/feedbacks/:id/read', requireAuth, requireRole('officer', 'leader'), feedbackCtrl.toggleFeedbackRead);
+apiRouter.delete('/feedbacks/:id', requireAuth, requireRole('officer', 'leader'), feedbackCtrl.deleteFeedback);
 
 // Stats
 apiRouter.get('/stats/summary', statsCtrl.getSummaryStats);

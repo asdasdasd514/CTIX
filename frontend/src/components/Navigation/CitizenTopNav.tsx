@@ -222,9 +222,9 @@ export const CitizenTopNav: React.FC = () => {
               >
                 {({ isActive }) => (
                   <>
-                    {/* Thanh mảnh trên cùng đánh dấu tab đang chọn */}
+                    {/* Thanh mảnh dưới cùng đánh dấu tab đang chọn */}
                     {isActive && (
-                      <span className="absolute top-0 left-3 right-3 h-[2.5px] bg-blue-700 rounded-b-full" />
+                      <span className="absolute bottom-0 left-3 right-3 h-[2.5px] bg-blue-700 rounded-t-full" />
                     )}
                     <div className="relative">
                       <Icon

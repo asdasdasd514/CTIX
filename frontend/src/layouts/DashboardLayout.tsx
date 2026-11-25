@@ -12,6 +12,7 @@ import {
   UserCog,
   ClipboardList,
   ChartNoAxesCombined,
+  MessageSquare,
   Settings,
   ShieldCheck,
 } from 'lucide-react';
@@ -26,7 +27,9 @@ export function DashboardLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const routeMeta = pathname.includes('statistics')
+  const routeMeta = pathname.includes('feedbacks')
+    ? { title: 'Góp ý công dân', subtitle: 'Ý kiến đóng góp từ trang Trợ giúp', icon: MessageSquare }
+    : pathname.includes('statistics')
     ? { title: 'Thống kê', subtitle: 'Báo cáo tổng hợp & hiệu suất xử lý', icon: ChartNoAxesCombined }
     : pathname.includes('accounts')
       ? { title: 'Quản lý tài khoản', subtitle: 'Quản lý tài khoản công dân, quản trị viên và đội xử lý', icon: UserCog }
