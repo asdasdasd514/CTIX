@@ -57,6 +57,24 @@ export const CitizenHomePage: React.FC = () => {
       : 3.2;
   const avgDaysFormatted = avgDaysNumber.toFixed(1).replace('.', ',');
 
+  // Tính mức độ hài lòng thật từ đánh giá của công dân (đồng bộ 100% với Dashboard Admin)
+  const ratedList = publicIncidents.filter((i) => i.rating?.stars);
+  const avgStars =
+    ratedList.length > 0
+      ? (ratedList.reduce((s, i) => s + (i.rating?.stars || 0), 0) / ratedList.length).toFixed(1)
+      : '5.0';
+  const satisfactionPct =
+    ratedList.length > 0
+      ? ((ratedList.filter((i) => (i.rating?.stars || 0) >= 4).length / ratedList.length) * 100)
+          .toFixed(1)
+          .replace('.', ',')
+          .replace(',0', '')
+      : '100';
+
+  // Tự động lấy sự cố Khẩn cấp mới nhất đang mở từ MongoDB cho thanh cảnh báo
+  const latestUrgent =
+    activeIncidents.find((i) => i.priority === 'urgent') || null;
+
   const streetLightCount = publicIncidents.filter((i) => i.category === 'street_light').length;
   const floodingCount = publicIncidents.filter((i) => i.category === 'flooding').length;
   const wasteCount = publicIncidents.filter((i) => i.category === 'waste').length;
@@ -184,7 +202,7 @@ export const CitizenHomePage: React.FC = () => {
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-emerald-600 shadow-sm">
               <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Đã hoàn thành</div>
               <div className="text-lg sm:text-2xl font-black text-emerald-600 mt-1">
-                {resolvedCount}/{incidents.length}{' '}
+                {resolvedCount}/{publicIncidents.length}{' '}
                 <span className="text-xs font-bold text-slate-500">({resolvedRate}%)</span>
               </div>
             </div>
@@ -197,22 +215,32 @@ export const CitizenHomePage: React.FC = () => {
             <div className="bg-white rounded-[5px] p-3.5 sm:p-4 border border-slate-200 border-t-2 border-t-indigo-600 shadow-sm">
               <div className="text-slate-500 text-[11px] sm:text-xs font-semibold">Hài lòng</div>
               <div className="text-lg sm:text-2xl font-black text-blue-700 mt-1">
-                96,8% <span className="text-xs text-amber-500">★ 4.9</span>
+                {satisfactionPct}% <span className="text-xs text-amber-500">★ {avgStars}</span>
               </div>
             </div>
           </section>
         </>
       )}
 
-      {/* 3. THÔNG BÁO KHẨN (Gọn 1 dòng) */}
-      <section className="bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-[5px] px-4 py-2.5 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-950 font-semibold truncate">
-            <strong>Cảnh báo triều cường (17h–19h):</strong> Hạn chế qua đường ven sông Đồng Nai & ngã 3 Tân Mai.
-          </p>
-        </div>
-      </section>
+      {/* 3. CẢNH BÁO KHẨN TỰ ĐỘNG TỪ DỮ LIỆU THẬT */}
+      {latestUrgent && (
+        <button
+          type="button"
+          onClick={() => navigate(`/citizen/reports/${latestUrgent.id}`)}
+          className="w-full text-left bg-amber-50 hover:bg-amber-100/80 border border-amber-200 border-l-4 border-l-amber-500 rounded-[5px] px-4 py-2.5 shadow-sm transition flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-950 font-semibold truncate">
+              <strong>Cảnh báo khẩn:</strong> {latestUrgent.title} — {latestUrgent.location.address}
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-amber-900 inline-flex items-center gap-1 shrink-0">
+            <span>Xem</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </span>
+        </button>
+      )}
 
       {/* 4. CÁC DANH MỤC PHẢN ÁNH THƯỜNG GẶP */}
       <section className="space-y-3">
