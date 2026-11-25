@@ -12,19 +12,10 @@ const VI_WEEKDAYS = [
 
 /**
  * Kiểm tra ảnh đã được đóng dấu cứng (Canvas) lúc upload hay chưa
- * để tránh hiển thị đè 2 lớp watermark.
+ * để tuyệt đối tránh hiển thị đè hoặc nhân bản 2 lớp watermark.
  */
-export function isRightWatermarkedUrl(url?: string): boolean {
+export function isAlreadyWatermarkedUrl(url?: string): boolean {
   if (!url) return false;
-  return /[?&]wm=r\b/i.test(url) || /_wmr([._-]|$)/i.test(url);
-}
-
-export function isAlreadyWatermarkedUrl(url?: string, align: 'left' | 'right' = 'left'): boolean {
-  if (!url) return false;
-  if (align === 'right') {
-    // Ảnh SAU XỬ LÝ chỉ ẩn lớp overlay phải khi ảnh đã đóng dấu cứng ở góc PHẢI (?wm=r / _wmr)
-    return isRightWatermarkedUrl(url);
-  }
   return /[?&]wm=(1|r)\b/i.test(url) || /_wmr?([._-]|$)/i.test(url);
 }
 
@@ -47,7 +38,7 @@ export const TimestampWatermark: React.FC<TimestampWatermarkProps> = ({
   visible = true,
   splitHalf = false,
 }) => {
-  if (!timestamp || isAlreadyWatermarkedUrl(imageUrl, align)) return null;
+  if (!timestamp || isAlreadyWatermarkedUrl(imageUrl)) return null;
   const dateObj = timestamp instanceof Date ? timestamp : new Date(timestamp);
   if (Number.isNaN(dateObj.getTime())) return null;
 

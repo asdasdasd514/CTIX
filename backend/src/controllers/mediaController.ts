@@ -31,15 +31,11 @@ export async function uploadMedia(req: Request, res: Response) {
     const uploaded = await Promise.all(
       files.map(async (file) => {
         const res = await uploadBufferToCloudinary(file.buffer, folder);
-        const origName = file.originalname || '';
-        const hasRightWatermark = /_wmr([._-]|$)/i.test(origName);
-        const hasLeftWatermark = !hasRightWatermark && /_wm([._-]|$)/i.test(origName);
-        let finalUrl = res.url;
-        if (hasRightWatermark && !/[?&]wm=r\b/i.test(finalUrl)) {
-          finalUrl = `${finalUrl}${finalUrl.includes('?') ? '&' : '?'}wm=r`;
-        } else if (hasLeftWatermark && !/[?&]wm=1\b/i.test(finalUrl)) {
-          finalUrl = `${finalUrl}${finalUrl.includes('?') ? '&' : '?'}wm=1`;
-        }
+        const hasBakedWatermark = /_wm([._-]|$)/i.test(file.originalname || '');
+        const finalUrl =
+          hasBakedWatermark && !/[?&]wm=1\b/i.test(res.url)
+            ? `${res.url}${res.url.includes('?') ? '&' : '?'}wm=1`
+            : res.url;
         return { ...res, url: finalUrl };
       })
     );
